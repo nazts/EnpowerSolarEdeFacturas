@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clientes · Enpower Solar</title>
+<style>
+ body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f1420;color:#e8eefc;margin:0;padding:24px}
+ a{color:#f5a623}
+ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:14px}
+ th,td{padding:9px 10px;border-bottom:1px solid #28324a;text-align:left}
+ th{color:#8b98b5;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+ .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+ .ok{background:rgba(62,207,142,.15);color:#3ecf8e}
+ .warn{background:rgba(245,166,35,.15);color:#f5a623}
+ .bad{background:rgba(239,91,107,.15);color:#ef5b6b}
+ .num{text-align:right;font-variant-numeric:tabular-nums}
+ .btn{display:inline-block;padding:9px 14px;border-radius:9px;border:1px solid #28324a;background:#1d2637;color:#e8eefc;text-decoration:none}
+</style>
+</head>
+<body>
+<p><a href="/">← Dashboard</a></p>
+<h1>Clientes agregados ({{ clientes|length }})</h1>
+<p><a class="btn" href="/clientes/nuevo">+ Agregar nuevo cliente</a></p>
+{% if clientes %}
+<div style="overflow-x:auto">
+<table>
+  <thead>
+    <tr><th>NIC</th><th>Nombre</th><th>Pagador / alias</th><th>Asesor</th>
+        <th>Día de corte</th><th>Próximo corte</th><th>Facturas</th>
+        <th class="num">Último monto</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for c in clientes %}
+    <tr>
+      <td><b>{{ c.nic }}</b></td>
+      <td>{{ c.nombre_normalizado or c.razon_social or "—" }}<br>
+          <span style="color:#8b98b5;font-size:12px">{{ c.razon_social }}</span></td>
+      <td>{{ c.alias or "—" }}</td>
+      <td>{{ c.asesor or "—" }}</td>
+      <td>{{ c.dia_corte or "—" }}</td>
+      <td>{{ c.proximo_corte or "—" }}
+        {% if c.dias_corte is not none %}
+          <span class="pill {{ 'warn' if c.dias_corte <= 3 else 'ok' }}">en {{ c.dias_corte }} d</span>
+        {% endif %}</td>
+      <td class="num">{{ c.total_facturas }}</td>
+      <td class="num">{{ "{:,.2f}".format(c.ultimo_monto) if c.ultimo_monto is not none else "—" }}</td>
+      <td class="num"><a href="/clientes/{{ c.nic }}">Histórico →</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No hay clientes registrados. <a href="/clientes/nuevo">Agrega el primero</a>.</p>
+{% endif %}
+</body>
+</html>

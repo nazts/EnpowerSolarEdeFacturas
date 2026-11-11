@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ cliente.nic }} · Enpower Solar</title>
+<style>
+ body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f1420;color:#e8eefc;margin:0;padding:24px}
+ a{color:#f5a623}
+ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:14px}
+ th,td{padding:9px 10px;border-bottom:1px solid #28324a;text-align:left}
+ th{color:#8b98b5;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+ .num{text-align:right;font-variant-numeric:tabular-nums}
+ .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+ .ok{background:rgba(62,207,142,.15);color:#3ecf8e}
+ .warn{background:rgba(245,166,35,.15);color:#f5a623}
+ .bad{background:rgba(239,91,107,.15);color:#ef5b6b}
+ .dato{display:inline-block;margin:0 24px 12px 0}
+ .dato span{display:block;color:#8b98b5;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+</style>
+</head>
+<body>
+<p><a href="/clientes">← Clientes</a></p>
+<h1>{{ cliente.nombre_normalizado or cliente.razon_social or cliente.nic }}</h1>
+<div>
+  <div class="dato"><span>NIC</span>{{ cliente.nic }}</div>
+  <div class="dato"><span>Razón social</span>{{ cliente.razon_social or "—" }}</div>
+  <div class="dato"><span>Pagador / alias</span>{{ cliente.alias or "—" }}</div>
+  <div class="dato"><span>Asesor</span>{{ cliente.asesor or "—" }}</div>
+  <div class="dato"><span>Día de corte</span>{{ cliente.dia_corte or "—" }}</div>
+  <div class="dato"><span>Próximo corte</span>{{ cliente.proximo_corte or "—" }}
+    {% if cliente.dias_corte is not none %} (en {{ cliente.dias_corte }} días){% endif %}</div>
+  <div class="dato"><span>Estado</span>{% if cliente.activo %}activo{% else %}inactivo{% endif %}</div>
+</div>
+
+{% if pendientes %}
+<p><span class="pill bad">Pendiente</span>
+  {% for p in pendientes %} corte {{ p.fecha_corte }} (intentos {{ p.intentos }}){% endfor %}</p>
+{% endif %}
+
+<h2>Histórico de facturas ({{ historico|length }})</h2>
+{% if historico %}
+<div style="overflow-x:auto">
+<table>
+  <thead><tr><th>Corte</th><th>Período</th><th>No. factura</th><th class="num">kWh</th>
+    <th class="num">Facturado</th><th>Vence</th><th>Enviada</th><th></th></tr></thead>
+  <tbody>
+  {% for f in historico %}
+    <tr>
+      <td>{{ f.corte }}</td>
+      <td>{{ f.periodo_ini or "—" }} → {{ f.periodo_fin or "—" }}</td>
+      <td>{{ f.no_factura or "—" }}</td>
+      <td class="num">{{ f.kwh if f.kwh is not none else "—" }}</td>
+      <td class="num">{{ "{:,.2f}".format(f.facturado) if f.facturado is not none else "—" }}</td>
+      <td>{{ f.vence or "—" }}</td>
+      <td>{% if f.enviada %}<span class="pill ok">sí</span>{% else %}no{% endif %}</td>
+      <td class="num"><a href="/facturas/{{ f.id }}/pdf" target="_blank" rel="noopener">PDF</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p>Total facturado en el histórico: <b>RD$ {{ "{:,.2f}".format(total_facturado) }}</b></p>
+{% else %}
+<p>Este cliente todavía no tiene facturas descargadas.</p>
+{% endif %}
+</body>
+</html>

@@ -82,6 +82,61 @@ def exportar_excel():
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
+# ------------------------------------------------------------------ clientes
+@app.get("/clientes")
+def clientes(request: Request):
+    from .fechas import dias_para_corte, proximo_corte
+
+    with db.sesion() as conn:
+        filas = db.resumen_clientes(conn)
+    for f in filas:
+        f["proximo_corte"] = proximo_corte(f.get("dia_corte"))
+        f["dias_corte"] = dias_para_corte(f.get("dia_corte"))
+    return templates.TemplateResponse(request, "clientes.html", {"clientes": filas})
+
+
+@app.get("/clientes/nuevo")
+def cliente_nuevo(request: Request):
+    return templates.TemplateResponse(request, "cliente_nuevo.html", {})
+
+
+@app.post("/clientes")
+def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
+                  alias: str = Form(default=""), asesor: str = Form(default=""),
+                  dia_corte: str = Form(default=""), notas: str = Form(default="")):
+    nic = nic.strip()
+    if not nic.isdigit():
+        raise HTTPException(400, "El NIC debe ser numérico")
+    with db.sesion() as conn:
+        db.upsert_contrato(
+            conn, nic, razon_social=razon_social, alias=alias, asesor=asesor,
+            notas=notas,
+            dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
+        )
+        db.log_evento(conn, "info", f"Cliente {nic} agregado desde el módulo de clientes")
+    return RedirectResponse(f"/clientes/{nic}", status_code=303)
+
+
+@app.get("/clientes/{nic}")
+def cliente_detalle(request: Request, nic: str):
+    from .fechas import dias_para_corte, proximo_corte
+
+    with db.sesion() as conn:
+        contrato = db.obtener_contrato(conn, nic)
+        if contrato is None:
+            raise HTTPException(404, "Ese NIC no está registrado")
+        historico = [dict(f) for f in db.historico_facturas(conn, nic)]
+        pendientes = [dict(p) for p in db.pendientes_abiertos(conn) if str(p["nic"]) == nic]
+    datos = dict(contrato)
+    datos["proximo_corte"] = proximo_corte(datos.get("dia_corte"))
+    datos["dias_corte"] = dias_para_corte(datos.get("dia_corte"))
+    total = sum(f["facturado"] or 0 for f in historico)
+    return templates.TemplateResponse(request, "cliente_detalle.html", {
+        "cliente": datos, "historico": historico, "pendientes": pendientes,
+        "total_facturado": total,
+    })
+
+
 # ------------------------------------------------------------------ paginas
 @app.get("/")
 def inicio(request: Request):

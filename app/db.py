@@ -222,6 +222,37 @@ def ultima_factura(conn: sqlite3.Connection, nic: str) -> sqlite3.Row | None:
     ).fetchone()
 
 
+def historico_facturas(conn: sqlite3.Connection, nic: str) -> list[sqlite3.Row]:
+    """Todas las facturas descargadas de un contrato, la mas reciente primero."""
+    return conn.execute(
+        """SELECT * FROM facturas
+           WHERE nic = ? AND estado = 'descargada'
+           ORDER BY corte DESC, id DESC""",
+        (str(nic),),
+    ).fetchall()
+
+
+def resumen_clientes(conn: sqlite3.Connection) -> list[dict]:
+    """Contratos con conteo de facturas y datos de la ultima factura."""
+    filas = conn.execute(
+        """SELECT c.*,
+                  (SELECT COUNT(*) FROM facturas f
+                    WHERE f.nic = c.nic AND f.estado = 'descargada') AS total_facturas,
+                  (SELECT f.corte FROM facturas f
+                    WHERE f.nic = c.nic AND f.estado = 'descargada'
+                    ORDER BY f.corte DESC LIMIT 1) AS ultimo_corte,
+                  (SELECT f.facturado FROM facturas f
+                    WHERE f.nic = c.nic AND f.estado = 'descargada'
+                    ORDER BY f.corte DESC LIMIT 1) AS ultimo_monto,
+                  (SELECT f.kwh FROM facturas f
+                    WHERE f.nic = c.nic AND f.estado = 'descargada'
+                    ORDER BY f.corte DESC LIMIT 1) AS ultimo_kwh
+           FROM contratos c
+           ORDER BY c.activo DESC, c.nic"""
+    ).fetchall()
+    return [dict(f) for f in filas]
+
+
 # ----------------------------------------------------------------- pendientes
 def registrar_pendiente(conn: sqlite3.Connection, nic: str, fecha_corte: str,
                         detalle: str = "") -> None:

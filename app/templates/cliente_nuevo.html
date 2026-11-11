@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuevo cliente · Enpower Solar</title>
+<style>
+ body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f1420;color:#e8eefc;margin:0;padding:24px}
+ a{color:#f5a623}
+ form{max-width:720px;margin-top:18px}
+ label{display:block;font-size:11.5px;color:#8b98b5;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 5px}
+ input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid #28324a;background:#0d131f;color:#e8eefc;font:inherit}
+ button{padding:11px 18px;border-radius:9px;border:1px solid #f5a623;background:#f5a623;color:#1a1200;font-weight:600;cursor:pointer}
+ .fila{display:flex;gap:12px;flex-wrap:wrap}
+ .fila > div{flex:1 1 200px}
+ #msg{margin-top:12px;font-size:13.5px}
+</style>
+</head>
+<body>
+<p><a href="/clientes">← Clientes</a></p>
+<h1>Agregar nuevo cliente</h1>
+<form method="post" action="/clientes">
+  <div class="fila">
+    <div>
+      <label for="nic">NIC / contrato</label>
+      <input id="nic" name="nic" required inputmode="numeric" placeholder="7533709">
+    </div>
+    <div style="flex:2 1 300px">
+      <label for="razon_social">Razón social (factura)</label>
+      <input id="razon_social" name="razon_social" placeholder="se autocompleta al buscar">
+    </div>
+    <div style="flex:0 0 auto;display:flex;align-items:flex-end">
+      <button type="button" onclick="buscar()" style="background:#1d2637;color:#e8eefc;border-color:#28324a">🔎 Buscar</button>
+    </div>
+  </div>
+  <div class="fila">
+    <div><label for="alias">Nombre del pagador / alias</label>
+      <input id="alias" name="alias" placeholder="si paga otra persona o empresa"></div>
+    <div><label for="asesor">Asesor</label><input id="asesor" name="asesor"></div>
+  </div>
+  <div class="fila">
+    <div><label for="dia_corte">Día de corte</label>
+      <input id="dia_corte" name="dia_corte" inputmode="numeric" placeholder="se aprende con la primera factura"></div>
+    <div><label for="notas">Notas</label><input id="notas" name="notas"></div>
+  </div>
+  <div id="msg"></div>
+  <p><button type="submit">Guardar cliente</button></p>
+</form>
+<script>
+async function buscar(){
+  const nic = document.getElementById('nic').value.trim();
+  const msg = document.getElementById('msg');
+  if(!nic){ msg.textContent = 'Escribe el NIC primero'; return; }
+  msg.textContent = 'Consultando la Oficina Virtual…';
+  const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
+  const d = await r.json();
+  if(!d.ok){ msg.textContent = '⚠️ ' + (d.error || 'No se pudo consultar'); return; }
+  document.getElementById('razon_social').value = d.razon_social || '';
+  msg.textContent = 'Titular: ' + d.razon_social + ' · ' + (d.direccion || '');
+}
+</script>
+</body>
+</html>
