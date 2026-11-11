@@ -461,7 +461,10 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
     if proveedor not in ("edenorte", "edesur"):
         raise HTTPException(400, "Distribuidora no válida")
 
-    # Edesur: el nombre lo da el portal, validando NIC + referencia de pago
+    # Edesur: la referencia de pago es obligatoria y el nombre lo da el portal
+    if proveedor == "edesur" and not referencia.strip():
+        raise HTTPException(400, "La referencia de pago es obligatoria para Edesur")
+
     aviso = ""
     if proveedor == "edesur" and referencia.strip():
         try:

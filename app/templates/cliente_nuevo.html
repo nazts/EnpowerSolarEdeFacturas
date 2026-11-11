@@ -169,10 +169,10 @@
           </div>
 
           <div class="campo c12" id="campoRef" hidden>
-            <label for="referencia">Referencia de pago</label>
+            <label for="referencia">Referencia de pago <span class="req" id="reqRef" aria-hidden="true">*</span></label>
             <input id="referencia" name="referencia" inputmode="numeric" pattern="[0-9]+"
                    placeholder="2115589310 (los números antes del guion)">
-            <p class="nota" style="margin-top:6px">Edesur la pide para asociar un contrato que no está en la cuenta. Si no la tienes, se prueba sola en un rango cercano.</p>
+            <p class="nota" style="margin-top:6px">Obligatoria en Edesur: son los números antes del guion (ej. <code>2115589310</code>). Si ya cambió, se prueba sola en un rango cercano.</p>
           </div>
 
           <p class="nota" id="pista" aria-live="polite">Escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (Edenorte tarda unos segundos).</p>
@@ -317,8 +317,12 @@ async function ubicarPorDireccion(pref){
 function cambiarProveedor(){
   const esEdesur = document.getElementById('proveedor').value === 'edesur';
   document.getElementById('campoRef').hidden = !esEdesur;
+  const ref = document.getElementById('referencia');
+  ref.required = esEdesur;                       // Edesur: obligatoria; Edenorte: no existe
+  document.getElementById('reqRef').hidden = !esEdesur;
+  if(!esEdesur) ref.value = '';
   document.getElementById('pista').textContent = esEdesur
-    ? 'Edesur: escribe el NIC y, si lo tienes, la referencia de pago (los números antes del guion). Si el contrato no está asociado se agrega al buscarlo.'
+    ? 'Edesur: la referencia de pago es obligatoria (los números antes del guion). Con el NIC y la referencia, Edesur devuelve el nombre del titular.'
     : 'Edenorte: escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (tarda unos segundos).';
 }
 async function buscar(){
@@ -327,6 +331,8 @@ async function buscar(){
   const referencia = document.getElementById('referencia').value.trim();
   if(!nic) return aviso('Escribe el NIC primero', 'warn');
   if(!/^[0-9]+$/.test(nic)) return aviso('El NIC debe ser numérico', 'warn');
+  if(proveedor === 'edesur' && !referencia) return aviso('La referencia de pago es obligatoria para Edesur (los números antes del guion).', 'warn');
+  if(referencia && !/^[0-9]+$/.test(referencia)) return aviso('La referencia de pago debe ser numérica', 'warn');
   aviso(proveedor === 'edesur'
     ? 'Consultando Edesur…'
     : 'Consultando la Oficina Virtual… si el NIC no está asociado, Edenorte lo agrega y eso tarda unos segundos.', 'info');

@@ -163,10 +163,13 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     del_portal.add(c.nic)
                     existente = db.obtener_contrato(conn, c.nic)
                     if existente is None:
-                        db.upsert_contrato(conn, c.nic, razon_social=c.titular,
-                                           direccion=c.direccion, telefono=c.telefono,
-                                           proveedor=nombre_prov)
-                    elif not existente["razon_social"] and c.titular:
+                        # los clientes se dan de alta desde el panel, no se importan
+                        # en masa desde la cuenta de la distribuidora
+                        continue
+                    if (existente["proveedor"] if "proveedor" in existente.keys()
+                            else "") != nombre_prov:
+                        db.upsert_contrato(conn, c.nic, proveedor=nombre_prov)
+                    if not existente["razon_social"] and c.titular:
                         db.upsert_contrato(conn, c.nic, razon_social=c.titular,
                                            direccion=c.direccion, telefono=c.telefono,
                                            proveedor=nombre_prov)
