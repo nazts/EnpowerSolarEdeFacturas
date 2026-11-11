@@ -1,0 +1,19 @@
+# dependencias / entorno
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+
+# salidas / datos descargados
+facturas/
+Descargas/
+*.pdf
+*.xlsx
+
+# sistema
+.DS_Store
+Thumbs.db
