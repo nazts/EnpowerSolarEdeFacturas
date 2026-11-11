@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 {% block titulo %}Enpower Solar{% endblock %}
-{% block estilos %}<style>
+{% block estilos %}
+<style>
+  .cab-seccion{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 18px;border-bottom:1px solid var(--line)}
+  .cab-seccion h2{margin:0;padding:0;border:0;font-size:14px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted)}
+  .btn-mini{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:8px;white-space:nowrap;
+    border:1px solid var(--line);background:var(--card2);color:var(--txt);text-decoration:none}
+  .btn-mini:hover{border-color:var(--accent);color:var(--accent)}
   header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
     padding:16px 26px;border-bottom:1px solid var(--line);background:var(--header-bg)}
   h1{margin:0;font-size:19px;letter-spacing:.3px;white-space:nowrap}
@@ -165,40 +173,10 @@
   </section>
 
   <section>
-    <h2>Agregar contrato (NIC)</h2>
-    <div class="cuerpo">
-      <form method="post" action="/contratos" id="formAlta">
-        <div class="fila">
-          <div>
-            <label for="nic">NIC / contrato</label>
-            <input id="nic" name="nic" required placeholder="7533709" inputmode="numeric">
-          </div>
-          <div style="flex:2 1 260px">
-            <label for="razon_social">Razón social (factura)</label>
-            <input id="razon_social" name="razon_social" placeholder="se autocompleta al buscar">
-          </div>
-          <div class="fijo"><button type="button" id="btnBuscar" onclick="buscarRazon()">🔎 Buscar razón social</button></div>
-        </div>
-        <div class="fila" style="margin-top:12px">
-          <div>
-            <label for="alias">Nombre del pagador / alias</label>
-            <input id="alias" name="alias" placeholder="si paga otro, no el titular">
-          </div>
-          <div><label for="asesor">Asesor</label><input id="asesor" name="asesor" placeholder="nombre del asesor"></div>
-          <div><label for="dia_corte">Día de corte</label>
-            <input id="dia_corte" name="dia_corte" placeholder="se aprende solo" inputmode="numeric"></div>
-          <div><label for="notas">Notas</label><input id="notas" name="notas" placeholder="opcional"></div>
-        </div>
-        <div class="pie-form">
-          <button class="primario" type="submit">Guardar contrato</button>
-          <span class="muted" id="pista" aria-live="polite">El NIC debe estar asociado a la cuenta en la Oficina Virtual.</span>
-        </div>
-      </form>
+    <div class="cab-seccion">
+      <h2>Contratos ({{ contratos|length }})</h2>
+      <a class="btn-mini" href="/clientes/nuevo">+ Nuevo cliente</a>
     </div>
-  </section>
-
-  <section>
-    <h2>Contratos ({{ contratos|length }})</h2>
     <div class="cuerpo sin-pad">
       {% if contratos %}
       <div class="tabla-wrap"><table class="cards">
@@ -420,22 +398,6 @@ function ocupado(id, on, txt){
   if(on){ b.dataset.orig = b.textContent; b.disabled = true; b.setAttribute('aria-busy','true');
     b.innerHTML = '<span class="spin" aria-hidden="true"></span> ' + txt; }
   else { b.disabled = false; b.removeAttribute('aria-busy'); if(b.dataset.orig) b.textContent = b.dataset.orig; }
-}
-async function buscarRazon(){
-  const nic = document.getElementById('nic').value.trim();
-  if(!nic) return aviso('Escribe el NIC primero', 'warn');
-  aviso('Consultando la Oficina Virtual…', 'info');
-  ocupado('btnBuscar', true, 'Buscando…');
-  try{
-    const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
-    const d = await r.json();
-    if(!d.ok) return aviso(d.error || 'No se pudo consultar', false);
-    document.getElementById('razon_social').value = d.razon_social || '';
-    document.getElementById('pista').textContent =
-      'Titular: ' + d.razon_social + ' · ' + (d.direccion || '');
-    aviso('Razón social encontrada: ' + d.razon_social);
-  }catch(e){ aviso('No se pudo conectar con el servidor', false); }
-  finally{ ocupado('btnBuscar', false); }
 }
 function editar(c){
   document.getElementById('dlgNic').textContent = c.nic;
