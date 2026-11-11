@@ -42,6 +42,7 @@ def exportar(destino: str | Path | None = None) -> Path:
                   f.dias, f.kwh, f.sin_subsidio, f.subsidio, f.facturado, f.estado,
                   f.enviada, f.pdf_path
            FROM facturas f LEFT JOIN contratos c ON c.nic = f.nic
+           WHERE f.estado = 'descargada'
            ORDER BY f.corte DESC, f.nic"""
     ).fetchall()
     conn.close()
