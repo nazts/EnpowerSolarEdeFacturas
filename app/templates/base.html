@@ -165,6 +165,9 @@
       <i class="bi bi-send-fill" aria-hidden="true"></i><span>Probar Telegram</span></button>
     <button class="item" type="button" id="accCorrer" title="Correr ahora">
       <i class="bi bi-play-circle-fill" aria-hidden="true"></i><span>Correr ahora</span></button>
+    <button class="item" type="button" id="accHistorial"
+            title="Guardar las últimas facturas de cada cliente y enviarlas">
+      <i class="bi bi-clock-history" aria-hidden="true"></i><span>Guardar histórico</span></button>
   </nav>
   <div class="pie">
     {% set u = request.state.usuario if request and request.state else None %}
@@ -213,9 +216,21 @@ async function accionTelegram(btn){
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
   finally{ btn.removeAttribute('aria-busy'); }
 }
+async function accionHistorial(btn){
+  btn.setAttribute('aria-busy','true');
+  toast('Guardando las últimas facturas de cada cliente…');
+  try{
+    const r = await fetch('/api/historial', {method:'POST'});
+    const d = await r.json();
+    if(!d.ok){ toast(d.error || 'No se pudo guardar el histórico', false); return; }
+    toast('Histórico: ' + d.nuevos + ' factura(s) guardada(s), ' + d.enviados + ' enviada(s)');
+    setTimeout(function(){ location.reload(); }, 1800);
+  }catch(e){ toast('No se pudo conectar con el servidor', false); }
+  finally{ btn.removeAttribute('aria-busy'); }
+}
 async function accionCorrer(btn){
   btn.setAttribute('aria-busy','true');
-  toast('Escaneando Edenorte…');
+  toast('Escaneando Edenorte y Edesur…');
   try{
     const r = await fetch('/api/corrida', {method:'POST'});
     const d = await r.json();
@@ -228,9 +243,11 @@ async function accionCorrer(btn){
 }
 (function(){
   var b = document.body, KEY = 'sidebar-min';
-  var at = document.getElementById('accTelegram'), ac = document.getElementById('accCorrer');
+  var at = document.getElementById('accTelegram'), ac = document.getElementById('accCorrer'),
+      ah = document.getElementById('accHistorial');
   if(at) at.addEventListener('click', function(){ accionTelegram(at); });
   if(ac) ac.addEventListener('click', function(){ accionCorrer(ac); });
+  if(ah) ah.addEventListener('click', function(){ accionHistorial(ah); });
   try { if (localStorage.getItem(KEY) === '1') b.classList.add('side-min'); } catch(e){}
   var movil = function(){ return window.matchMedia('(max-width:768px)').matches; };
   document.getElementById('colapsar').addEventListener('click', function(){

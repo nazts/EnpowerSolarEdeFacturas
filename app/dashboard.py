@@ -412,6 +412,19 @@ def api_corrida(fecha: str | None = Form(default=None)) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
 
+@app.post("/api/historial")
+def api_historial() -> JSONResponse:
+    """Guarda las ultimas facturas de cada cliente y manda a Telegram las que falten."""
+    from .runner import sincronizar_historial
+    try:
+        r = sincronizar_historial(enviar=True)
+        return JSONResponse({"ok": True, "nuevos": len(r.get("nuevos", [])),
+                             "enviados": r.get("enviados", 0),
+                             "errores": r.get("errores", [])[:5], **r})
+    except Exception as exc:  # el dashboard nunca debe caerse
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
 @app.get("/export/excel")
 def exportar_excel():
     ruta = excel.exportar()

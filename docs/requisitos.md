@@ -263,3 +263,24 @@ renombra `NOMBRES APELLIDOS NIC.pdf`), y consumo en blanco no se descarga.
 
 Verificado con los NIC `5786394` (corte 13/10/2026, 1,140 kWh, RD$15,051.19) y
 `2115589` (corte 13/08/2026, 0 kWh, RD$42.10).
+
+
+---
+
+## 9. Histórico de facturas por cliente
+
+Además de la factura que corta cada día, el sistema guarda **las últimas facturas
+de cada cliente** (3 por defecto, mínimo las 2 anteriores), en `facturas/` y en la
+base de datos, sin modificar el PDF.
+
+Al grupo de Telegram va **solo la última factura de cada cliente**, en un
+**mensaje separado por cliente** (documento + pie con NIC, nombre normalizado,
+monto a pagar, asesor y vencimiento). Las facturas anteriores quedan guardadas en
+el panel como histórico, pero no se envían.
+
+Se dispara: en cada corrida diaria y con el botón **Guardar histórico** del panel
+(`POST /api/historial`), o por consola:
+
+```
+.venv\Scripts\python.exe -m app.runner --historial [--por-cliente 3] [--sin-envio]
+```

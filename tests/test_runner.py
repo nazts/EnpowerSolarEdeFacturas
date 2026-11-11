@@ -225,8 +225,10 @@ def test_cada_contrato_usa_su_distribuidora(contrato, leer_pdf, texto):
 
     r = runner.corrida(D0, enviar=False, portales={"edenorte": edenorte, "edesur": edesur})
 
-    assert consultas["edenorte"] == [NIC]
-    assert consultas["edesur"] == [NIC_EDE]
+    # el historico vuelve a consultar el historial: lo importante es que cada
+    # NIC se consulte solo en el portal de su distribuidora
+    assert set(consultas["edenorte"]) == {NIC}
+    assert set(consultas["edesur"]) == {NIC_EDE}
     assert {d["nic"] for d in r.descargadas} == {NIC, NIC_EDE}
     edesur_ok = next(d for d in r.descargadas if d["nic"] == NIC_EDE)
     assert edesur_ok["facturado"] == pytest.approx(1914.12)
@@ -253,3 +255,77 @@ def test_si_una_distribuidora_falla_la_otra_sigue(contrato, leer_pdf, texto, mon
 
     assert [d["nic"] for d in r.descargadas] == [NIC]        # Edenorte si trabajo
     assert any("Edesur" in a for a in avisos)                # y se aviso de la falla
+
+
+# ----------------------------------------------------------------- historico
+def _texto_factura(corte, kwh=100, total=1000.0, ref="6997885044"):
+    return f"""
+No. Factura: {ref}
+NOMBRE O RAZON SOCIAL: DE LA CRUZ TAVAREZ, JORGE RAMON
+No. De Días Facturados : 16/08/2026 - {corte} = 30 d
+FECHA EMISION: {corte}
+PAGUE ANTES DE
+05/10/2026
+Activa B.T. 100 200 1.0000 {kwh} kWh
+IMPORTE SIN SUBSIDIO EN RD$ RD$ {total + 100:.2f}
+IMPORTE SUBSIDIADO EN RD$ RD$ -{100:.2f}
+FACTURADO MES OCT RD$ {total:.2f}
+TARIFA: BTD
+SUMINISTRO No.: 4237690
+Medidor: 06042264
+"""
+
+
+def test_historial_guarda_las_anteriores_y_las_envia_una_vez(contrato, leer_pdf, monkeypatch):
+    mensajes = []
+    monkeypatch.setattr(telegram, "enviar_documento",
+                        lambda path, caption="", chat_id=None: mensajes.append((path, caption)) or {})
+
+    filas = [FacturaRef(nic=NIC, ref_pago=f, cliente="", tipo="Recibos de consumos",
+                        emision="16/09/2026") for f in ("111", "222", "333")]
+    pdfs = {"111": _texto_factura("16/09/2026").encode("latin-1"),
+            "222": _texto_factura("16/08/2026").encode("latin-1"),
+            "333": _texto_factura("16/07/2026").encode("latin-1")}
+    p = portal(filas=filas, pdfs=pdfs)
+
+    # la del corte de hoy ya esta guardada
+    with db.sesion(db_path=contrato) as c:
+        db.guardar_factura(c, {"nic": NIC, "ref_pago": "111", "tipo": "Recibos de consumos",
+                               "corte": "2026-09-16", "facturado": 1000.0,
+                               "estado": "descargada", "enviada": 1})
+
+    res = runner.sincronizar_historial(date(2026, 9, 20), enviar=True,
+                                       portales={"edenorte": p}, chat_id="-100")
+
+    # guarda las dos anteriores...
+    assert {n["corte"] for n in res["nuevos"]} == {"2026-08-16", "2026-07-16"}
+    # ...pero a Telegram solo va una: la ultima que no se habia enviado
+    assert res["enviados"] == 1 and res["albumes"] == 1
+    assert len(mensajes) == 1                        # un mensaje, una factura
+    assert "NIC 6997885" in mensajes[0][1]           # con su propio pie
+    with db.sesion(db_path=contrato) as c:
+        guardadas = [dict(r) for r in c.execute(
+            "SELECT ref_pago, corte, enviada FROM facturas ORDER BY corte")]
+    assert [g["corte"] for g in guardadas] == ["2026-07-16", "2026-08-16", "2026-09-16"]
+    # la de julio queda guardada pero NO se manda (solo la ultima)
+    assert {g["corte"]: g["enviada"] for g in guardadas} == {
+        "2026-07-16": 0, "2026-08-16": 1, "2026-09-16": 1}
+
+    # segunda pasada: no descarga ni reenvia nada
+    mensajes.clear()
+    res2 = runner.sincronizar_historial(date(2026, 9, 21), enviar=True,
+                                        portales={"edenorte": p}, chat_id="-100")
+    assert res2["nuevos"] == [] and res2["enviados"] == 0 and mensajes == []
+
+
+def test_historial_respeta_por_cliente(contrato, leer_pdf, monkeypatch):
+    monkeypatch.setattr(telegram, "enviar_documento",
+                        lambda path, caption="", chat_id=None: {})
+    filas = [FacturaRef(nic=NIC, ref_pago=str(i), cliente="", tipo="Recibos de consumos",
+                        emision="16/09/2026") for i in range(1, 6)]
+    pdfs = {str(i): _texto_factura(f"1{i}/09/2026").encode("latin-1") for i in range(1, 6)}
+    p = portal(filas=filas, pdfs=pdfs)
+
+    res = runner.sincronizar_historial(date(2026, 9, 20), por_cliente=2, enviar=False,
+                                       portales={"edenorte": p})
+    assert len(res["nuevos"]) == 2          # solo las dos mas recientes

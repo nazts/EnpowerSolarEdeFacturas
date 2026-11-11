@@ -86,6 +86,11 @@ formulario para agregar y eliminar.
   Si la referencia de pago ya no vale (los 3 digitos suben con cada factura),
   el cliente prueba hasta 50 referencias cercanas antes de rendirse.
 
+## Histórico
+
+`python -m app.runner --historial` guarda las últimas facturas de cada cliente
+(3 por defecto) y manda a Telegram **solo la más reciente, un mensaje por cliente**.
+
 ## Iconos
 
 La interfaz usa **Bootstrap Icons** (MIT), servidos **localmente** desde

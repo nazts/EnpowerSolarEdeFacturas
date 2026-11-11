@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .edesur import EdesurClient, EdesurError
+from datetime import date
+
+from .edesur import TIPO_RECIBO, EdesurClient, EdesurError, FacturaEdesur, fecha_de_bill_id
 from .edenorte import Contrato, EdenorteClient, FacturaRef, Historial, PortalError
 
 # Nombres visibles en el panel
@@ -75,9 +77,32 @@ class EdesurPortal:
                         direccion=str(datos.get("dir") or "").strip())
 
     # --------------------------------------------------------------- facturas
-    def historial(self, nic: str) -> Historial:
-        """Facturas publicadas del contrato, de la mas nueva a la mas vieja."""
-        facturas = self._traducir(self.cliente.facturas, nic, 6)
+    def historial(self, nic: str, meses: int = 6) -> Historial:
+        """Facturas publicadas del contrato, de la mas nueva a la mas vieja.
+
+        Combina el listado de facturacion con los ultimos `meses` (Edesur guarda
+        ahi meses anteriores, que es lo que alimenta el historico del panel).
+        """
+        facturas = list(self._traducir(self.cliente.facturas, nic, meses) or [])
+        vistos = {f.bill_id for f in facturas}
+        hoy = date.today()
+        for atras in range(meses):
+            total = hoy.year * 12 + (hoy.month - 1) - atras
+            anio, mes = total // 12, total % 12 + 1
+            try:
+                del_mes = self.cliente.facturas_por_mes(nic, mes)
+            except Exception:  # noqa: BLE001
+                continue
+            for b in del_mes:
+                bill_id = str(b.get("ID") or "")
+                fecha = fecha_de_bill_id(bill_id)
+                if not bill_id or bill_id in vistos or not fecha or fecha.year != anio:
+                    continue
+                vistos.add(bill_id)
+                facturas.append(FacturaEdesur(
+                    nic=str(nic), bill_id=bill_id, fecha=fecha, total=None, vence=None,
+                    tipo=TIPO_RECIBO, estado=str(b.get("Status") or "")))
+        facturas.sort(key=lambda f: (f.fecha or date.min, f.bill_id), reverse=True)
         if not facturas:
             reciente = self._traducir(self.cliente.factura_mas_reciente, nic)
             facturas = [reciente] if reciente else []

@@ -40,6 +40,7 @@ class Resultado:
     portal_error: str | None = None
     mensaje_enviado: bool = False
     detalle_envio: str = ""
+    historico: dict = field(default_factory=dict)
 
     def como_dict(self) -> dict:
         return {
@@ -49,6 +50,7 @@ class Resultado:
             "descartadas": self.descartadas,
             "portal_error": self.portal_error,
             "mensaje_enviado": self.mensaje_enviado,
+            "historico": self.historico,
         }
 
 
@@ -61,12 +63,22 @@ def _guardar_pdf(origen: bytes, destino: Path) -> Path:
 
 
 def _candidato_archivo(nic: str, datos: DatosFactura, razon_social: str,
-                       carpeta: Path) -> Path:
+                       carpeta: Path, ref_pago: str | None = None) -> Path:
+    """Nombre libre para el PDF. Nunca sobreescribe una factura distinta.
+
+    Orden: `NOMBRE NIC.pdf` -> `NOMBRE NIC (corte).pdf` -> `... (corte 2).pdf`...
+    (puede haber dos facturas con el mismo corte, p.ej. una nota de credito).
+    """
     nombre = naming.nombre_archivo(razon_social or (datos.titular or ""), nic)
     destino = carpeta / nombre
-    if destino.exists():
-        # ya existe uno con ese nombre y distinto contenido -> sufijo con el corte
-        destino = carpeta / f"{destino.stem} ({datos.corte or 'sin-corte'}).pdf"
+    if not destino.exists():
+        return destino
+    raiz = f"{destino.stem} ({datos.corte or 'sin-corte'})"
+    destino = carpeta / f"{raiz}.pdf"
+    n = 2
+    while destino.exists():
+        destino = carpeta / f"{raiz} {n}.pdf"
+        n += 1
     return destino
 
 
@@ -112,7 +124,8 @@ def _caption_pendientes(pendientes: list[dict]) -> str:
 # --------------------------------------------------------------------- corrida
 def corrida(fecha: date | None = None, enviar: bool = True,
             chat_id: str | None = None, cliente: EdenorteClient | None = None,
-            reporte: bool = False, portales: dict | None = None) -> Resultado:
+            reporte: bool = False, portales: dict | None = None,
+            historico: bool = True) -> Resultado:
     """Revisa Edenorte y Edesur. Cada distribuidora se trata por separado: si una
     falla, la otra sigue y se avisa por Telegram cual fallo."""
     fecha = fecha or date.today()
@@ -385,7 +398,172 @@ def corrida(fecha: date | None = None, enviar: bool = True,
             except telegram.TelegramError as exc:
                 db.log_evento(conn, "error", "Fallo el envio del reporte", str(exc))
 
+    # 6. historico: guardar (y mandar) las ultimas facturas de cada cliente
+    if historico:
+        try:
+            res.historico = sincronizar_historial(fecha=fecha, enviar=enviar,
+                                                  chat_id=chat_id, portales=portales)
+        except Exception as exc:  # noqa: BLE001 - el historico no tumba la corrida
+            res.historico = {"errores": [str(exc)[:200]], "nuevos": [], "enviados": 0}
+
     return res
+
+
+
+
+# ------------------------------------------------------------------ historico
+def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
+                          enviar: bool = True, chat_id: str | None = None,
+                          portales: dict | None = None) -> dict:
+    """Guarda las ultimas facturas de cada cliente (minimo las 2 anteriores).
+
+    Descarga las que falten en la base, las deja en `facturas/` con el mismo
+    nombrado y despues las manda a Telegram una sola vez (las ya enviadas no se
+    repiten). Devuelve un resumen para el panel y para el log.
+    """
+    fecha = fecha or date.today()
+    res: dict = {"nuevos": [], "errores": [], "enviados": 0, "albumes": 0}
+    if portales is None:
+        portales = {"edenorte": EdenorteClient()}
+        if config.EDESUR_TOKEN or (config.EDESUR_USER and config.EDESUR_PASSWORD):
+            portales["edesur"] = EdesurPortal()
+
+    activos: dict[str, object] = {}
+    for nombre_prov, portal in portales.items():
+        try:
+            portal.login()
+            activos[nombre_prov] = portal
+        except Exception as exc:  # noqa: BLE001 - sin credenciales o portal caido
+            res["errores"].append({"proveedor": nombre_prov, "error": str(exc)[:200]})
+
+    with db.sesion() as conn:
+        for contrato in db.listar_contratos(conn):
+            nic = str(contrato["nic"])
+            prov = (contrato["proveedor"] if "proveedor" in contrato.keys() else "") or "edenorte"
+            portal = activos.get(prov)
+            if portal is None:
+                continue
+            try:
+                hist = portal.historial(nic)
+            except PortalError as exc:
+                db.log_evento(conn, "aviso", f"Historico no disponible para NIC {nic}", str(exc)[:200])
+                res["errores"].append({"nic": nic, "error": str(exc)[:200]})
+                continue
+
+            faltan = [f for f in hist.filas
+                      if es_consumo(f.tipo) and not db.factura_existe(conn, f.ref_pago)]
+            for fila in faltan[:por_cliente]:
+                try:
+                    contenido = portal.descargar_pdf(fila.ref_pago)
+                except PortalError as exc:
+                    res["errores"].append({"nic": nic, "ref": fila.ref_pago, "error": str(exc)[:160]})
+                    continue
+                with tempfile.TemporaryDirectory() as tmp:
+                    tmp_pdf = Path(tmp) / "f.pdf"
+                    tmp_pdf.write_bytes(contenido)
+                    try:
+                        datos = datos_de_archivo(tmp_pdf, proveedor=prov)
+                    except Exception as exc:  # noqa: BLE001
+                        res["errores"].append({"nic": nic, "ref": fila.ref_pago,
+                                               "error": f"PDF ilegible: {exc}"[:160]})
+                        continue
+
+                if datos.corte and datos.corte > fecha.isoformat():
+                    continue                                   # factura futura: no aplica
+                if datos.kwh is None:
+                    db.guardar_factura(conn, {
+                        "nic": nic, "ref_pago": fila.ref_pago, "tipo": fila.tipo,
+                        "cliente": datos.titular or fila.cliente, "corte": datos.corte,
+                        "emision": datos.emision, "vence": datos.vence,
+                        "facturado": datos.facturado, "estado": "sin_consumo",
+                    })
+                    continue
+
+                destino = _candidato_archivo(nic, datos, contrato["razon_social"] or "",
+                                             config.FACTURAS_DIR)
+                _guardar_pdf(contenido, destino)
+                db.guardar_factura(conn, {
+                    "nic": nic, "ref_pago": fila.ref_pago, "no_factura": datos.no_factura,
+                    "tipo": fila.tipo, "cliente": datos.titular or fila.cliente,
+                    "periodo_ini": datos.periodo_ini, "periodo_fin": datos.periodo_fin,
+                    "corte": datos.corte, "emision": datos.emision, "vence": datos.vence,
+                    "dias": datos.dias, "kwh": datos.kwh, "sin_subsidio": datos.sin_subsidio,
+                    "subsidio": datos.subsidio, "facturado": datos.facturado,
+                    "pdf_path": str(destino), "estado": "descargada",
+                })
+                res["nuevos"].append({
+                    "nic": nic, "proveedor": prov, "corte": datos.corte,
+                    "facturado": datos.facturado, "kwh": datos.kwh, "path": str(destino),
+                })
+            db.log_evento(conn, "info", f"Historico revisado NIC {nic}",
+                          f"{len(faltan[:por_cliente])} factura(s) nuevas")
+
+        # envio al grupo: SOLO la ultima factura de cada cliente (una), y solo
+        # si esa no se ha mandado antes
+        todas = [dict(r) for r in conn.execute(
+            """SELECT id, nic, corte, enviada, pdf_path FROM facturas
+               WHERE estado = 'descargada' AND pdf_path IS NOT NULL
+                 AND corte IS NOT NULL AND corte <= ?
+               ORDER BY corte""", (fecha.isoformat(),))]
+        ultima_por_cliente: dict[str, dict] = {}
+        for fila in todas:
+            actual = ultima_por_cliente.get(fila["nic"])
+            if actual is None or (fila["corte"] or "") > (actual["corte"] or ""):
+                ultima_por_cliente[fila["nic"]] = fila
+        # solo la ultima de cada cliente, y solo si esa ultima no se ha enviado
+        a_enviar = sorted((f for f in ultima_por_cliente.values() if not f["enviada"]),
+                          key=lambda f: f["corte"] or "")
+
+        if enviar and a_enviar:
+            # un mensaje por cliente: su ultima factura, con su propio pie
+            for p in a_enviar:
+                ruta = Path(p["pdf_path"])
+                if not ruta.exists():
+                    continue
+                texto = _caption(fecha.isoformat(), [
+                    {"nic": p["nic"], "razon_social": _razon_social(conn, p["nic"]),
+                     "alias": _campo(conn, p["nic"], "alias"),
+                     "asesor": _campo(conn, p["nic"], "asesor"),
+                     "corte": p["corte"], "vence": _vence(conn, p["nic"], p["corte"]),
+                     "facturado": _monto(conn, p["nic"], p["corte"])}], [])
+                try:
+                    telegram.enviar_documento(ruta, caption=texto, chat_id=chat_id)
+                    db.marcar_enviadas(conn, [p["id"]],
+                                       chat_id or config.TELEGRAM_CHAT_ID)
+                    res["enviados"] += 1
+                    res["albumes"] += 1
+                except telegram.TelegramError as exc:
+                    db.log_evento(conn, "error", f"No se pudo enviar la factura de {p['nic']}",
+                                  str(exc)[:300])
+                    res["errores"].append({"nic": p["nic"], "envio": str(exc)[:200]})
+            if res["enviados"]:
+                db.log_evento(conn, "info",
+                              f"Enviada la ultima factura de {res['enviados']} cliente(s)")
+
+    return res
+
+
+def _campo(conn, nic: str, columna: str) -> str:
+    fila = conn.execute(f"SELECT {columna} FROM contratos WHERE nic = ?", (nic,)).fetchone()
+    return (fila[0] if fila and fila[0] else "") if fila else ""
+
+
+def _razon_social(conn, nic: str) -> str:
+    return _campo(conn, nic, "razon_social")
+
+
+def _monto(conn, nic: str, corte: str | None) -> float | None:
+    fila = conn.execute("SELECT facturado FROM facturas WHERE nic = ? AND corte IS ?",
+                        (nic, corte)).fetchone()
+    return fila[0] if fila else None
+
+
+def _vence(conn, nic: str, corte: str | None) -> str | None:
+    fila = conn.execute("SELECT vence FROM facturas WHERE nic = ? AND corte IS ?",
+                        (nic, corte)).fetchone()
+    return fila[0] if fila else None
+
+
 
 
 if __name__ == "__main__":
@@ -396,8 +574,17 @@ if __name__ == "__main__":
     ap.add_argument("--fecha", help="AAAA-MM-DD (por defecto hoy)")
     ap.add_argument("--sin-envio", action="store_true", help="no enviar a Telegram")
     ap.add_argument("--reporte", action="store_true", help="enviar resumen aunque no haya facturas")
+    ap.add_argument("--historial", action="store_true",
+                    help="solo sincronizar las ultimas facturas (historico) y enviarlas")
+    ap.add_argument("--por-cliente", type=int, default=3,
+                    help="cuantas facturas recientes guardar por cliente (defecto 3)")
     args = ap.parse_args()
 
     fecha = datetime.strptime(args.fecha, "%Y-%m-%d").date() if args.fecha else None
-    r = corrida(fecha=fecha, enviar=not args.sin_envio, reporte=args.reporte)
-    print(json.dumps(r.como_dict(), ensure_ascii=False, indent=2))
+    if args.historial:
+        salida = sincronizar_historial(fecha=fecha, por_cliente=args.por_cliente,
+                                       enviar=not args.sin_envio)
+        print(json.dumps(salida, ensure_ascii=False, indent=2))
+    else:
+        r = corrida(fecha=fecha, enviar=not args.sin_envio, reporte=args.reporte)
+        print(json.dumps(r.como_dict(), ensure_ascii=False, indent=2))
