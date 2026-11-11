@@ -329,3 +329,19 @@ def test_historial_respeta_por_cliente(contrato, leer_pdf, monkeypatch):
     res = runner.sincronizar_historial(date(2026, 9, 20), por_cliente=2, enviar=False,
                                        portales={"edenorte": p})
     assert len(res["nuevos"]) == 2          # solo las dos mas recientes
+
+
+def test_historial_aprende_el_dia_de_corte(contrato, leer_pdf, monkeypatch):
+    monkeypatch.setattr(telegram, "enviar_documento",
+                        lambda path, caption="", chat_id=None: {})
+    with db.sesion(db_path=contrato) as c:
+        c.execute("UPDATE contratos SET dia_corte = NULL WHERE nic = ?", (NIC,))
+        c.commit()
+    p = portal(filas=[fila(ref="777")],
+               pdfs={"777": _texto_factura("16/09/2026").encode("latin-1")})
+
+    runner.sincronizar_historial(date(2026, 9, 20), enviar=False,
+                                 portales={"edenorte": p})
+
+    with db.sesion(db_path=contrato) as c:
+        assert db.obtener_contrato(c, NIC)["dia_corte"] == 16

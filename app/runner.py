@@ -491,12 +491,26 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
                     "subsidio": datos.subsidio, "facturado": datos.facturado,
                     "pdf_path": str(destino), "estado": "descargada",
                 })
+                if datos.corte and not contrato["dia_corte"]:
+                    # el dia de corte se aprende de la propia factura
+                    db.upsert_contrato(conn, nic, dia_corte=int(datos.corte[-2:]))
                 res["nuevos"].append({
                     "nic": nic, "proveedor": prov, "corte": datos.corte,
                     "facturado": datos.facturado, "kwh": datos.kwh, "path": str(destino),
                 })
             db.log_evento(conn, "info", f"Historico revisado NIC {nic}",
                           f"{len(faltan[:por_cliente])} factura(s) nuevas")
+
+        # completar el dia de corte de clientes que ya tienen facturas guardadas
+        sin_dia = conn.execute(
+            """SELECT f.nic, MAX(f.corte) AS corte FROM facturas f
+               JOIN contratos c ON c.nic = f.nic
+               WHERE (c.dia_corte IS NULL OR c.dia_corte = 0)
+                 AND f.corte IS NOT NULL AND f.estado = 'descargada'
+               GROUP BY f.nic""").fetchall()
+        for fila in sin_dia:
+            db.upsert_contrato(conn, fila["nic"], dia_corte=int(fila["corte"][-2:]))
+            res.setdefault("dias_corte", []).append({"nic": fila["nic"], "dia": int(fila["corte"][-2:])})
 
         # envio al grupo: SOLO la ultima factura de cada cliente (una), y solo
         # si esa no se ha mandado antes
