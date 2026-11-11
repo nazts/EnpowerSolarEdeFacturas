@@ -27,6 +27,9 @@
   input,select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);
     background:var(--card);color:var(--txt);font:inherit;min-height:40px}
   input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
+  .aviso-ok,.aviso-mal{margin-top:16px;padding:11px 14px;border-radius:10px;font-size:13.5px}
+  .aviso-ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok)}
+  .aviso-mal{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
   .acc-fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .acc-fila form{margin:0;display:flex;gap:6px;align-items:center}
   @media(max-width:640px){
@@ -43,6 +46,30 @@
 <div class="pagina">
   <h1>Usuarios</h1>
   <p class="muted">Quién puede entrar al panel. Solo los administradores ven esta página.</p>
+
+  {% set err = request.query_params.get('error') %}
+  {% if request.query_params.get('clave') %}
+  <div class="aviso-ok" role="status">Contraseña actualizada ✓</div>
+  {% elif err %}
+  <div class="aviso-mal" role="alert">{% if err == 'actual' %}La contraseña actual no es correcta.{% else %}La nueva contraseña debe tener al menos 8 caracteres y coincidir en los dos campos.{% endif %}</div>
+  {% endif %}
+
+  <section style="margin-top:18px">
+    <h2>Mi contraseña</h2>
+    <div class="cuerpo">
+      <form method="post" action="/mi-clave">
+        <div class="grid">
+          <div><label for="m_actual">Contraseña actual</label>
+            <input id="m_actual" name="actual" type="password" required autocomplete="current-password"></div>
+          <div><label for="m_nueva">Nueva (mínimo 8)</label>
+            <input id="m_nueva" name="nueva" type="password" required minlength="8" autocomplete="new-password"></div>
+          <div><label for="m_repetir">Repetir la nueva</label>
+            <input id="m_repetir" name="repetir" type="password" required minlength="8" autocomplete="new-password"></div>
+        </div>
+        <p style="margin:16px 0 0"><button class="btn primario" type="submit">Cambiar mi contraseña</button></p>
+      </form>
+    </div>
+  </section>
 
   <section style="margin-top:18px">
     <h2>Usuarios ({{ usuarios|length }})</h2>

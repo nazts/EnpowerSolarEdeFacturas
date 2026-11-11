@@ -124,6 +124,23 @@ def usuarios_page(request: Request):
                                        "usuario": usuario})
 
 
+@app.post("/mi-clave")
+def mi_clave(request: Request, actual: str = Form(...), nueva: str = Form(...),
+             repetir: str = Form(...)):
+    """Cada usuario cambia su propia contraseña."""
+    usuario = usuario_actual(request)
+    if not usuario:
+        return RedirectResponse("/login", status_code=303)
+    if nueva != repetir or len(nueva) < 8:
+        return RedirectResponse("/usuarios?error=clave", status_code=303)
+    with db.sesion() as conn:
+        if not auth.autenticar(conn, usuario.usuario, actual):
+            return RedirectResponse("/usuarios?error=actual", status_code=303)
+        auth.cambiar_password(conn, usuario.id, nueva)
+        db.log_evento(conn, "info", f"{usuario.usuario} cambió su contraseña")
+    return RedirectResponse("/usuarios?clave=1", status_code=303)
+
+
 @app.post("/usuarios")
 def usuarios_crear(request: Request, usuario_nuevo: str = Form(...),
                    password: str = Form(...), nombre: str = Form(default=""),
