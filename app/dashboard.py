@@ -118,6 +118,19 @@ def api_geocodificar(direccion: str = Form(...),
     return JSONResponse(resultado, status_code=200 if resultado.get("ok") else 400)
 
 
+@app.post("/api/reverse")
+def api_reverse(lat: str = Form(...), lon: str = Form(...)) -> JSONResponse:
+    """Coordenadas -> direccion de la calle (Nominatim /reverse)."""
+    from .geo import enlace_mapa, reverso
+    la, lo = _num(lat), _num(lon)
+    if la is None or lo is None:
+        return JSONResponse({"ok": False, "error": "Coordenadas inválidas"}, status_code=400)
+    resultado = reverso(la, lo)
+    if resultado.get("ok"):
+        resultado["enlace"] = enlace_mapa(la, lo)
+    return JSONResponse(resultado, status_code=200 if resultado.get("ok") else 400)
+
+
 @app.get("/api/estado")
 def api_estado() -> JSONResponse:
     with db.sesion() as conn:

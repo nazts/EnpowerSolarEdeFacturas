@@ -30,6 +30,61 @@
     }catch(e){ pista.textContent = 'No se pudo conectar'; }
   });
 
+  function enlaceMapa(lat, lon){
+    return 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lon + '#map=17/' + lat + '/' + lon;
+  }
+  function actualizarEnlaceEq(){
+    var lat = document.getElementById('eq_lat').value.trim();
+    var lon = document.getElementById('eq_lon').value.trim();
+    document.getElementById('eq_enlace').value = (lat && lon) ? enlaceMapa(lat, lon) : '';
+  }
+  function leerCoords(texto){
+    var m = String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]?\s+(-?\d{1,3}(?:[.,]\d+)?)/)
+         || String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
+    if(!m) return null;
+    var lat = parseFloat(String(m[1]).replace(',', '.')), lon = parseFloat(String(m[2]).replace(',', '.'));
+    if(isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return {lat:lat, lon:lon};
+  }
+  var coordsEq = document.getElementById('eq_coords');
+  coordsEq.addEventListener('input', function(){
+    var p = leerCoords(coordsEq.value);
+    if(!p) return;
+    document.getElementById('eq_lat').value = p.lat;
+    document.getElementById('eq_lon').value = p.lon;
+    actualizarEnlaceEq();
+  });
+  ['eq_lat','eq_lon'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', actualizarEnlaceEq);
+  });
+  actualizarEnlaceEq();
+
+  document.getElementById('btnReverseEq').addEventListener('click', async function(){
+    var lat = document.getElementById('eq_lat').value.trim();
+    var lon = document.getElementById('eq_lon').value.trim();
+    var pista = document.getElementById('eq_pista');
+    if(!lat || !lon){ pista.textContent = 'Falta la latitud o la longitud'; return; }
+    pista.textContent = 'Buscando la dirección…';
+    var fd = new FormData(); fd.append('lat', lat); fd.append('lon', lon);
+    try{
+      var r = await fetch('/api/reverse', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
+      var campo = document.getElementById('eq_direccion');
+      if(!campo.value.trim()) campo.value = d.direccion || d.display_name || '';
+      document.getElementById('eq_enlace').value = d.enlace || enlaceMapa(lat, lon);
+      pista.textContent = d.display_name || d.direccion;
+    }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  document.getElementById('btnCopiarEq').addEventListener('click', async function(){
+    var valor = document.getElementById('eq_enlace').value;
+    if(!valor){ if(window.toast) toast('Primero pon las coordenadas', false); return; }
+    try{ await navigator.clipboard.writeText(valor); }
+    catch(e){ var c = document.getElementById('eq_enlace'); c.removeAttribute('readonly'); c.select(); document.execCommand('copy'); c.setAttribute('readonly','readonly'); }
+    if(window.toast) toast('Enlace copiado ✓');
+  });
+
   if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
     toast('Equipo e ubicación guardados ✓');
     history.replaceState({}, '', location.pathname);
@@ -192,6 +247,61 @@
     }catch(e){ pista.textContent = 'No se pudo conectar'; }
   });
 
+  function enlaceMapa(lat, lon){
+    return 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lon + '#map=17/' + lat + '/' + lon;
+  }
+  function actualizarEnlaceEq(){
+    var lat = document.getElementById('eq_lat').value.trim();
+    var lon = document.getElementById('eq_lon').value.trim();
+    document.getElementById('eq_enlace').value = (lat && lon) ? enlaceMapa(lat, lon) : '';
+  }
+  function leerCoords(texto){
+    var m = String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]?\s+(-?\d{1,3}(?:[.,]\d+)?)/)
+         || String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
+    if(!m) return null;
+    var lat = parseFloat(String(m[1]).replace(',', '.')), lon = parseFloat(String(m[2]).replace(',', '.'));
+    if(isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return {lat:lat, lon:lon};
+  }
+  var coordsEq = document.getElementById('eq_coords');
+  coordsEq.addEventListener('input', function(){
+    var p = leerCoords(coordsEq.value);
+    if(!p) return;
+    document.getElementById('eq_lat').value = p.lat;
+    document.getElementById('eq_lon').value = p.lon;
+    actualizarEnlaceEq();
+  });
+  ['eq_lat','eq_lon'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', actualizarEnlaceEq);
+  });
+  actualizarEnlaceEq();
+
+  document.getElementById('btnReverseEq').addEventListener('click', async function(){
+    var lat = document.getElementById('eq_lat').value.trim();
+    var lon = document.getElementById('eq_lon').value.trim();
+    var pista = document.getElementById('eq_pista');
+    if(!lat || !lon){ pista.textContent = 'Falta la latitud o la longitud'; return; }
+    pista.textContent = 'Buscando la dirección…';
+    var fd = new FormData(); fd.append('lat', lat); fd.append('lon', lon);
+    try{
+      var r = await fetch('/api/reverse', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
+      var campo = document.getElementById('eq_direccion');
+      if(!campo.value.trim()) campo.value = d.direccion || d.display_name || '';
+      document.getElementById('eq_enlace').value = d.enlace || enlaceMapa(lat, lon);
+      pista.textContent = d.display_name || d.direccion;
+    }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  document.getElementById('btnCopiarEq').addEventListener('click', async function(){
+    var valor = document.getElementById('eq_enlace').value;
+    if(!valor){ if(window.toast) toast('Primero pon las coordenadas', false); return; }
+    try{ await navigator.clipboard.writeText(valor); }
+    catch(e){ var c = document.getElementById('eq_enlace'); c.removeAttribute('readonly'); c.select(); document.execCommand('copy'); c.setAttribute('readonly','readonly'); }
+    if(window.toast) toast('Enlace copiado ✓');
+  });
+
   if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
     toast('Equipo e ubicación guardados ✓');
     history.replaceState({}, '', location.pathname);
@@ -267,6 +377,19 @@
           </div>
           <div class="ubic-grid" style="margin-top:12px">
             <div>
+              <label for="eq_coords">Coordenadas (pega «lat, lon»)</label>
+              <input id="eq_coords" placeholder="19.402583, -70.727444" inputmode="decimal" autocomplete="off">
+            </div>
+            <div>
+              <label for="eq_enlace">Enlace para compartir</label>
+              <div style="display:flex;gap:8px">
+                <input id="eq_enlace" readonly placeholder="se genera con las coordenadas">
+                <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap">📋 Copiar</button>
+              </div>
+            </div>
+          </div>
+          <div class="ubic-grid" style="margin-top:12px">
+            <div>
               <label for="eq_lat">Latitud</label>
               <input id="eq_lat" name="latitud" value="{{ cliente.latitud if cliente.latitud is not none else '' }}" inputmode="decimal">
             </div>
@@ -275,8 +398,9 @@
               <input id="eq_lon" name="longitud" value="{{ cliente.longitud if cliente.longitud is not none else '' }}" inputmode="decimal">
             </div>
           </div>
-          <p style="margin:10px 0 0">
+          <p style="margin:10px 0 0;display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn" type="button" id="btnUbicarEq">📍 Ubicar por la dirección</button>
+            <button class="btn" type="button" id="btnReverseEq">🧭 Sacar la dirección</button>
             <span class="muted" id="eq_pista" aria-live="polite"></span>
           </p>
           <div class="ubic-grid" style="margin-top:14px">
@@ -413,6 +537,61 @@
       pista.textContent = d.display_name;
       if(window.toast) toast('Ubicación encontrada: ' + d.display_name);
     }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  function enlaceMapa(lat, lon){
+    return 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lon + '#map=17/' + lat + '/' + lon;
+  }
+  function actualizarEnlaceEq(){
+    var lat = document.getElementById('eq_lat').value.trim();
+    var lon = document.getElementById('eq_lon').value.trim();
+    document.getElementById('eq_enlace').value = (lat && lon) ? enlaceMapa(lat, lon) : '';
+  }
+  function leerCoords(texto){
+    var m = String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]?\s+(-?\d{1,3}(?:[.,]\d+)?)/)
+         || String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
+    if(!m) return null;
+    var lat = parseFloat(String(m[1]).replace(',', '.')), lon = parseFloat(String(m[2]).replace(',', '.'));
+    if(isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return {lat:lat, lon:lon};
+  }
+  var coordsEq = document.getElementById('eq_coords');
+  coordsEq.addEventListener('input', function(){
+    var p = leerCoords(coordsEq.value);
+    if(!p) return;
+    document.getElementById('eq_lat').value = p.lat;
+    document.getElementById('eq_lon').value = p.lon;
+    actualizarEnlaceEq();
+  });
+  ['eq_lat','eq_lon'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', actualizarEnlaceEq);
+  });
+  actualizarEnlaceEq();
+
+  document.getElementById('btnReverseEq').addEventListener('click', async function(){
+    var lat = document.getElementById('eq_lat').value.trim();
+    var lon = document.getElementById('eq_lon').value.trim();
+    var pista = document.getElementById('eq_pista');
+    if(!lat || !lon){ pista.textContent = 'Falta la latitud o la longitud'; return; }
+    pista.textContent = 'Buscando la dirección…';
+    var fd = new FormData(); fd.append('lat', lat); fd.append('lon', lon);
+    try{
+      var r = await fetch('/api/reverse', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
+      var campo = document.getElementById('eq_direccion');
+      if(!campo.value.trim()) campo.value = d.direccion || d.display_name || '';
+      document.getElementById('eq_enlace').value = d.enlace || enlaceMapa(lat, lon);
+      pista.textContent = d.display_name || d.direccion;
+    }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  document.getElementById('btnCopiarEq').addEventListener('click', async function(){
+    var valor = document.getElementById('eq_enlace').value;
+    if(!valor){ if(window.toast) toast('Primero pon las coordenadas', false); return; }
+    try{ await navigator.clipboard.writeText(valor); }
+    catch(e){ var c = document.getElementById('eq_enlace'); c.removeAttribute('readonly'); c.select(); document.execCommand('copy'); c.setAttribute('readonly','readonly'); }
+    if(window.toast) toast('Enlace copiado ✓');
   });
 
   if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){

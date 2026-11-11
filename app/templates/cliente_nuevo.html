@@ -35,15 +35,15 @@
   input:focus,select:focus{border-color:var(--accent)}
   input::placeholder{color:var(--ph)}
   .rejilla{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
-    gap:14px 16px;align-items:start}
+    gap:14px 16px;align-items:stretch}
   .rejilla > .c3{grid-column:span 3} .rejilla > .c4{grid-column:span 4}
   .rejilla > .c5{grid-column:span 5} .rejilla > .c6{grid-column:span 6}
   .rejilla > .c7{grid-column:span 7} .rejilla > .c8{grid-column:span 8}
   .rejilla > .c9{grid-column:span 9} .rejilla > .c12{grid-column:1 / -1}
-  .rejilla > .campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .rejilla > .campo{display:flex;flex-direction:column;justify-content:flex-end;gap:5px;min-width:0}
   .rejilla > .campo > label{margin:0}
   .rejilla > .campo > input{width:100%}
-  .rejilla > .con-boton{display:flex;flex-direction:column;justify-content:flex-end}
+  .rejilla > .con-boton{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
   .rejilla > .con-boton > button{width:100%;min-height:42px}
   .rejilla > .nota{grid-column:1 / -1;margin:-4px 0 0;font-size:12.5px;color:var(--muted)}
   @media(max-width:900px){
@@ -197,6 +197,17 @@
             <input id="telefono" name="telefono" inputmode="tel" placeholder="809-000-0000">
           </div>
 
+          <div class="campo c6">
+            <label for="coordenadas">Coordenadas (pega «lat, lon»)</label>
+            <input id="coordenadas" placeholder="19.402583, -70.727444" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="con-boton c3">
+            <button type="button" id="btnReverse">🧭 Sacar la dirección</button>
+          </div>
+          <div class="con-boton c3">
+            <button type="button" id="btnGeo" onclick="ubicarPorDireccion('')">📍 Ubicar por dirección</button>
+          </div>
+
           <div class="campo c3">
             <label for="latitud">Latitud</label>
             <input id="latitud" name="latitud" inputmode="decimal" placeholder="19.4160666">
@@ -205,10 +216,14 @@
             <label for="longitud">Longitud</label>
             <input id="longitud" name="longitud" inputmode="decimal" placeholder="-70.7085128">
           </div>
-          <div class="con-boton c6">
-            <button type="button" id="btnGeo" onclick="ubicarPorDireccion('')">📍 Ubicar por dirección</button>
+          <div class="campo c6">
+            <label for="enlace">Enlace del mapa (para compartir)</label>
+            <div style="display:flex;gap:8px">
+              <input id="enlace" readonly placeholder="se genera con las coordenadas">
+              <button type="button" class="btn" id="btnCopiarEnlace" style="white-space:nowrap">📋 Copiar</button>
+            </div>
           </div>
-          <p class="nota" id="geoInfo" aria-live="polite">Rellena la dirección y pulsa «Ubicar por dirección» para obtener latitud y longitud.</p>
+          <p class="nota" id="geoInfo" aria-live="polite">Pega «lat, lon» y pulsa «Sacar la dirección», o escribe la dirección y usa «Ubicar por dirección».</p>
 
           <div class="campo c5">
             <label for="potencia">Potencia paneles (kW)</label>
@@ -298,5 +313,69 @@ async function buscar(){
   }catch(e){ aviso('No se pudo conectar con el servidor', 'err'); }
   finally{ clearTimeout(lento); clearTimeout(muyLento); ocupado('btnBuscar', false); }
 }
-</script>
+
+// ---------- coordenadas: pegar "lat, lon", geocodificar y compartir ----------
+function enlaceMapa(lat, lon){
+  return 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lon + '#map=17/' + lat + '/' + lon;
+}
+function actualizarEnlace(){
+  const lat = document.getElementById('latitud').value.trim();
+  const lon = document.getElementById('longitud').value.trim();
+  document.getElementById('enlace').value = (lat && lon) ? enlaceMapa(lat, lon) : '';
+}
+function leerCoordenadas(texto){
+  const m = String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]?\s+(-?\d{1,3}(?:[.,]\d+)?)/)
+           || String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
+  if(!m) return null;
+  const lat = parseFloat(String(m[1]).replace(',', '.'));
+  const lon = parseFloat(String(m[2]).replace(',', '.'));
+  if(isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return {lat: lat, lon: lon};
+}
+async function sacarDireccion(){
+  const lat = document.getElementById('latitud').value.trim();
+  const lon = document.getElementById('longitud').value.trim();
+  const info = document.getElementById('geoInfo');
+  if(!lat || !lon){ info.textContent = 'Primero pega las coordenadas o ubica la dirección.'; return; }
+  info.textContent = 'Buscando la dirección de esas coordenadas…';
+  const fd = new FormData(); fd.append('lat', lat); fd.append('lon', lon);
+  try{
+    const r = await fetch('/api/reverse', {method:'POST', body: fd});
+    const d = await r.json();
+    if(!d.ok){ info.textContent = d.error || 'No se encontró la dirección'; return; }
+    const campo = document.getElementById('direccion');
+    if(!campo.value.trim()) campo.value = d.direccion || d.display_name || '';
+    info.textContent = d.display_name || d.direccion || '';
+    document.getElementById('enlace').value = d.enlace || enlaceMapa(lat, lon);
+    if(window.toast) toast('Dirección: ' + (d.direccion || d.display_name));
+  }catch(e){ info.textContent = 'No se pudo conectar con el servidor'; }
+}
+document.addEventListener('DOMContentLoaded', function(){
+  const coords = document.getElementById('coordenadas');
+  coords.addEventListener('input', function(){
+    const p = leerCoordenadas(coords.value);
+    if(!p) return;
+    document.getElementById('latitud').value = p.lat;
+    document.getElementById('longitud').value = p.lon;
+    actualizarEnlace();
+  });
+  ['latitud','longitud'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', actualizarEnlace);
+  });
+  document.getElementById('btnReverse').addEventListener('click', sacarDireccion);
+  document.getElementById('btnCopiarEnlace').addEventListener('click', async function(){
+    const valor = document.getElementById('enlace').value;
+    if(!valor){ if(window.toast) toast('Primero pon las coordenadas', false); return; }
+    try{
+      await navigator.clipboard.writeText(valor);
+      if(window.toast) toast('Enlace copiado ✓');
+    }catch(e){
+      const campo = document.getElementById('enlace');
+      campo.removeAttribute('readonly'); campo.select();
+      document.execCommand('copy'); campo.setAttribute('readonly', 'readonly');
+      if(window.toast) toast('Enlace copiado ✓');
+    }
+  });
+});
+</script></script>
 {% endblock %}
