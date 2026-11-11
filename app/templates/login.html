@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Enpower Solar</title>
+<style>
+  :root{
+    --bg:#f3faf5; --card:#ffffff; --line:#cfe3d5; --txt:#14261b; --muted:#476153;
+    --accent:#15803d; --on-accent:#ffffff; --bad:#b91c1c; --bad-bg:#fee2e2;
+    --focus:#8fd6a6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;
+    font-family:"Segoe UI",system-ui,sans-serif;color:var(--txt);
+    background:radial-gradient(1200px 600px at 20% -10%,#d8f3e0 0%,transparent 60%),
+               radial-gradient(900px 500px at 110% 110%,#e6f7ec 0%,transparent 55%), var(--bg)}
+  .caja{width:min(420px,92vw);background:var(--card);border:1px solid var(--line);
+    border-radius:20px;padding:28px 26px;box-shadow:0 18px 48px rgba(16,61,34,.12)}
+  .marca{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{width:46px;height:46px;border-radius:50%;background:var(--accent);color:var(--on-accent);
+    display:grid;place-items:center;font-weight:800;letter-spacing:.5px}
+  h1{margin:0;font-size:19px}
+  .marca small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+  label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--muted);margin:14px 0 6px}
+  input{width:100%;padding:11px 13px;border-radius:11px;border:1px solid #9db8a7;
+    background:#fff;color:var(--txt);font:inherit;min-height:44px}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
+  button{width:100%;margin-top:20px;padding:12px;border-radius:11px;border:1px solid var(--accent);
+    background:var(--accent);color:var(--on-accent);font:inherit;font-weight:700;cursor:pointer;min-height:46px}
+  button:hover{filter:brightness(1.05)}
+  .error{margin-top:16px;padding:11px 13px;border-radius:10px;background:var(--bad-bg);
+    color:var(--bad);font-size:13.5px;border:1px solid #fca5a5}
+  .pie{margin:18px 0 0;color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+  <form class="caja" method="post" action="/login">
+    <div class="marca">
+      <div class="logo">ES</div>
+      <div>
+        <h1>Enpower Solar</h1>
+        <small>Panel de clientes y facturas</small>
+      </div>
+    </div>
+
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <label for="usuario">Usuario</label>
+    <input id="usuario" name="usuario" required autocomplete="username" autofocus
+           value="{{ usuario_previo or '' }}">
+
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" required autocomplete="current-password">
+
+    <button type="submit">Entrar</button>
+
+    {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+
+    <p class="pie">Acceso restringido al personal de Enpower Solar.</p>
+  </form>
+</body>
+</html>

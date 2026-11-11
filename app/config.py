@@ -34,6 +34,26 @@ DB_PATH = BASE_DIR / os.environ.get("DB_PATH", "data/enpower.db")
 FACTURAS_DIR = BASE_DIR / os.environ.get("FACTURAS_DIR", "facturas")
 EXPORT_DIR = BASE_DIR / os.environ.get("EXPORT_DIR", "exports")
 
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+
+def _secret_key() -> str:
+    """Clave para firmar la sesion: del .env o generada y guardada una vez."""
+    clave = os.environ.get("SECRET_KEY", "").strip()
+    if clave:
+        return clave
+    ruta = BASE_DIR / ".secret_key"
+    if ruta.exists():
+        return ruta.read_text(encoding="utf-8").strip()
+    import secrets
+    clave = secrets.token_urlsafe(32)
+    ruta.write_text(clave, encoding="utf-8")
+    return clave
+
+
+SECRET_KEY = _secret_key()
+
 
 def guardar_chat_id(chat_id: str) -> None:
     """Persiste TELEGRAM_CHAT_ID en .env y lo actualiza en memoria."""

@@ -19,3 +19,6 @@ exports/
 # sistema
 .DS_Store
 Thumbs.db
+
+# clave de sesiones (se genera sola si falta)
+# .secret_key

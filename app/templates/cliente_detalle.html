@@ -85,6 +85,19 @@
     if(window.toast) toast('Enlace copiado ✓');
   });
 
+  var btnProy = document.getElementById('btnProyecto');
+  if(btnProy){
+    var formProy = document.getElementById('formProyecto');
+    btnProy.addEventListener('click', function(){
+      formProy.hidden = !formProy.hidden;
+      btnProy.setAttribute('aria-expanded', formProy.hidden ? 'false' : 'true');
+      if(!formProy.hidden) document.getElementById('pr_nombre').focus();
+    });
+    document.getElementById('btnCancelarProyecto').addEventListener('click', function(){
+      formProy.hidden = true; btnProy.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
     toast('Equipo e ubicación guardados ✓');
     history.replaceState({}, '', location.pathname);
@@ -302,6 +315,19 @@
     if(window.toast) toast('Enlace copiado ✓');
   });
 
+  var btnProy = document.getElementById('btnProyecto');
+  if(btnProy){
+    var formProy = document.getElementById('formProyecto');
+    btnProy.addEventListener('click', function(){
+      formProy.hidden = !formProy.hidden;
+      btnProy.setAttribute('aria-expanded', formProy.hidden ? 'false' : 'true');
+      if(!formProy.hidden) document.getElementById('pr_nombre').focus();
+    });
+    document.getElementById('btnCancelarProyecto').addEventListener('click', function(){
+      formProy.hidden = true; btnProy.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
     toast('Equipo e ubicación guardados ✓');
     history.replaceState({}, '', location.pathname);
@@ -445,6 +471,67 @@
         {% if cliente.latitud is not none and cliente.longitud is not none and cliente.latitud != "" %}data-lat="{{ cliente.latitud }}" data-lon="{{ cliente.longitud }}"{% endif %}>
         <div class="mm-vacio">Sin ubicación registrada</div>
       </div>
+    </div>
+  </section>
+
+  <section id="proyectos">
+    <div class="cab-seccion" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)">
+      <h2 style="margin:0;padding:0;border:0;font-size:14px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)">Proyectos instalados ({{ proyectos|length }})</h2>
+      <button class="btn" type="button" id="btnProyecto" aria-expanded="false" aria-controls="formProyecto">+ Agregar proyecto</button>
+    </div>
+    <div class="cuerpo sin-pad">
+      {% if proyectos %}
+      <div class="tabla-wrap">
+        <table class="cards">
+          <thead><tr><th>Fecha</th><th>Proyecto</th><th>Paneles</th><th>Capacidad</th><th>Inversores</th><th>Batería</th><th>Asesor</th><th></th></tr></thead>
+          <tbody>
+          {% for p in proyectos %}
+            <tr>
+              <td data-label="Fecha">{{ p.fecha_instalacion or "—" }}</td>
+              <td data-label="Proyecto"><b>{{ p.nombre or "Instalación" }}</b>{% if p.notas %}<br><span class="muted">{{ p.notas }}</span>{% endif %}</td>
+              <td data-label="Paneles">{{ p.paneles or "—" }}</td>
+              <td data-label="Capacidad">{% if p.capacidad_instalada is not none %}{{ p.capacidad_instalada }} kW{% else %}—{% endif %}</td>
+              <td data-label="Inversores">{{ p.inversores or "—" }}</td>
+              <td data-label="Batería">{{ p.bateria or "—" }}{% if p.capacidad_bateria is not none %} · {{ p.capacidad_bateria }} kWh{% endif %}</td>
+              <td data-label="Asesor">{{ p.asesor or "—" }}</td>
+              <td data-label="" class="num">
+                <form method="post" action="/proyectos/{{ p.id }}/eliminar" onsubmit="return confirm('¿Eliminar este proyecto?')">
+                  <button class="btn" type="submit">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="cuerpo"><p class="muted" style="margin:0">Este cliente aún no tiene proyectos registrados.</p></div>
+      {% endif %}
+
+      <form method="post" action="/clientes/{{ cliente.nic }}/proyectos" id="formProyecto" hidden
+            style="padding:18px;border-top:1px solid var(--line)">
+        <div class="ubic-grid">
+          <div><label for="pr_nombre">Nombre del proyecto</label><input id="pr_nombre" name="nombre" placeholder="Sede principal · 24 paneles"></div>
+          <div><label for="pr_fecha">Fecha de instalación</label><input id="pr_fecha" name="fecha_instalacion" type="date"></div>
+        </div>
+        <div class="ubic-grid" style="margin-top:12px">
+          <div><label for="pr_paneles">Paneles</label><input id="pr_paneles" name="paneles" placeholder="12 x JA Solar 550W"></div>
+          <div><label for="pr_capacidad">Capacidad instalada (kW)</label><input id="pr_capacidad" name="capacidad_instalada" inputmode="decimal" placeholder="23.6"></div>
+        </div>
+        <div class="ubic-grid" style="margin-top:12px">
+          <div><label for="pr_inversores">Inversores</label><input id="pr_inversores" name="inversores" placeholder="2 INVERSORES WECO XTS-12K"></div>
+          <div><label for="pr_cap_bat">Capacidad batería (kWh)</label><input id="pr_cap_bat" name="capacidad_bateria" inputmode="decimal" placeholder="16"></div>
+        </div>
+        <div class="ubic-grid" style="margin-top:12px">
+          <div><label for="pr_bateria">Batería</label><input id="pr_bateria" name="bateria" placeholder="4 BAT WECO 16K0 LV"></div>
+          <div><label for="pr_asesor">Asesor</label><input id="pr_asesor" name="asesor" value="{{ cliente.asesor or '' }}"></div>
+        </div>
+        <div style="margin-top:12px"><label for="pr_notas">Notas</label><input id="pr_notas" name="notas" placeholder="opcional"></div>
+        <p style="margin:16px 0 0;display:flex;gap:10px">
+          <button class="btn primario" type="submit">Guardar proyecto</button>
+          <button class="btn" type="button" id="btnCancelarProyecto">Cancelar</button>
+        </p>
+      </form>
     </div>
   </section>
 
@@ -598,6 +685,19 @@
     catch(e){ var c = document.getElementById('eq_enlace'); c.removeAttribute('readonly'); c.select(); document.execCommand('copy'); c.setAttribute('readonly','readonly'); }
     if(window.toast) toast('Enlace copiado ✓');
   });
+
+  var btnProy = document.getElementById('btnProyecto');
+  if(btnProy){
+    var formProy = document.getElementById('formProyecto');
+    btnProy.addEventListener('click', function(){
+      formProy.hidden = !formProy.hidden;
+      btnProy.setAttribute('aria-expanded', formProy.hidden ? 'false' : 'true');
+      if(!formProy.hidden) document.getElementById('pr_nombre').focus();
+    });
+    document.getElementById('btnCancelarProyecto').addEventListener('click', function(){
+      formProy.hidden = true; btnProy.setAttribute('aria-expanded', 'false');
+    });
+  }
 
   if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
     toast('Equipo e ubicación guardados ✓');

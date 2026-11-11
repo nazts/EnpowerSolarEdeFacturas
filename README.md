@@ -53,6 +53,26 @@ cp .env.example .env      # completar credenciales y bot
 - Tabla de facturas descargadas con enlace al PDF, pendientes y actividad.
 - Botón **Descargar Excel** (contratos + facturas).
 
+## Usuarios y permisos
+
+- El panel pide **usuario y contraseña** (`/login`). Sin sesión, cualquier ruta
+  redirige al login y las rutas `/api/*` responden 401.
+- Roles: **admin** (todo, incluida la página *Usuarios*) y **asesor** (trabaja con
+  clientes, facturas y mapa, pero no administra usuarios).
+- Usuarios: alta, cambio de contraseña y activar/desactivar en `/usuarios`.
+- El primer administrador se crea solo al iniciar si no existe ninguno, con
+  `ADMIN_USER` / `ADMIN_PASSWORD` del `.env` (si no están, se genera una
+  contraseña aleatoria y se imprime una vez en la consola).
+- La sesión es una cookie firmada con `SECRET_KEY` (se genera en `.secret_key`
+  si falta) y dura 10 horas.
+
+## Proyectos instalados
+
+Cada cliente puede tener **uno o varios proyectos** (NIC, nombre del proyecto,
+paneles, capacidad instalada, inversores, batería, fecha, asesor y notas),
+guardados en la tabla `proyectos` y listados en la ficha del cliente, con su
+formulario para agregar y eliminar.
+
 ## Telegram
 
 1. Crear el canal en Telegram (privado o público).

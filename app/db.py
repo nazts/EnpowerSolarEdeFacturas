@@ -73,6 +73,34 @@ CREATE TABLE IF NOT EXISTS envios (
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS usuarios (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario       TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    nombre        TEXT NOT NULL DEFAULT '',
+    rol           TEXT NOT NULL DEFAULT 'asesor',
+    activo        INTEGER NOT NULL DEFAULT 1,
+    creado_en     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultimo_acceso TEXT
+);
+
+CREATE TABLE IF NOT EXISTS proyectos (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    nic                 TEXT NOT NULL,
+    nombre              TEXT NOT NULL DEFAULT '',
+    paneles             TEXT NOT NULL DEFAULT '',
+    capacidad_instalada REAL,
+    inversores          TEXT NOT NULL DEFAULT '',
+    bateria             TEXT NOT NULL DEFAULT '',
+    capacidad_bateria   REAL,
+    fecha_instalacion   TEXT NOT NULL DEFAULT '',
+    asesor              TEXT NOT NULL DEFAULT '',
+    notas               TEXT NOT NULL DEFAULT '',
+    creado_en           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_proyectos_nic ON proyectos(nic);
+
 CREATE TABLE IF NOT EXISTS eventos (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     fecha      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -310,6 +338,33 @@ def clientes_mapa(conn: sqlite3.Connection) -> list[dict]:
            FROM contratos c ORDER BY c.nic"""
     ).fetchall()
     return [dict(f) for f in filas]
+
+
+# ------------------------------------------------------------------ proyectos
+def crear_proyecto(conn: sqlite3.Connection, datos: dict) -> int:
+    campos = ["nic", "nombre", "paneles", "capacidad_instalada", "inversores",
+              "bateria", "capacidad_bateria", "fecha_instalacion", "asesor", "notas"]
+    valores = [datos.get(c) if datos.get(c) not in ("", None) else
+               (None if c in ("capacidad_instalada", "capacidad_bateria") else "")
+               for c in campos]
+    cursor = conn.execute(
+        f"INSERT INTO proyectos ({','.join(campos)}) VALUES ({','.join('?' for _ in campos)})",
+        valores,
+    )
+    conn.commit()
+    return int(cursor.lastrowid or 0)
+
+
+def listar_proyectos(conn: sqlite3.Connection, nic: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM proyectos WHERE nic = ? ORDER BY fecha_instalacion DESC, id DESC",
+        (str(nic),),
+    ).fetchall()
+
+
+def eliminar_proyecto(conn: sqlite3.Connection, proyecto_id: int) -> None:
+    conn.execute("DELETE FROM proyectos WHERE id = ?", (int(proyecto_id),))
+    conn.commit()
 
 
 def resumen_dashboard(conn: sqlite3.Connection) -> dict:

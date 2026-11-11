@@ -4,12 +4,14 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from urllib.parse import quote
+
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import config, db, excel, naming, telegram
+from . import auth, config, db, excel, naming, telegram
 from .edenorte import EdenorteClient, PortalError
 
 BASE = Path(__file__).resolve().parent
@@ -29,6 +31,172 @@ def _num(valor: str | None) -> float | None:
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 
 app = FastAPI(title="Enpower Solar — Facturas Edenorte", docs_url="/api/docs")
+
+PUBLICAS = ("/login", "/static", "/favicon.ico", "/openapi.json", "/api/docs")
+COOKIE = "sesion"
+
+
+def usuario_actual(request: Request) -> auth.Usuario | None:
+    if getattr(request.state, "usuario", None):
+        return request.state.usuario
+    uid = auth.leer_token(request.cookies.get(COOKIE))
+    if uid is None:
+        return None
+    with db.sesion() as conn:
+        usuario = auth.obtener_usuario(conn, uid)
+    if usuario and usuario.activo:
+        request.state.usuario = usuario
+        return usuario
+    return None
+
+
+@app.middleware("http")
+async def exigir_sesion(request: Request, call_next):
+    ruta = request.url.path
+    if ruta.startswith(PUBLICAS):
+        return await call_next(request)
+    usuario = usuario_actual(request)
+    if usuario is None:
+        if ruta.startswith("/api/"):
+            return JSONResponse({"ok": False, "error": "Sesión no iniciada"}, status_code=401)
+        destino = quote(ruta + (("?" + request.url.query) if request.url.query else ""))
+        return RedirectResponse(f"/login?next={destino}", status_code=303)
+    return await call_next(request)
+
+
+@app.on_event("startup")
+def _preparar() -> None:
+    db.init_db()
+    with db.sesion() as conn:
+        creado = auth.asegurar_admin_inicial(conn)
+        if creado:
+            usuario, password = creado
+            db.log_evento(conn, "info", "Usuario administrador creado", usuario)
+            print(f"[usuarios] admin inicial -> usuario: {usuario} / contraseña: {password}")
+
+
+@app.get("/login")
+def login_form(request: Request, next: str = "/"):
+    if usuario_actual(request):
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse(request, "login.html", {"next": next,
+                                                              "sin_usuarios": False})
+
+
+@app.post("/login")
+def login(request: Request, usuario: str = Form(...), password: str = Form(...),
+          next: str = Form(default="/")):
+    with db.sesion() as conn:
+        encontrado = auth.autenticar(conn, usuario, password)
+        if encontrado:
+            auth.marcar_acceso(conn, encontrado.id)
+            db.log_evento(conn, "info", f"Acceso de {encontrado.usuario}")
+        else:
+            db.log_evento(conn, "aviso", f"Intento de acceso fallido: {usuario[:40]}")
+    if not encontrado:
+        return templates.TemplateResponse(request, "login.html",
+                                          {"next": next, "error": "Usuario o contraseña incorrectos",
+                                           "usuario_previo": usuario}, status_code=401)
+    respuesta = RedirectResponse(next if next.startswith("/") else "/", status_code=303)
+    respuesta.set_cookie(COOKIE, auth.crear_token(encontrado.id), httponly=True,
+                         samesite="lax", max_age=auth.DURACION_SESION)
+    return respuesta
+
+
+@app.get("/logout")
+def logout():
+    respuesta = RedirectResponse("/login", status_code=303)
+    respuesta.delete_cookie(COOKIE)
+    return respuesta
+
+
+@app.get("/usuarios")
+def usuarios_page(request: Request):
+    usuario = usuario_actual(request)
+    if not usuario:
+        return RedirectResponse("/login", status_code=303)
+    if not usuario.es_admin:
+        return RedirectResponse("/?sinpermiso=1", status_code=303)
+    with db.sesion() as conn:
+        lista = [dict(u) for u in auth.listar_usuarios(conn)]
+    return templates.TemplateResponse(request, "usuarios.html",
+                                      {"activo": "usuarios", "usuarios": lista,
+                                       "usuario": usuario})
+
+
+@app.post("/usuarios")
+def usuarios_crear(request: Request, usuario_nuevo: str = Form(...),
+                   password: str = Form(...), nombre: str = Form(default=""),
+                   rol: str = Form(default="asesor")):
+    actual = usuario_actual(request)
+    if not actual or not actual.es_admin:
+        raise HTTPException(403, "Solo un administrador puede crear usuarios")
+    if len(password) < 8:
+        raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+    with db.sesion() as conn:
+        auth.crear_usuario(conn, usuario_nuevo, password, nombre, rol)
+        db.log_evento(conn, "info", f"Usuario {usuario_nuevo} creado por {actual.usuario}")
+    return RedirectResponse("/usuarios", status_code=303)
+
+
+@app.post("/usuarios/{usuario_id}/password")
+def usuarios_password(request: Request, usuario_id: int, password: str = Form(...)):
+    actual = usuario_actual(request)
+    if not actual or not actual.es_admin:
+        raise HTTPException(403, "Solo un administrador puede cambiar contraseñas")
+    if len(password) < 8:
+        raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+    with db.sesion() as conn:
+        auth.cambiar_password(conn, usuario_id, password)
+        db.log_evento(conn, "aviso", f"Contraseña cambiada por {actual.usuario}",
+                      f"usuario_id={usuario_id}")
+    return RedirectResponse("/usuarios", status_code=303)
+
+
+@app.post("/usuarios/{usuario_id}/estado")
+def usuarios_estado(request: Request, usuario_id: int, activo: str = Form(...)):
+    actual = usuario_actual(request)
+    if not actual or not actual.es_admin:
+        raise HTTPException(403, "Solo un administrador puede cambiar el estado")
+    if usuario_id == actual.id:
+        raise HTTPException(400, "No puedes desactivar tu propio usuario")
+    with db.sesion() as conn:
+        conn.execute("UPDATE usuarios SET activo = ? WHERE id = ?",
+                     (1 if activo == "1" else 0, usuario_id))
+        conn.commit()
+    return RedirectResponse("/usuarios", status_code=303)
+
+
+@app.post("/clientes/{nic}/proyectos")
+def proyectos_crear(nic: str, nombre: str = Form(default=""),
+                    paneles: str = Form(default=""), capacidad_instalada: str = Form(default=""),
+                    inversores: str = Form(default=""), bateria: str = Form(default=""),
+                    capacidad_bateria: str = Form(default=""),
+                    fecha_instalacion: str = Form(default=""), asesor: str = Form(default=""),
+                    notas: str = Form(default="")):
+    with db.sesion() as conn:
+        if db.obtener_contrato(conn, nic) is None:
+            raise HTTPException(404, "Ese NIC no está registrado")
+        db.crear_proyecto(conn, {
+            "nic": nic, "nombre": nombre.strip(), "paneles": paneles.strip(),
+            "capacidad_instalada": _num(capacidad_instalada),
+            "inversores": inversores.strip(), "bateria": bateria.strip(),
+            "capacidad_bateria": _num(capacidad_bateria),
+            "fecha_instalacion": fecha_instalacion.strip(),
+            "asesor": asesor.strip(), "notas": notas.strip(),
+        })
+        db.log_evento(conn, "info", f"Proyecto instalado agregado a {nic}", nombre[:60])
+    return RedirectResponse(f"/clientes/{nic}#proyectos", status_code=303)
+
+
+@app.post("/proyectos/{proyecto_id}/eliminar")
+def proyectos_eliminar(proyecto_id: int):
+    with db.sesion() as conn:
+        fila = conn.execute("SELECT nic FROM proyectos WHERE id = ?",
+                            (proyecto_id,)).fetchone()
+        db.eliminar_proyecto(conn, proyecto_id)
+        destino = f"/clientes/{fila['nic']}#proyectos" if fila else "/clientes"
+    return RedirectResponse(destino, status_code=303)
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 
@@ -307,13 +475,14 @@ def cliente_detalle(request: Request, nic: str):
             raise HTTPException(404, "Ese NIC no está registrado")
         historico = [dict(f) for f in db.historico_facturas(conn, nic)]
         pendientes = [dict(p) for p in db.pendientes_abiertos(conn) if str(p["nic"]) == nic]
+        proyectos = [dict(p) for p in db.listar_proyectos(conn, nic)]
     datos = dict(contrato)
     datos["proximo_corte"] = proximo_corte(datos.get("dia_corte"))
     datos["dias_corte"] = dias_para_corte(datos.get("dia_corte"))
     total = sum(f["facturado"] or 0 for f in historico)
     return templates.TemplateResponse(request, "cliente_detalle.html", {
         "cliente": datos, "historico": historico, "pendientes": pendientes,
-        "total_facturado": total, "activo": "clientes",
+        "total_facturado": total, "activo": "clientes", "proyectos": proyectos,
     })
 
 
