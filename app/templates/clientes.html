@@ -1,16 +1,6 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clientes · Enpower Solar</title>
-<style>
-  :root{
-    --bg:#0f1420; --card:#161d2c; --card2:#1d2637; --line:#2f3b57;
-    --txt:#e8eefc; --muted:#9aa7c4; --accent:#f5a623; --ok:#3ecf8e; --bad:#ff7d8b; --info:#6bb6ff;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.4}
+{% extends 'base.html' %}
+{% block titulo %}Clientes · Enpower Solar{% endblock %}
+{% block estilos %}<style>
   header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
     padding:16px 26px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#131a28,#0f1420)}
   h1{margin:0;font-size:19px;letter-spacing:.3px;white-space:nowrap}
@@ -25,7 +15,7 @@
   button:disabled{opacity:.6;cursor:progress}
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
     outline:3px solid #ffd27a;outline-offset:2px}
-  main{padding:22px 26px;display:grid;gap:22px;max-width:1400px;margin:0 auto}
+  .pagina{padding:22px 26px;display:grid;gap:22px;max-width:1400px;margin:0 auto}
   section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
   section > h2{margin:0;padding:14px 18px;font-size:14px;text-transform:uppercase;
     letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
@@ -91,7 +81,7 @@
   @media(prefers-reduced-motion:reduce){.spin{animation:none}*{transition:none!important}}
 
   @media(max-width:900px){
-    header{padding:14px 16px} main{padding:16px}
+    header{padding:14px 16px} .pagina{padding:16px}
     #msg{margin:12px 16px 0}
   }
   @media(max-width:640px){
@@ -133,17 +123,16 @@
   a.enlace:hover{text-decoration:underline}
   td small{display:block;color:var(--muted);font-size:12px}
   @media(max-width:640px){ .corte-box{width:100%} .cab-acc{width:100%} .cab-acc>*{flex:1 1 auto} }
-</style>
-</head>
-<body>
+</style>{% endblock %}
+{% block contenido %}
 <header>
-  <h1>Enpower <span>Solar</span> · Clientes</h1>
+  <h1>Clientes agregados</h1>
   <nav class="acciones" aria-label="Navegación">
     <a class="btn" href="/">← Dashboard</a>
     <a class="btn primario" href="/clientes/nuevo">+ Agregar nuevo cliente</a>
   </nav>
 </header>
-<main>
+<div class="pagina">
   <section>
     <h2>Clientes agregados ({{ clientes|length }})</h2>
     <div class="cuerpo sin-pad">
@@ -180,7 +169,6 @@
       {% endif %}
     </div>
   </section>
-</main>
+</div>
 
-</body>
-</html>
+{% endblock %}

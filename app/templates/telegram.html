@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Conexión de Telegram · Enpower Solar</title>
-<style>
- body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f1420;color:#e8eefc;margin:0;padding:24px}
+{% extends 'base.html' %}
+{% block titulo %}Conexión de Telegram · Enpower Solar{% endblock %}
+{% block estilos %}<style>
  a{color:#f5a623}
  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
  th,td{padding:9px 10px;border-bottom:1px solid #28324a;text-align:left}
@@ -19,9 +14,9 @@
  .card{background:#161d2c;border:1px solid #28324a;border-radius:14px;padding:18px;margin:16px 0}
  #msg{margin-top:12px;font-size:13.5px}
  code{background:#0d131f;padding:2px 6px;border-radius:6px}
-</style>
-</head>
-<body>
+</style>{% endblock %}
+{% block contenido %}
+<div style="padding:22px 26px;max-width:1100px;margin:0 auto">
 <p><a href="/">← Dashboard</a></p>
 <h1>Conexión de Telegram</h1>
 
@@ -131,5 +126,5 @@ function guardar(form){
   return false;
 }
 </script>
-</body>
-</html>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Enpower Solar{% endblock %}</title>
+<style>
+  :root{
+    --bg:#0f1420; --card:#161d2c; --card2:#1d2637; --line:#2f3b57;
+    --txt:#e8eefc; --muted:#9aa7c4; --accent:#f5a623; --ok:#3ecf8e; --bad:#ff7d8b; --info:#6bb6ff;
+    --side-w:260px; --side-w-min:76px; --side-bg:#111827; --side-hi:#1f2a40;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.4}
+
+  /* ---------- Sidebar ---------- */
+  aside#sidebar{position:fixed;top:12px;left:12px;bottom:12px;width:var(--side-w);z-index:50;
+    display:flex;flex-direction:column;background:var(--side-bg);border:1px solid #28324a;
+    border-radius:22px;padding:16px 12px;overflow:hidden;transition:width .2s ease,transform .25s ease}
+  #sidebar .marca{display:flex;align-items:center;gap:12px;padding:4px 6px 16px;border-bottom:1px solid #28324a;margin-bottom:8px}
+  #sidebar .logo{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(135deg,#f5a623,#d9822b);color:#1a1200;font-weight:800;font-size:15px;letter-spacing:.5px}
+  #sidebar .marca-txt{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden}
+  #sidebar .marca-txt small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+  #sidebar nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0}
+  #sidebar .grupo{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#6b7896;
+    padding:14px 12px 6px;white-space:nowrap;overflow:hidden}
+  #sidebar a.item{position:relative;display:flex;align-items:center;gap:12px;padding:10px 12px;margin:2px 0;
+    border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;white-space:nowrap;transition:background .15s,color .15s}
+  #sidebar a.item svg{flex:0 0 20px;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #sidebar a.item:hover{background:#182033;color:var(--txt)}
+  #sidebar a.item.activo{background:var(--side-hi);color:var(--txt);font-weight:600}
+  #sidebar a.item.activo::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--accent)}
+  #sidebar a.item.activo svg{color:var(--accent)}
+  #sidebar a.item:focus-visible,#sidebar button:focus-visible,#menuBtn:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}
+  #sidebar .pie{border-top:1px solid #28324a;padding-top:12px;margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  #sidebar .usuario{display:flex;align-items:center;gap:10px;padding:6px;border-radius:12px;background:#151d2f;overflow:hidden}
+  #sidebar .avatar{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:#28324a;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--accent)}
+  #sidebar .usuario-txt{font-size:13px;white-space:nowrap;overflow:hidden;line-height:1.25}
+  #sidebar .usuario-txt small{display:block;color:var(--muted);font-size:11px}
+  #sidebar button#colapsar{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:12px;
+    border:1px solid #28324a;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;min-height:0;white-space:nowrap}
+  #sidebar button#colapsar:hover{color:var(--accent);border-color:var(--accent)}
+  #sidebar button#colapsar svg{flex:0 0 18px;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+
+  /* ---------- Colapsado (rail) ---------- */
+  body.side-min aside#sidebar{width:var(--side-w-min)}
+  body.side-min #sidebar .marca-txt,body.side-min #sidebar .item span,body.side-min #sidebar .usuario-txt,body.side-min #sidebar #colapsar span{display:none}
+  body.side-min #sidebar .grupo{height:1px;padding:0;margin:12px 14px;background:#28324a;font-size:0}
+  body.side-min #sidebar .marca{justify-content:center;padding-left:0;padding-right:0}
+  body.side-min #sidebar a.item,body.side-min #sidebar button#colapsar{justify-content:center;padding-left:0;padding-right:0}
+  body.side-min #sidebar .usuario{justify-content:center}
+  body.side-min #sidebar button#colapsar svg{transform:rotate(180deg)}
+
+  /* ---------- Contenido ---------- */
+  main#principal{margin-left:calc(var(--side-w) + 24px);min-width:0;transition:margin-left .2s ease}
+  body.side-min main#principal{margin-left:calc(var(--side-w-min) + 24px)}
+
+  #menuBtn{display:none;position:fixed;top:12px;left:12px;z-index:60;width:42px;height:42px;padding:0;border-radius:12px;
+    border:1px solid #28324a;background:var(--side-bg);color:var(--txt);cursor:pointer;align-items:center;justify-content:center;min-height:0}
+  #menuBtn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+  #velo{display:none}
+
+  @media(max-width:768px){
+    aside#sidebar{transform:translateX(calc(-100% - 20px));width:min(280px,82vw)}
+    body.side-abierto aside#sidebar{transform:none}
+    body.side-min aside#sidebar{width:min(280px,82vw)}
+    body.side-min #sidebar .marca-txt,body.side-min #sidebar .item span,body.side-min #sidebar .usuario-txt,body.side-min #sidebar #colapsar span{display:inline}
+    body.side-min #sidebar .usuario-txt{display:block}
+    #sidebar button#colapsar{display:none}
+    main#principal,body.side-min main#principal{margin-left:0;padding-top:64px}
+    #menuBtn{display:inline-flex}
+    body.side-abierto #menuBtn{opacity:0;pointer-events:none}
+    body.side-abierto #velo{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}
+  }
+</style>
+{% block estilos %}{% endblock %}
+</head>
+<body>
+<button type="button" id="menuBtn" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+  <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+<div id="velo"></div>
+
+<aside id="sidebar" aria-label="Navegación principal">
+  <div class="marca">
+    <div class="logo">ES</div>
+    <div class="marca-txt">Enpower Solar<small>Panel de facturas</small></div>
+  </div>
+  <nav>
+    <div class="grupo">General</div>
+    <a class="item{% if activo == 'panel' %} activo{% endif %}" href="/" title="Panel"{% if activo == 'panel' %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Panel</span></a>
+    <a class="item" href="/#facturas" title="Facturas">
+      <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Facturas</span></a>
+
+    <div class="grupo">Módulos</div>
+    <a class="item{% if activo == 'clientes' %} activo{% endif %}" href="/clientes" title="Clientes agregados"{% if activo == 'clientes' %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.3c2 .7 3.5 2.5 3.5 5.7"/></svg><span>Clientes agregados</span></a>
+    <a class="item{% if activo == 'cliente_nuevo' %} activo{% endif %}" href="/clientes/nuevo" title="Nuevo cliente"{% if activo == 'cliente_nuevo' %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3 20c0-3.6 3-6 7-6s7 2.4 7 6"/><path d="M19 8v6M16 11h6"/></svg><span>Nuevo cliente</span></a>
+
+    <div class="grupo">Configuración</div>
+    <a class="item{% if activo == 'telegram' %} activo{% endif %}" href="/telegram" title="Conexión Telegram"{% if activo == 'telegram' %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24"><path d="M21 4 3 11l6 2.5L11.5 20l3-4.5L19 19z"/><path d="m9 13.5 12-9.5"/></svg><span>Conexión Telegram</span></a>
+  </nav>
+  <div class="pie">
+    <div class="usuario">
+      <div class="avatar">ES</div>
+      <div class="usuario-txt">Enpower Solar<small>Administrador</small></div>
+    </div>
+    <button type="button" id="colapsar" aria-label="Colapsar menú" title="Colapsar menú">
+      <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span>Colapsar</span>
+    </button>
+  </div>
+</aside>
+
+<main id="principal">
+{% block contenido %}{% endblock %}
+</main>
+
+<script>
+(function(){
+  var b = document.body, KEY = 'sidebar-min';
+  try { if (localStorage.getItem(KEY) === '1') b.classList.add('side-min'); } catch(e){}
+  var movil = function(){ return window.matchMedia('(max-width:768px)').matches; };
+  document.getElementById('colapsar').addEventListener('click', function(){
+    var min = b.classList.toggle('side-min');
+    try { localStorage.setItem(KEY, min ? '1' : '0'); } catch(e){}
+  });
+  var btn = document.getElementById('menuBtn');
+  function abrir(v){
+    b.classList.toggle('side-abierto', v);
+    btn.setAttribute('aria-expanded', v ? 'true' : 'false');
+  }
+  btn.addEventListener('click', function(){ abrir(!b.classList.contains('side-abierto')); });
+  document.getElementById('velo').addEventListener('click', function(){ abrir(false); });
+  document.querySelectorAll('#sidebar a.item').forEach(function(a){
+    a.addEventListener('click', function(){ if (movil()) abrir(false); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') abrir(false); });
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
