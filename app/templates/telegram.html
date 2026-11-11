@@ -17,7 +17,7 @@
 </style>{% endblock %}
 {% block contenido %}
 <div style="padding:22px 26px;max-width:1100px;margin:0 auto">
-<p><a href="/">← Dashboard</a></p>
+<p><a href="/"><i class="bi bi-arrow-left" aria-hidden="true"></i> Dashboard</a></p>
 <h1>Conexión de Telegram</h1>
 
 <div class="card">
@@ -34,8 +34,8 @@
     {% else %}<span class="pill bad">sin configurar</span>{% endif %}</p>
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
-    <button class="btn primario" type="button" onclick="detectar()">🔎 Detectar canal</button>
-    <button class="btn" type="button" onclick="probar()">✉️ Enviar prueba</button>
+    <button class="btn primario" type="button" onclick="detectar()"><i class="bi bi-search" aria-hidden="true"></i> Detectar canal</button>
+    <button class="btn" type="button" onclick="probar()"><i class="bi bi-envelope" aria-hidden="true"></i> Enviar prueba</button>
     <form method="post" action="/api/telegram/chat" onsubmit="return guardar(this)" style="display:flex;gap:8px">
       <input name="chat_id" placeholder="-100… o @usuario" value="{{ chat_id }}">
       <button class="btn" type="submit">Guardar</button>

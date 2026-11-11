@@ -73,6 +73,12 @@ paneles, capacidad instalada, inversores, batería, fecha, asesor y notas),
 guardados en la tabla `proyectos` y listados en la ficha del cliente, con su
 formulario para agregar y eliminar.
 
+## Iconos
+
+La interfaz usa **Bootstrap Icons** (MIT), servidos **localmente** desde
+`app/static/bootstrap-icons/` (CSS + woff2/woff), sin CDN: funcionan sin
+internet. Se usan como `<i class="bi bi-nombre"></i>`.
+
 ## Telegram
 
 1. Crear el canal en Telegram (privado o público).

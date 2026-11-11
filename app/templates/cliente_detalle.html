@@ -130,8 +130,8 @@
 <header>
   <h1>Histórico del cliente</h1>
   <nav class="acciones" aria-label="Navegación">
-    <a class="btn" href="/">← Dashboard</a>
-    <a class="btn" href="/clientes">← Clientes</a>
+    <a class="btn" href="/"><i class="bi bi-arrow-left" aria-hidden="true"></i> Dashboard</a>
+    <a class="btn" href="/clientes"><i class="bi bi-arrow-left" aria-hidden="true"></i> Clientes</a>
   </nav>
 </header>
 <div class="pagina">
@@ -177,8 +177,8 @@
           <div class="dato"><span class="k">Instalación</span><span class="v">{{ cliente.fecha_instalacion or "—" }}</span></div>
         </div>
         <p style="margin:16px 0 0;display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn primario" href="/mapa?nic={{ cliente.nic }}">📍 Abrir en el mapa</a>
-          <button class="btn" type="button" id="btnEquipo" aria-expanded="false" aria-controls="formEquipo">✏️ Cambiar equipo</button>
+          <a class="btn primario" href="/mapa?nic={{ cliente.nic }}"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Abrir en el mapa</a>
+          <button class="btn" type="button" id="btnEquipo" aria-expanded="false" aria-controls="formEquipo"><i class="bi bi-pencil-square" aria-hidden="true"></i> Cambiar equipo</button>
         </p>
 
         <form method="post" action="/clientes/{{ cliente.nic }}/equipo" id="formEquipo" hidden
@@ -202,7 +202,7 @@
               <label for="eq_enlace">Enlace para compartir</label>
               <div style="display:flex;gap:8px">
                 <input id="eq_enlace" readonly placeholder="se genera con las coordenadas">
-                <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap">📋 Copiar</button>
+                <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar</button>
               </div>
             </div>
           </div>
@@ -217,8 +217,8 @@
             </div>
           </div>
           <p style="margin:10px 0 0;display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn" type="button" id="btnUbicarEq">📍 Ubicar por la dirección</button>
-            <button class="btn" type="button" id="btnReverseEq">🧭 Sacar la dirección</button>
+            <button class="btn" type="button" id="btnUbicarEq"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Ubicar por la dirección</button>
+            <button class="btn" type="button" id="btnReverseEq"><i class="bi bi-compass" aria-hidden="true"></i> Sacar la dirección</button>
             <span class="muted" id="eq_pista" aria-live="polite"></span>
           </p>
           <div class="ubic-grid" style="margin-top:14px">
@@ -354,7 +354,7 @@
         {% for f in historico %}
           <tr>
             <td data-label="Corte"><b>{{ f.corte }}</b></td>
-            <td data-label="Período">{{ f.periodo_ini or "—" }} → {{ f.periodo_fin or "—" }}</td>
+            <td data-label="Período">{{ f.periodo_ini or "—" }} <i class="bi bi-arrow-right" aria-hidden="true"></i> {{ f.periodo_fin or "—" }}</td>
             <td data-label="No. factura">{{ f.no_factura or "—" }}</td>
             <td class="num" data-label="kWh">{{ f.kwh if f.kwh is not none else "—" }}</td>
             <td class="num" data-label="Facturado">{{ "{:,.2f}".format(f.facturado) if f.facturado is not none else "—" }}</td>
@@ -399,7 +399,8 @@
   function alternar(ver){
     form.hidden = !ver;
     btn.setAttribute('aria-expanded', ver ? 'true' : 'false');
-    btn.textContent = ver ? '✕ Cerrar' : '✏️ Cambiar equipo';
+    btn.innerHTML = ver ? '<i class="bi bi-x-lg" aria-hidden="true"></i> Cerrar'
+                        : '<i class="bi bi-pencil-square" aria-hidden="true"></i> Cambiar equipo';
     if(ver) document.getElementById('eq_direccion').focus();
   }
   btn.addEventListener('click', function(){ alternar(form.hidden); });

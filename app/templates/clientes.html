@@ -128,7 +128,7 @@
 <header>
   <h1>Clientes agregados</h1>
   <nav class="acciones" aria-label="Navegación">
-    <a class="btn" href="/">← Dashboard</a>
+    <a class="btn" href="/"><i class="bi bi-arrow-left" aria-hidden="true"></i> Dashboard</a>
     <a class="btn primario" href="/clientes/nuevo">+ Agregar nuevo cliente</a>
   </nav>
 </header>
@@ -158,7 +158,7 @@
             <td class="num" data-label="Última factura">{{ "{:,.2f}".format(c.ultimo_monto) if c.ultimo_monto is not none else "—" }}
               {% if c.ultimo_kwh is not none %}<small>{{ c.ultimo_kwh }} kWh</small>{% endif %}</td>
             <td data-label="Estado">{% if c.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}</td>
-            <td class="num acc"><a class="mini btn" href="/clientes/{{ c.nic }}" aria-label="Ver histórico del cliente {{ c.nic }}">Histórico →</a></td>
+            <td class="num acc"><a class="mini btn" href="/clientes/{{ c.nic }}" aria-label="Ver histórico del cliente {{ c.nic }}">Histórico <i class="bi bi-arrow-right" aria-hidden="true"></i></a></td>
           </tr>
         {% endfor %}
         </tbody>

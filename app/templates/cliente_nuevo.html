@@ -140,8 +140,8 @@
 <header>
   <h1>Nuevo cliente</h1>
   <nav class="acciones" aria-label="Navegación">
-    <a class="btn" href="/">← Dashboard</a>
-    <a class="btn" href="/clientes">← Clientes</a>
+    <a class="btn" href="/"><i class="bi bi-arrow-left" aria-hidden="true"></i> Dashboard</a>
+    <a class="btn" href="/clientes"><i class="bi bi-arrow-left" aria-hidden="true"></i> Clientes</a>
   </nav>
 </header>
 <div id="msg" role="status" aria-live="polite"></div>
@@ -156,7 +156,7 @@
             <input id="nic" name="nic" required inputmode="numeric" pattern="[0-9]+" placeholder="7533709" autocomplete="off">
           </div>
           <div class="con-boton c4">
-            <button type="button" id="btnBuscar" onclick="buscar()">🔎 Buscar</button>
+            <button type="button" id="btnBuscar" onclick="buscar()"><i class="bi bi-search" aria-hidden="true"></i> Buscar</button>
           </div>
           <p class="nota" id="pista" aria-live="polite">Escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (Edenorte tarda unos segundos).</p>
 
@@ -202,10 +202,10 @@
             <input id="coordenadas" placeholder="19.402583, -70.727444" inputmode="decimal" autocomplete="off">
           </div>
           <div class="con-boton c3">
-            <button type="button" id="btnReverse">🧭 Sacar la dirección</button>
+            <button type="button" id="btnReverse"><i class="bi bi-compass" aria-hidden="true"></i> Sacar la dirección</button>
           </div>
           <div class="con-boton c3">
-            <button type="button" id="btnGeo" onclick="ubicarPorDireccion('')">📍 Ubicar por dirección</button>
+            <button type="button" id="btnGeo" onclick="ubicarPorDireccion('')"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Ubicar por dirección</button>
           </div>
 
           <div class="campo c3">
@@ -220,7 +220,7 @@
             <label for="enlace">Enlace del mapa (para compartir)</label>
             <div style="display:flex;gap:8px">
               <input id="enlace" readonly placeholder="se genera con las coordenadas">
-              <button type="button" class="btn" id="btnCopiarEnlace" style="white-space:nowrap">📋 Copiar</button>
+              <button type="button" class="btn" id="btnCopiarEnlace" style="white-space:nowrap"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar</button>
             </div>
           </div>
           <p class="nota" id="geoInfo" aria-live="polite">Pega «lat, lon» y pulsa «Sacar la dirección», o escribe la dirección y usa «Ubicar por dirección».</p>

@@ -352,12 +352,14 @@ def telegram_page(request: Request):
         pendientes = telegram.updates()
     except Exception:
         pendientes = []
-    canales = []
+    canales, vistos = [], set()
     for upd in pendientes:
         msg = upd.get("channel_post") or upd.get("message") or upd.get("my_chat_member") or {}
         chat = msg.get("chat") or {}
-        if chat.get("id"):
-            canales.append({"tipo": chat.get("type"), "id": chat.get("id"),
+        cid = chat.get("id")
+        if cid and cid not in vistos:
+            vistos.add(cid)
+            canales.append({"tipo": chat.get("type"), "id": cid,
                             "titulo": chat.get("title") or chat.get("username")})
     with db.sesion() as conn:
         envios = [dict(e) for e in conn.execute(
