@@ -15,9 +15,11 @@ cada PDF con un nombre estandarizado de razón social + NIC.
 - Un solo recorrido: recorre **todos** los contratos que estén agregados en la
   plataforma (`/contratos`), sin lista fija en el código. Si mañana se asocia un
   contrato nuevo desde la web, el escaneo lo toma automáticamente.
-- Se descargan las facturas cuyo **corte** (último día del período facturado,
-  campo `No. De Días Facturados: dd/mm/aaaa - dd/mm/aaaa`) corresponde a esa
-  fecha o que aún no estén descargadas.
+- En cada corrida se descargan **solo** las facturas de tipo "Recibos de consumos"
+  cuyo **corte** (último día del período facturado, campo
+  `No. De Días Facturados: dd/mm/aaaa - dd/mm/aaaa`) sea la fecha de ese día.
+  Criterio completo en §4; lo que no cumpla queda como pendiente (§7), no se
+  descarga "por si acaso".
 
 ## 3. Reglas de nombre del archivo
 
