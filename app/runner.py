@@ -259,7 +259,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 mensajes = telegram.enviar_album([d["path"] for d in res.descargadas],
                                                  caption=texto, chat_id=chat_id)
                 res.mensaje_enviado = True
-                ids = [r["rowid"] for r in db.facturas_del_dia(conn, fiso)]
+                ids = [r["id"] for r in db.facturas_del_dia(conn, fiso)]
                 db.marcar_enviadas(conn, ids, chat_id or config.TELEGRAM_CHAT_ID)
                 db.log_evento(conn, "info", f"Enviadas {len(res.descargadas)} facturas a Telegram",
                               f"{len(mensajes)} mensaje(s)")

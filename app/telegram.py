@@ -75,6 +75,7 @@ def enviar_album(paths: list[str | Path], caption: str = "",
     for inicio in range(0, len(archivos), MAX_ALBUM):
         bloque = archivos[inicio:inicio + MAX_ALBUM]
         media, files = [], {}
+        abiertos = []
         for i, path in enumerate(bloque):
             clave = f"file{i}"
             item = {"type": "document", "media": f"attach://{clave}"}
@@ -82,7 +83,9 @@ def enviar_album(paths: list[str | Path], caption: str = "",
                 item["caption"] = caption[:1024]
                 item["parse_mode"] = "HTML"
             media.append(item)
-            files[clave] = (path.name, path.open("rb"),
+            handle = path.open("rb")
+            abiertos.append(handle)
+            files[clave] = (path.name, handle,
                             mimetypes.guess_type(path.name)[0] or "application/pdf")
         try:
             resp = requests.post(_url("sendMediaGroup"), data={
@@ -91,9 +94,9 @@ def enviar_album(paths: list[str | Path], caption: str = "",
             resultado = _ok(resp)
             resultados.extend(resultado if isinstance(resultado, list) else [resultado])
         finally:
-            for _, fh in files.values():
+            for handle in abiertos:
                 try:
-                    fh[1].close()
+                    handle.close()
                 except Exception:
                     pass
     return resultados

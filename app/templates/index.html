@@ -6,67 +6,116 @@
 <title>Enpower Solar · Facturas Edenorte</title>
 <style>
   :root{
-    --bg:#0f1420; --card:#161d2c; --card2:#1d2637; --line:#28324a;
-    --txt:#e8eefc; --muted:#8b98b5; --accent:#f5a623; --ok:#3ecf8e; --bad:#ef5b6b; --info:#4ea8ff;
+    --bg:#0f1420; --card:#161d2c; --card2:#1d2637; --line:#2f3b57;
+    --txt:#e8eefc; --muted:#9aa7c4; --accent:#f5a623; --ok:#3ecf8e; --bad:#ff7d8b; --info:#6bb6ff;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;
-    padding:18px 26px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#131a28,#0f1420)}
-  h1{margin:0;font-size:19px;letter-spacing:.3px}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.4}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
+    padding:16px 26px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#131a28,#0f1420)}
+  h1{margin:0;font-size:19px;letter-spacing:.3px;white-space:nowrap}
   h1 span{color:var(--accent)}
-  .acciones{display:flex;gap:10px;flex-wrap:wrap}
+  .acciones{display:flex;gap:8px;flex-wrap:nowrap}
   a.btn,button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
-    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;transition:.15s}
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;min-height:38px}
   a.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}
   .primario{background:var(--accent);color:#1a1200;border-color:var(--accent);font-weight:600}
   .primario:hover{color:#1a1200;filter:brightness(1.08)}
+  button:disabled{opacity:.6;cursor:progress}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
+    outline:3px solid #ffd27a;outline-offset:2px}
   main{padding:22px 26px;display:grid;gap:22px;max-width:1400px;margin:0 auto}
   section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
   section > h2{margin:0;padding:14px 18px;font-size:14px;text-transform:uppercase;
     letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
   .cuerpo{padding:18px}
+  .sin-pad{padding:0}
+  .tabla-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{width:100%;border-collapse:collapse;font-size:13.5px}
   th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
   tbody tr:hover{background:#1a2233}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
   label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;
     text-transform:uppercase;letter-spacing:.6px}
-  input,select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);
-    background:#0d131f;color:var(--txt);font:inherit}
-  input:focus,select:focus{outline:2px solid rgba(245,166,35,.35);border-color:var(--accent)}
+  input,select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #3d4b6b;
+    background:#0d131f;color:var(--txt);font:inherit;min-height:38px}
+  input:focus,select:focus{border-color:var(--accent)}
+  input::placeholder{color:#7f8ca8}
   .fila{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
   .fila > div{flex:1 1 170px}
+  .fila > .fijo{flex:0 0 auto}
+  .pie-form{margin-top:14px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
   .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
   .pill.ok{background:rgba(62,207,142,.15);color:var(--ok)}
-  .pill.bad{background:rgba(239,91,107,.15);color:var(--bad)}
+  .pill.bad{background:rgba(239,91,107,.18);color:var(--bad)}
   .pill.warn{background:rgba(245,166,35,.15);color:var(--accent)}
   .pill.info{background:rgba(78,168,255,.15);color:var(--info)}
   .muted{color:var(--muted)}
   .num{text-align:right;font-variant-numeric:tabular-nums}
-  .mini{padding:5px 10px;font-size:12px;border-radius:7px}
-  #msg{margin:0 26px;display:none;padding:11px 14px;border-radius:10px;font-size:13.5px}
-  #msg.ok{display:block;background:rgba(62,207,142,.12);border:1px solid var(--ok)}
-  #msg.err{display:block;background:rgba(239,91,107,.12);border:1px solid var(--bad)}
+  .mini{padding:5px 10px;font-size:12px;border-radius:7px;min-height:32px}
+  .acc-fila{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .acc-fila form{margin:0}
+  /* Avisos: ok / err / warn / info */
+  #msg{margin:14px 26px 0;display:none;padding:11px 14px;border-radius:10px;font-size:13.5px;
+    border:1px solid var(--line);max-width:1348px}
+  @media(min-width:1400px){ #msg{margin-left:auto;margin-right:auto;width:calc(100% - 52px)}}
+  #msg.ok{display:block;background:rgba(62,207,142,.12);border-color:var(--ok)}
+  #msg.err{display:block;background:rgba(239,91,107,.14);border-color:var(--bad)}
+  #msg.info{display:block;background:rgba(78,168,255,.12);border-color:var(--info)}
+  #msg.warn{display:block;background:rgba(245,166,35,.12);border-color:var(--accent)}
+  #msg::before{font-weight:700;margin-right:8px}
+  #msg.ok::before{content:"Listo:";color:var(--ok)}
+  #msg.err::before{content:"Error:";color:var(--bad)}
+  #msg.info::before{content:"En curso:";color:var(--info)}
+  #msg.warn::before{content:"Aviso:";color:var(--accent)}
   dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--txt);
     padding:0;width:min(560px,92vw)}
+  dialog::backdrop{background:rgba(5,8,14,.7)}
   dialog h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:15px}
-  dialog .cuerpo{padding:18px}
-  .vacio{padding:16px;color:var(--muted);font-size:13.5px}
+  .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
+  .vacio b{display:block;color:var(--txt);margin-bottom:3px;font-size:14px}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;
+    border-radius:50%;animation:giro .7s linear infinite}
+  @keyframes giro{to{transform:rotate(360deg)}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media(prefers-reduced-motion:reduce){.spin{animation:none}*{transition:none!important}}
+
+  @media(max-width:900px){
+    header{padding:14px 16px} main{padding:16px}
+    #msg{margin:12px 16px 0}
+  }
+  @media(max-width:640px){
+    h1{white-space:normal;font-size:17px}
+    .acciones{width:100%;flex-wrap:wrap}
+    .acciones > *{flex:1 1 auto}
+    .cuerpo{padding:14px}
+    /* tablas -> tarjetas */
+    table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
+    table.cards thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    table.cards tr{padding:10px 14px;border-bottom:1px solid var(--line)}
+    table.cards tbody tr:last-child{border-bottom:0}
+    table.cards td{border:0;padding:4px 0;display:flex;gap:12px;justify-content:space-between;text-align:right}
+    table.cards td::before{content:attr(data-label);color:var(--muted);font-size:11.5px;text-transform:uppercase;
+      letter-spacing:.6px;text-align:left;flex:0 0 38%}
+    table.cards td.acc{justify-content:flex-end}
+    table.cards td.acc::before{content:none}
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>Enpower <span>Solar</span> · Facturas Edenorte</h1>
-  <div class="acciones">
+  <div class="acciones" role="group" aria-label="Acciones generales">
     <a class="btn" href="/export/excel">⬇ Descargar Excel</a>
-    <button onclick="probarTelegram()">Probar Telegram</button>
-    <button class="primario" onclick="correrAhora()">Correr ahora</button>
+    <button type="button" id="btnTelegram" onclick="probarTelegram()">Probar Telegram</button>
+    <button type="button" class="primario" id="btnCorrer" onclick="correrAhora()">Correr ahora</button>
   </div>
 </header>
-<div id="msg"></div>
-<main>
+<div id="msg" role="status" aria-live="polite"></div>
+<main id="contenido">
 
   <section>
     <h2>Agregar contrato (NIC)</h2>
@@ -81,7 +130,7 @@
             <label for="razon_social">Razón social (factura)</label>
             <input id="razon_social" name="razon_social" placeholder="se autocompleta al buscar">
           </div>
-          <div><button type="button" onclick="buscarRazon()">🔎 Buscar</button></div>
+          <div class="fijo"><button type="button" id="btnBuscar" onclick="buscarRazon()">🔎 Buscar razón social</button></div>
         </div>
         <div class="fila" style="margin-top:12px">
           <div>
@@ -93,9 +142,9 @@
             <input id="dia_corte" name="dia_corte" placeholder="se aprende solo" inputmode="numeric"></div>
           <div><label for="notas">Notas</label><input id="notas" name="notas" placeholder="opcional"></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <div class="pie-form">
           <button class="primario" type="submit">Guardar contrato</button>
-          <span class="muted" id="pista">El NIC debe estar asociado a la cuenta en la Oficina Virtual.</span>
+          <span class="muted" id="pista" aria-live="polite">El NIC debe estar asociado a la cuenta en la Oficina Virtual.</span>
         </div>
       </form>
     </div>
@@ -103,35 +152,35 @@
 
   <section>
     <h2>Contratos ({{ contratos|length }})</h2>
-    <div class="cuerpo" style="padding:0">
+    <div class="cuerpo sin-pad">
       {% if contratos %}
-      <table>
+      <div class="tabla-wrap"><table class="cards">
         <thead><tr><th>NIC</th><th>Razón social</th><th>Pagador / alias</th><th>Asesor</th>
           <th>Corte</th><th>Estado</th><th></th></tr></thead>
         <tbody>
         {% for c in contratos %}
           <tr>
-            <td><b>{{ c.nic }}</b></td>
-            <td>{{ c.nombre_normalizado or c.razon_social or "—" }}<br>
+            <td data-label="NIC"><b>{{ c.nic }}</b></td>
+            <td data-label="Razón social">{{ c.nombre_normalizado or c.razon_social or "—" }}<br>
                 <span class="muted">{{ c.razon_social }}</span></td>
-            <td>{{ c.alias or "—" }}</td>
-            <td>{{ c.asesor or "—" }}</td>
-            <td>{{ c.dia_corte or "—" }}</td>
-            <td>{% if c.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}</td>
-            <td class="num">
-              <button class="mini" type="button"
+            <td data-label="Pagador / alias">{{ c.alias or "—" }}</td>
+            <td data-label="Asesor">{{ c.asesor or "—" }}</td>
+            <td data-label="Corte">{{ c.dia_corte or "—" }}</td>
+            <td data-label="Estado">{% if c.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}</td>
+            <td class="num acc"><div class="acc-fila">
+              <button class="mini" type="button" aria-label="Editar contrato {{ c.nic }}"
                 onclick='editar({{ c|tojson }})'>Editar</button>
-              <form method="post" action="/contratos/{{ c.nic }}/eliminar" style="display:inline"
+              <form method="post" action="/contratos/{{ c.nic }}/eliminar"
                     onsubmit="return confirm('¿Eliminar el contrato {{ c.nic }}?')">
-                <button class="mini" type="submit">Eliminar</button>
-              </form>
+                <button class="mini" type="submit" aria-label="Eliminar contrato {{ c.nic }}">Eliminar</button>
+              </form></div>
             </td>
           </tr>
         {% endfor %}
         </tbody>
-      </table>
+      </table></div>
       {% else %}
-      <div class="vacio">Todavía no hay contratos. Agrega el primero arriba con su NIC.</div>
+      <div class="vacio"><b>Sin contratos</b>Todavía no hay contratos. Agrega el primero arriba con su NIC.</div>
       {% endif %}
     </div>
   </section>
@@ -139,74 +188,78 @@
   {% if pendientes %}
   <section>
     <h2>Pendientes — cortaron y aún no están en el portal ({{ pendientes|length }})</h2>
-    <div class="cuerpo" style="padding:0">
-      <table>
+    <div class="cuerpo sin-pad">
+      <div class="tabla-wrap"><table class="cards">
         <thead><tr><th>NIC</th><th>Corte</th><th>Intentos</th><th>Estado</th><th>Último intento</th></tr></thead>
         <tbody>
         {% for p in pendientes %}
           <tr>
-            <td><b>{{ p.nic }}</b></td>
-            <td>{{ p.fecha_corte }}</td>
-            <td>{{ p.intentos }}</td>
-            <td>{% if p.estado == 'atrasado' %}<span class="pill bad">atrasado</span>
+            <td data-label="NIC"><b>{{ p.nic }}</b></td>
+            <td data-label="Corte">{{ p.fecha_corte }}</td>
+            <td data-label="Intentos">{{ p.intentos }}</td>
+            <td data-label="Estado">{% if p.estado == 'atrasado' %}<span class="pill bad">atrasado</span>
                 {% else %}<span class="pill warn">pendiente</span>{% endif %}</td>
-            <td class="muted">{{ p.ultimo_intento }}</td>
+            <td class="muted" data-label="Último intento">{{ p.ultimo_intento }}</td>
           </tr>
         {% endfor %}
         </tbody>
-      </table>
+      </table></div>
     </div>
   </section>
   {% endif %}
 
   <section>
     <h2>Facturas descargadas ({{ facturas|length }})</h2>
-    <div class="cuerpo" style="padding:0">
+    <div class="cuerpo sin-pad">
       {% if facturas %}
-      <table>
+      <div class="tabla-wrap"><table class="cards">
         <thead><tr><th>Corte</th><th>NIC</th><th>Nombre</th><th>Pagador</th><th>Asesor</th>
           <th class="num">kWh</th><th class="num">Facturado</th><th>Vence</th><th>Enviada</th><th></th></tr></thead>
         <tbody>
         {% for f in facturas %}
           <tr>
-            <td>{{ f.corte }}</td>
-            <td>{{ f.nic }}</td>
-            <td>{{ f.cliente }}</td>
-            <td>{{ f.alias or "—" }}</td>
-            <td>{{ f.asesor or "—" }}</td>
-            <td class="num">{{ f.kwh if f.kwh is not none else "—" }}</td>
-            <td class="num">{{ "{:,.2f}".format(f.facturado) if f.facturado is not none else "—" }}</td>
-            <td>{{ f.vence or "—" }}</td>
-            <td>{% if f.enviada %}<span class="pill ok">sí</span>{% else %}<span class="pill info">no</span>{% endif %}</td>
-            <td class="num"><a class="mini btn" href="/facturas/{{ f.id }}/pdf" target="_blank">PDF</a></td>
+            <td data-label="Corte">{{ f.corte }}</td>
+            <td data-label="NIC">{{ f.nic }}</td>
+            <td data-label="Nombre">{{ f.cliente }}</td>
+            <td data-label="Pagador">{{ f.alias or "—" }}</td>
+            <td data-label="Asesor">{{ f.asesor or "—" }}</td>
+            <td class="num" data-label="kWh">{{ f.kwh if f.kwh is not none else "—" }}</td>
+            <td class="num" data-label="Facturado">{{ "{:,.2f}".format(f.facturado) if f.facturado is not none else "—" }}</td>
+            <td data-label="Vence">{{ f.vence or "—" }}</td>
+            <td data-label="Enviada">{% if f.enviada %}<span class="pill ok">sí</span>{% else %}<span class="pill info">no</span>{% endif %}</td>
+            <td class="num acc"><a class="mini btn" href="/facturas/{{ f.id }}/pdf" target="_blank" rel="noopener" aria-label="Abrir PDF de la factura {{ f.nic }} {{ f.corte }}">PDF</a></td>
           </tr>
         {% endfor %}
         </tbody>
-      </table>
+      </table></div>
       {% else %}
-      <div class="vacio">Sin facturas descargadas todavía.</div>
+      <div class="vacio"><b>Sin facturas</b>Aún no hay facturas descargadas. Usa «Correr ahora» para escanear Edenorte.</div>
       {% endif %}
     </div>
   </section>
 
   <section>
     <h2>Actividad reciente</h2>
-    <div class="cuerpo" style="padding:0">
-      <table>
+    <div class="cuerpo sin-pad">
+      {% if eventos %}
+      <div class="tabla-wrap"><table class="cards">
         <thead><tr><th>Fecha</th><th>Nivel</th><th>Mensaje</th><th>Detalle</th></tr></thead>
         <tbody>
         {% for e in eventos %}
           <tr>
-            <td class="muted">{{ e.fecha }}</td>
-            <td>{% if e.nivel == 'error' %}<span class="pill bad">error</span>
+            <td class="muted" data-label="Fecha">{{ e.fecha }}</td>
+            <td data-label="Nivel">{% if e.nivel == 'error' %}<span class="pill bad">error</span>
                 {% elif e.nivel == 'aviso' %}<span class="pill warn">aviso</span>
                 {% else %}<span class="pill info">info</span>{% endif %}</td>
-            <td>{{ e.mensaje }}</td>
-            <td class="muted">{{ e.detalle[:120] }}</td>
+            <td data-label="Mensaje">{{ e.mensaje }}</td>
+            <td class="muted" data-label="Detalle">{{ (e.detalle or "")[:120] }}</td>
           </tr>
         {% endfor %}
         </tbody>
-      </table>
+      </table></div>
+      {% else %}
+      <div class="vacio"><b>Sin actividad</b>No hay eventos registrados todavía.</div>
+      {% endif %}
     </div>
   </section>
 
@@ -216,20 +269,20 @@
   </p>
 </main>
 
-<dialog id="dlg">
-  <h3>Editar contrato <span id="dlgNic"></span></h3>
+<dialog id="dlg" aria-labelledby="dlgTitulo">
+  <h3 id="dlgTitulo">Editar contrato <span id="dlgNic"></span></h3>
   <form method="post" id="dlgForm" class="cuerpo">
     <div class="grid">
-      <div><label>Razón social</label><input name="razon_social" id="e_razon"></div>
-      <div><label>Pagador / alias</label><input name="alias" id="e_alias"></div>
-      <div><label>Asesor</label><input name="asesor" id="e_asesor"></div>
-      <div><label>Día de corte</label><input name="dia_corte" id="e_corte" inputmode="numeric"></div>
-      <div><label>Estado</label>
+      <div><label for="e_razon">Razón social</label><input name="razon_social" id="e_razon"></div>
+      <div><label for="e_alias">Pagador / alias</label><input name="alias" id="e_alias"></div>
+      <div><label for="e_asesor">Asesor</label><input name="asesor" id="e_asesor"></div>
+      <div><label for="e_corte">Día de corte</label><input name="dia_corte" id="e_corte" inputmode="numeric"></div>
+      <div><label for="e_activo">Estado</label>
         <select name="activo" id="e_activo"><option value="1">Activo</option><option value="0">Inactivo</option></select>
       </div>
-      <div><label>Notas</label><input name="notas" id="e_notas"></div>
+      <div><label for="e_notas">Notas</label><input name="notas" id="e_notas"></div>
     </div>
-    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+    <div class="pie-form" style="justify-content:flex-end">
       <button type="button" onclick="document.getElementById('dlg').close()">Cancelar</button>
       <button class="primario" type="submit">Guardar</button>
     </div>
@@ -237,22 +290,35 @@
 </dialog>
 
 <script>
-function aviso(texto, ok=true){
+function aviso(texto, tipo){
+  // tipo: true/'ok' | false/'err' | 'info' | 'warn'
+  const t = tipo === undefined || tipo === true ? 'ok' : tipo === false ? 'err' : tipo;
   const m = document.getElementById('msg');
-  m.textContent = texto; m.className = ok ? 'ok' : 'err';
-  clearTimeout(window._t); window._t = setTimeout(()=>{m.className='';}, 7000);
+  m.textContent = texto; m.className = t;
+  clearTimeout(window._t);
+  if (t !== 'info') window._t = setTimeout(()=>{m.className=''; m.textContent='';}, 7000);
+}
+function ocupado(id, on, txt){
+  const b = document.getElementById(id); if(!b) return;
+  if(on){ b.dataset.orig = b.textContent; b.disabled = true; b.setAttribute('aria-busy','true');
+    b.innerHTML = '<span class="spin" aria-hidden="true"></span> ' + txt; }
+  else { b.disabled = false; b.removeAttribute('aria-busy'); if(b.dataset.orig) b.textContent = b.dataset.orig; }
 }
 async function buscarRazon(){
   const nic = document.getElementById('nic').value.trim();
-  if(!nic) return aviso('Escribe el NIC primero', false);
-  aviso('Consultando la Oficina Virtual…');
-  const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
-  const d = await r.json();
-  if(!d.ok) return aviso(d.error || 'No se pudo consultar', false);
-  document.getElementById('razon_social').value = d.razon_social || '';
-  document.getElementById('pista').textContent =
-    'Titular: ' + d.razon_social + ' · ' + (d.direccion || '') ;
-  aviso('Razón social encontrada: ' + d.razon_social);
+  if(!nic) return aviso('Escribe el NIC primero', 'warn');
+  aviso('Consultando la Oficina Virtual…', 'info');
+  ocupado('btnBuscar', true, 'Buscando…');
+  try{
+    const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
+    const d = await r.json();
+    if(!d.ok) return aviso(d.error || 'No se pudo consultar', false);
+    document.getElementById('razon_social').value = d.razon_social || '';
+    document.getElementById('pista').textContent =
+      'Titular: ' + d.razon_social + ' · ' + (d.direccion || '');
+    aviso('Razón social encontrada: ' + d.razon_social);
+  }catch(e){ aviso('No se pudo conectar con el servidor', false); }
+  finally{ ocupado('btnBuscar', false); }
 }
 function editar(c){
   document.getElementById('dlgNic').textContent = c.nic;
@@ -266,17 +332,28 @@ function editar(c){
   document.getElementById('dlg').showModal();
 }
 async function probarTelegram(){
-  const r = await fetch('/api/test-telegram', {method:'POST'});
-  const d = await r.json();
-  aviso(d.ok ? 'Mensaje enviado al canal ✅' : ('Telegram: ' + d.error), d.ok);
+  aviso('Enviando mensaje de prueba a Telegram…', 'info');
+  ocupado('btnTelegram', true, 'Enviando…');
+  try{
+    const r = await fetch('/api/test-telegram', {method:'POST'});
+    const d = await r.json();
+    aviso(d.ok ? 'Mensaje enviado al canal ✅' : ('Telegram: ' + d.error), d.ok);
+  }catch(e){ aviso('No se pudo conectar con el servidor', false); }
+  finally{ ocupado('btnTelegram', false); }
 }
 async function correrAhora(){
-  aviso('Corriendo el escaneo de Edenorte…');
-  const r = await fetch('/api/corrida', {method:'POST'});
-  const d = await r.json();
-  if(!d.ok && d.portal_error) return aviso('⚠️ ' + d.portal_error, false);
-  aviso(`Listo: ${(d.descargadas||[]).length} descargada(s), ${(d.pendientes||[]).length} pendiente(s)`);
-  setTimeout(()=>location.reload(), 1500);
+  aviso('Corriendo el escaneo de Edenorte…', 'info');
+  ocupado('btnCorrer', true, 'Corriendo…');
+  let recargar = false;
+  try{
+    const r = await fetch('/api/corrida', {method:'POST'});
+    const d = await r.json();
+    if(!d.ok && d.portal_error) return aviso('⚠️ ' + d.portal_error, false);
+    aviso(`Listo: ${(d.descargadas||[]).length} descargada(s), ${(d.pendientes||[]).length} pendiente(s)`);
+    recargar = true;
+  }catch(e){ aviso('No se pudo conectar con el servidor', false); }
+  finally{ ocupado('btnCorrer', false); }
+  if(recargar) setTimeout(()=>location.reload(), 1500);
 }
 </script>
 </body>

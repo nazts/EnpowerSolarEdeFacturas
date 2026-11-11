@@ -119,7 +119,7 @@ def parsear(texto: str) -> DatosFactura:
     if m:
         d.subsidio = _num(m.group(1))
 
-    m = re.search(r"FACTURADO MES\s+[A-Z]{3,}[^\n]{0,200}?RD\$\s*(-?[\d\.,]+)", plano)
+    m = re.search(r"FACTURADO MES\s+[A-Z]{3,}[\s\S]{0,200}?RD\$\s*(-?[\d\.,]+)", plano)
     if m:
         d.facturado = _num(m.group(1))
     if d.facturado is None:
