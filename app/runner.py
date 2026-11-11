@@ -414,7 +414,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
 # ------------------------------------------------------------------ historico
 def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
                           enviar: bool = True, chat_id: str | None = None,
-                          portales: dict | None = None) -> dict:
+                          portales: dict | None = None, nic: str | None = None) -> dict:
     """Guarda las ultimas facturas de cada cliente (minimo las 2 anteriores).
 
     Descarga las que falten en la base, las deja en `facturas/` con el mismo
@@ -436,9 +436,13 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
         except Exception as exc:  # noqa: BLE001 - sin credenciales o portal caido
             res["errores"].append({"proveedor": nombre_prov, "error": str(exc)[:200]})
 
+    solo_nic = (nic or "").strip()
     with db.sesion() as conn:
         for contrato in db.listar_contratos(conn):
-            nic = str(contrato["nic"])
+            nic_actual = str(contrato["nic"])
+            if solo_nic and nic_actual != solo_nic:
+                continue
+            nic = nic_actual
             prov = (contrato["proveedor"] if "proveedor" in contrato.keys() else "") or "edenorte"
             portal = activos.get(prov)
             if portal is None:
@@ -452,10 +456,19 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
 
             faltan = [f for f in hist.filas
                       if es_consumo(f.tipo) and not db.factura_existe(conn, f.ref_pago)]
+            sin_pdf = 0
             for fila in faltan[:por_cliente]:
+                if sin_pdf >= 2:
+                    # el portal solo conserva los 2 PDFs mas recientes: no insistir
+                    db.log_evento(conn, "info",
+                                  f"NIC {nic}: el portal ya no conserva PDFs mas antiguos",
+                                  f"desde {fila.ref_pago}")
+                    break
                 try:
                     contenido = portal.descargar_pdf(fila.ref_pago)
+                    sin_pdf = 0
                 except PortalError as exc:
+                    sin_pdf += 1
                     res["errores"].append({"nic": nic, "ref": fila.ref_pago, "error": str(exc)[:160]})
                     continue
                 with tempfile.TemporaryDirectory() as tmp:

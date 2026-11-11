@@ -339,7 +339,9 @@
   {% endif %}
 
   <section>
-    <h2>Histórico de facturas ({{ historico|length }})</h2>
+    <h2>Histórico de facturas ({{ historico|length }})
+      <button type="button" class="mini btn" id="btnFacturas" style="margin-left:10px">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Buscar facturas</button></h2>
     {% if historico %}
     <div class="cuerpo" style="border-bottom:1px solid var(--line)">
       <div class="stats">
@@ -368,12 +370,32 @@
       </table></div>
     </div>
     {% else %}
-    <div class="vacio"><b>Sin facturas</b>Este cliente todavía no tiene facturas descargadas.</div>
+    <div class="vacio"><b>Sin facturas</b>Este cliente todavía no tiene facturas descargadas en el panel.
+      Pulsa <b>Buscar facturas</b> para intentarlo ahora mismo (si el portal no las tiene publicadas,
+      se reintenta en la corrida de las 7:00 a.m.).</div>
     {% endif %}
   </section>
 </div>
 
 <script>
+(function(){
+  var bf = document.getElementById('btnFacturas');
+  if(bf) bf.addEventListener('click', async function(){
+    bf.disabled = true;
+    var txt = bf.innerHTML;
+    bf.innerHTML = 'Buscando…';
+    try{
+      var fd = new FormData();
+      fd.append('nic', '{{ cliente.nic }}');
+      fd.append('enviar', '0');
+      var r = await fetch('/api/historial', {method:'POST', body: fd});
+      var d = await r.json();
+      if(window.toast) toast(d.ok ? ('Facturas nuevas: ' + d.nuevos) : (d.error || 'No se pudo buscar'), d.ok);
+      if(d.ok) setTimeout(function(){ location.reload(); }, 1200);
+    }catch(e){ if(window.toast) toast('No se pudo conectar con el servidor', false); }
+    finally{ bf.disabled = false; bf.innerHTML = txt; }
+  });
+})();
 (function(){
   var el = document.getElementById('miniMapa'); if(!el || !el.dataset.lat) return;
   var lat = parseFloat(el.dataset.lat), lon = parseFloat(el.dataset.lon); if(isNaN(lat)||isNaN(lon)) return;

@@ -248,6 +248,15 @@ def api_contrato(nic: str, proveedor: str = "edenorte",
             if asociado:
                 db.log_evento(conn, "info", f"Contrato {nic} asociado a la cuenta",
                               contrato.titular)
+        if asociado:
+            try:
+                import threading
+                from .runner import sincronizar_historial
+                threading.Thread(target=sincronizar_historial,
+                                 kwargs={"enviar": False, "nic": contrato.nic},
+                                 daemon=True).start()
+            except Exception:  # noqa: BLE001
+                pass
         return JSONResponse({
             "ok": True, "nic": contrato.nic, "razon_social": contrato.titular,
             "nombre_normalizado": naming.normalizar_razon_social(contrato.titular),
@@ -413,11 +422,13 @@ def api_corrida(fecha: str | None = Form(default=None)) -> JSONResponse:
 
 
 @app.post("/api/historial")
-def api_historial() -> JSONResponse:
-    """Guarda las ultimas facturas de cada cliente y manda a Telegram las que falten."""
+def api_historial(nic: str = Form(default=""),
+                  enviar: str = Form(default="1")) -> JSONResponse:
+    """Guarda las ultimas facturas (de todos los clientes o de uno) y envia."""
     from .runner import sincronizar_historial
     try:
-        r = sincronizar_historial(enviar=True)
+        r = sincronizar_historial(enviar=enviar.strip() not in ("0", "false", ""),
+                                  nic=nic.strip() or None)
         return JSONResponse({"ok": True, "nuevos": len(r.get("nuevos", [])),
                              "enviados": r.get("enviados", 0),
                              "errores": r.get("errores", [])[:5], **r})
@@ -504,6 +515,17 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
         db.log_evento(conn, "info",
                       f"Cliente {nic} agregado desde el módulo de clientes ({proveedor})",
                       aviso)
+    # traer sus facturas ya mismo (sin mandar nada a Telegram)
+    if proveedor == "edenorte" or referencia.strip():
+        try:
+            import threading
+            from .runner import sincronizar_historial
+            threading.Thread(target=sincronizar_historial,
+                             kwargs={"enviar": False, "nic": nic}, daemon=True).start()
+        except Exception as exc:  # noqa: BLE001 - el alta ya quedo guardada
+            with db.sesion() as conn:
+                db.log_evento(conn, "aviso", f"No se pudo iniciar la descarga de {nic}",
+                              str(exc)[:200])
     return RedirectResponse(f"/clientes/{nic}", status_code=303)
 
 
