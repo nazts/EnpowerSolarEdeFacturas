@@ -43,10 +43,15 @@
   #sidebar nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0}
   #sidebar .grupo{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);
     padding:14px 12px 6px;white-space:nowrap;overflow:hidden}
-  #sidebar a.item{position:relative;display:flex;align-items:center;gap:12px;padding:10px 12px;margin:2px 0;
-    border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;white-space:nowrap;transition:background .15s,color .15s}
-  #sidebar a.item svg{flex:0 0 20px;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  #sidebar a.item:hover{background:var(--hover);color:var(--txt)}
+  #sidebar a.item,#sidebar button.item{position:relative;display:flex;align-items:center;gap:12px;
+    padding:10px 12px;margin:2px 0;border:0;background:none;width:100%;text-align:left;font:inherit;
+    justify-content:flex-start;border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;
+    white-space:nowrap;cursor:pointer;transition:background .15s,color .15s}
+  #sidebar a.item svg,#sidebar button.item svg{flex:0 0 20px;width:20px;height:20px;stroke:currentColor;
+    fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #sidebar a.item:hover,#sidebar button.item:hover{background:var(--hover);color:var(--txt)}
+  body.side-min #sidebar a.item span,body.side-min #sidebar button.item span{display:none}
+  #sidebar button.item[aria-busy="true"]{opacity:.6;cursor:progress}
   #sidebar a.item.activo{background:var(--side-hi);color:var(--txt);font-weight:600}
   #sidebar a.item.activo::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--accent)}
   #sidebar a.item.activo svg{color:var(--accent)}
@@ -87,6 +92,14 @@
     border:1px solid var(--side-line);background:var(--side-bg);color:var(--txt);cursor:pointer;align-items:center;justify-content:center;min-height:0}
   #menuBtn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
   #velo{display:none}
+  #toast{position:fixed;right:20px;bottom:20px;z-index:70;max-width:min(420px,90vw);
+    padding:12px 16px;border-radius:12px;font-size:13.5px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.18);
+    background:var(--card);color:var(--txt);border:1px solid var(--line);opacity:0;transform:translateY(8px);
+    pointer-events:none;transition:opacity .18s,transform .18s}
+  #toast.visible{opacity:1;transform:none}
+  #toast.bueno{border-color:var(--ok)}
+  #toast.malo{border-color:var(--bad)}
+  @media(max-width:768px){ #toast{left:14px;right:14px;bottom:14px;max-width:none} }
 
   @media(max-width:768px){
     aside#sidebar{transform:translateX(calc(-100% - 20px));width:min(280px,82vw)}
@@ -130,6 +143,14 @@
     <div class="grupo">Configuración</div>
     <a class="item{% if activo == 'telegram' %} activo{% endif %}" href="/telegram" title="Conexión Telegram"{% if activo == 'telegram' %} aria-current="page"{% endif %}>
       <svg viewBox="0 0 24 24"><path d="M21 4 3 11l6 2.5L11.5 20l3-4.5L19 19z"/><path d="m9 13.5 12-9.5"/></svg><span>Conexión Telegram</span></a>
+
+    <div class="grupo">Acciones</div>
+    <a class="item" href="/export/excel" title="Descargar Excel">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg><span>Descargar Excel</span></a>
+    <button class="item" type="button" id="accTelegram" title="Probar Telegram">
+      <svg viewBox="0 0 24 24"><path d="M21 4 3 11l6 2.5L11.5 20l3-4.5L19 19z"/><path d="m9 13.5 12-9.5"/></svg><span>Probar Telegram</span></button>
+    <button class="item" type="button" id="accCorrer" title="Correr ahora">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5 16 12l-6 3.5z"/></svg><span>Correr ahora</span></button>
   </nav>
   <div class="pie">
     <div class="usuario">
@@ -151,9 +172,44 @@
 {% block contenido %}{% endblock %}
 </main>
 
+<div id="toast" role="status" aria-live="polite"></div>
 <script>
+function toast(txt, ok){
+  var t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = txt;
+  t.className = 'visible ' + (ok === false ? 'malo' : 'bueno');
+  clearTimeout(window.__toast);
+  window.__toast = setTimeout(function(){ t.className = ''; }, 6000);
+}
+async function accionTelegram(btn){
+  btn.setAttribute('aria-busy','true');
+  toast('Enviando mensaje de prueba…');
+  try{
+    const r = await fetch('/api/test-telegram', {method:'POST'});
+    const d = await r.json();
+    toast(d.ok ? 'Mensaje enviado al canal ✓' : ('Telegram: ' + d.error), d.ok);
+  }catch(e){ toast('No se pudo conectar con el servidor', false); }
+  finally{ btn.removeAttribute('aria-busy'); }
+}
+async function accionCorrer(btn){
+  btn.setAttribute('aria-busy','true');
+  toast('Escaneando Edenorte…');
+  try{
+    const r = await fetch('/api/corrida', {method:'POST'});
+    const d = await r.json();
+    if(!d.ok && d.portal_error){ toast('⚠️ ' + d.portal_error, false); return; }
+    const n = (d.descargadas||[]).length, p = (d.pendientes||[]).length;
+    toast('Listo: ' + n + ' factura(s) descargada(s), ' + p + ' pendiente(s)');
+    setTimeout(function(){ location.reload(); }, 1500);
+  }catch(e){ toast('No se pudo conectar con el servidor', false); }
+  finally{ btn.removeAttribute('aria-busy'); }
+}
 (function(){
   var b = document.body, KEY = 'sidebar-min';
+  var at = document.getElementById('accTelegram'), ac = document.getElementById('accCorrer');
+  if(at) at.addEventListener('click', function(){ accionTelegram(at); });
+  if(ac) ac.addEventListener('click', function(){ accionCorrer(ac); });
   try { if (localStorage.getItem(KEY) === '1') b.classList.add('side-min'); } catch(e){}
   var movil = function(){ return window.matchMedia('(max-width:768px)').matches; };
   document.getElementById('colapsar').addEventListener('click', function(){

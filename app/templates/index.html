@@ -131,15 +131,6 @@
   .cargando{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
 </style>{% endblock %}
 {% block contenido %}
-<header>
-  <h1>Enpower <span>Solar</span></h1>
-  <div class="acciones" role="group" aria-label="Acciones generales">
-    <a class="btn" href="/clientes">👥 Clientes</a>
-    <a class="btn" href="/export/excel">⬇ Descargar Excel</a>
-    <button type="button" id="btnTelegram" onclick="probarTelegram()">Probar Telegram</button>
-    <button type="button" class="primario" id="btnCorrer" onclick="correrAhora()">Correr ahora</button>
-  </div>
-</header>
 <div id="msg" role="status" aria-live="polite"></div>
 <div class="pagina" id="contenido">
 
@@ -409,30 +400,6 @@ function editar(c){
   document.getElementById('e_activo').value = c.activo ? '1' : '0';
   document.getElementById('e_notas').value = c.notas || '';
   document.getElementById('dlg').showModal();
-}
-async function probarTelegram(){
-  aviso('Enviando mensaje de prueba a Telegram…', 'info');
-  ocupado('btnTelegram', true, 'Enviando…');
-  try{
-    const r = await fetch('/api/test-telegram', {method:'POST'});
-    const d = await r.json();
-    aviso(d.ok ? 'Mensaje enviado al canal ✅' : ('Telegram: ' + d.error), d.ok);
-  }catch(e){ aviso('No se pudo conectar con el servidor', false); }
-  finally{ ocupado('btnTelegram', false); }
-}
-async function correrAhora(){
-  aviso('Corriendo el escaneo de Edenorte…', 'info');
-  ocupado('btnCorrer', true, 'Corriendo…');
-  let recargar = false;
-  try{
-    const r = await fetch('/api/corrida', {method:'POST'});
-    const d = await r.json();
-    if(!d.ok && d.portal_error) return aviso('⚠️ ' + d.portal_error, false);
-    aviso(`Listo: ${(d.descargadas||[]).length} descargada(s), ${(d.pendientes||[]).length} pendiente(s)`);
-    recargar = true;
-  }catch(e){ aviso('No se pudo conectar con el servidor', false); }
-  finally{ ocupado('btnCorrer', false); }
-  if(recargar) setTimeout(()=>location.reload(), 1500);
 }
 </script>
 {% endblock %}
