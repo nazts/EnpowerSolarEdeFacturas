@@ -11,6 +11,8 @@ node_modules/
 # salidas / datos descargados
 facturas/
 Descargas/
+data/
+exports/
 *.pdf
 *.xlsx
 

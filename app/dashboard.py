@@ -1,0 +1,149 @@
+"""Dashboard web: alta de NIC, autocompletado de razón social, alias/asesor y Excel."""
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from . import config, db, excel, naming, telegram
+from .edenorte import EdenorteClient, PortalError
+
+BASE = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE / "templates"))
+
+app = FastAPI(title="Enpower Solar — Facturas Edenorte", docs_url="/api/docs")
+app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
+
+
+# ------------------------------------------------------------------ API datos
+@app.get("/api/contrato/{nic}")
+def api_contrato(nic: str) -> JSONResponse:
+    """Autocompleta razón social / dirección consultando el portal."""
+    try:
+        cliente = EdenorteClient()
+        cliente.login()
+        for c in cliente.contratos():
+            if c.nic == str(nic).strip():
+                return JSONResponse({
+                    "ok": True, "nic": c.nic, "razon_social": c.titular,
+                    "nombre_normalizado": naming.normalizar_razon_social(c.titular),
+                    "direccion": c.direccion, "telefono": c.telefono,
+                })
+        return JSONResponse({"ok": False, "error": "Ese NIC no está asociado a la cuenta "
+                                                   "en la Oficina Virtual"}, status_code=404)
+    except PortalError as exc:
+        return JSONResponse({"ok": False, "error": f"Portal: {exc}"}, status_code=502)
+
+
+@app.get("/api/estado")
+def api_estado() -> JSONResponse:
+    with db.sesion() as conn:
+        contratos = [dict(r) for r in db.listar_contratos(conn, solo_activos=False)]
+        pendientes = [dict(r) for r in db.pendientes_abiertos(conn)]
+        facturas = [dict(r) for r in conn.execute(
+            "SELECT * FROM facturas WHERE estado='descargada' ORDER BY corte DESC LIMIT 100")]
+        eventos = [dict(r) for r in db.ultimos_eventos(conn, 30)]
+    return JSONResponse({
+        "contratos": contratos, "pendientes": pendientes,
+        "facturas": facturas, "eventos": eventos,
+        "telegram_configurado": bool(config.TELEGRAM_CHAT_ID),
+    })
+
+
+@app.post("/api/test-telegram")
+def api_test_telegram() -> JSONResponse:
+    try:
+        telegram.enviar_mensaje("✅ Prueba de conexión del bot Enpower Solar.")
+        return JSONResponse({"ok": True})
+    except telegram.TelegramError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+
+@app.post("/api/corrida")
+def api_corrida(fecha: str | None = Form(default=None)) -> JSONResponse:
+    from .runner import corrida
+    f = datetime.strptime(fecha, "%Y-%m-%d").date() if fecha else None
+    try:
+        r = corrida(fecha=f, enviar=True)
+        return JSONResponse({"ok": r.portal_error is None, **r.como_dict()})
+    except Exception as exc:  # el dashboard nunca debe caerse
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+@app.get("/export/excel")
+def exportar_excel():
+    ruta = excel.exportar()
+    return FileResponse(
+        ruta, filename=Path(ruta).name,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# ------------------------------------------------------------------ paginas
+@app.get("/")
+def inicio(request: Request):
+    with db.sesion() as conn:
+        contratos = [dict(r) for r in db.listar_contratos(conn, solo_activos=False)]
+        pendientes = [dict(r) for r in db.pendientes_abiertos(conn)]
+        facturas = [dict(r) for r in conn.execute(
+            """SELECT f.*, c.alias, c.asesor FROM facturas f
+               LEFT JOIN contratos c ON c.nic = f.nic
+               WHERE f.estado = 'descargada' ORDER BY f.corte DESC LIMIT 200""")]
+        eventos = [dict(r) for r in db.ultimos_eventos(conn, 40)]
+    return templates.TemplateResponse(request, "index.html", {
+        "contratos": contratos, "pendientes": pendientes, "facturas": facturas,
+        "eventos": eventos, "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
+    })
+
+
+@app.post("/contratos")
+def crear_contrato(nic: str = Form(...), razon_social: str = Form(default=""),
+                   alias: str = Form(default=""), asesor: str = Form(default=""),
+                   dia_corte: str = Form(default=""), notas: str = Form(default="")):
+    nic = nic.strip()
+    if not nic.isdigit():
+        raise HTTPException(400, "El NIC debe ser numérico")
+    with db.sesion() as conn:
+        db.upsert_contrato(
+            conn, nic, razon_social=razon_social,
+            alias=alias, asesor=asesor, notas=notas,
+            dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
+        )
+        db.log_evento(conn, "info", f"Contrato {nic} guardado desde el dashboard")
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/contratos/{nic}/editar")
+def editar_contrato(nic: str, razon_social: str = Form(default=""),
+                    alias: str = Form(default=""), asesor: str = Form(default=""),
+                    dia_corte: str = Form(default=""), notas: str = Form(default=""),
+                    activo: str = Form(default="1")):
+    with db.sesion() as conn:
+        db.upsert_contrato(
+            conn, nic, razon_social=razon_social, alias=alias, asesor=asesor, notas=notas,
+            dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
+            activo=1 if activo == "1" else 0,
+        )
+        db.log_evento(conn, "info", f"Contrato {nic} actualizado")
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/contratos/{nic}/eliminar")
+def borrar_contrato(nic: str):
+    with db.sesion() as conn:
+        db.eliminar_contrato(conn, nic)
+        db.log_evento(conn, "aviso", f"Contrato {nic} eliminado")
+    return RedirectResponse("/", status_code=303)
+
+
+@app.get("/facturas/{factura_id}/pdf")
+def ver_pdf(factura_id: int):
+    with db.sesion() as conn:
+        fila = conn.execute("SELECT pdf_path FROM facturas WHERE id = ?", (factura_id,)).fetchone()
+    if not fila or not fila["pdf_path"] or not Path(fila["pdf_path"]).exists():
+        raise HTTPException(404, "PDF no encontrado")
+    return FileResponse(fila["pdf_path"], media_type="application/pdf",
+                        filename=Path(fila["pdf_path"]).name)
