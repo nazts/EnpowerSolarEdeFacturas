@@ -59,7 +59,28 @@ Reglas:
 | `DE LA CRUZ TAVAREZ, JORGE RAMON` | 6997885 | `JORGE RAMON DE LA CRUZ TAVAREZ 6997885.pdf` |
 | `ENPOWER SOLAR SRL` (sin coma) | 1234567 | `ENPOWER SOLAR SRL 1234567.pdf` |
 
-## 4. Datos a extraer de cada factura
+## 4. Filtro: qué factura se descarga (y cuál no)
+
+Se descarga **solo** la factura que cumple las dos condiciones:
+
+1. **Tipo = "Recibos de consumos"** (recibo de consumo). Se descartan los demás
+   tipos, p. ej. "Irregularidades intencionales".
+2. **Fecha de corte = el día de la corrida** (`No. De Días Facturados` termina
+   hoy). Las facturas con otro corte no se descargan.
+
+Regla de consumo (dentro de las de tipo recibo de consumo):
+
+- Solo es válida/facturable la que **muestre un número de consumo real**
+  (kWh > 0 con cifra impresa).
+- Si el consumo **no aparece** (espacio en blanco, sin número) → **no se
+  descarga**.
+- Consumo en **cero explícito** → *pendiente de confirmar con el cliente*
+  (ver §9).
+
+**El PDF no se modifica de ninguna forma.** No se le agregan sellos, marcas,
+ni campos: la única transformación es el **nombre del archivo**.
+
+## 5. Datos a extraer de cada factura
 
 - NIC / contrato, No. de factura, Ref. de pago, ENCF
 - Titular (razón social tal como aparece) y razón social normalizada
@@ -70,16 +91,30 @@ Reglas:
 - **Fecha límite de pago** (`PAGUE ANTES DE`)
 - Balance pendiente
 
-## 5. Salida
+## 6. Salida
 
-- PDFs en la carpeta de facturas del proyecto (fuera de git).
+- PDFs en la carpeta de facturas del proyecto (fuera de git), sin tocar su
+  contenido.
 - `index.json` junto a los PDFs con todos los campos anteriores + ruta local +
   estado (`descargada` / `no disponible`), para que cada corrida sea un diff y no
   un redescubrimiento.
 - Reporte de la corrida: contratos revisados, facturas nuevas descargadas,
   facturas ya existentes, y facturas listadas por el portal pero sin PDF.
 
-## 6. Restricciones y hechos del portal (verificados)
+## 7. Manejo de fallas del portal (Edenorte)
+
+Si la plataforma de Edenorte falla —no deja iniciar sesión, da error 500/502,
+se cae el sitio, cambia el formulario— **no es un fallo nuestro**. En ese caso el
+sistema debe:
+
+- No reintentar en bucle ni fallar en silencio.
+- Emitir un **mensaje de alerta**: *"La plataforma de Edenorte tiene problemas"*
+  (con la hora del intento y el error técnico resumido), para que la empresa
+  sepa que ese día no hubo descarga por causa del portal.
+- Registrar el intento en el log de la corrida y reintentar en la siguiente
+  ejecución programada.
+
+## 8. Restricciones y hechos del portal (verificados)
 
 - Login por correo + contraseña; credenciales de la empresa en `.env`
   (`EDENORTE_EMAIL`, `EDENORTE_PASSWORD`, `EDENORTE_URL`), archivo ignorado por git.
@@ -90,7 +125,8 @@ Reglas:
   eso la corrida debe ser diaria y guardar el PDF el mismo día que aparece.
 - El PDF no se puede obtener sin sesión iniciada.
 
-## 7. Caso de referencia (factura de muestra entregada por el cliente)
+
+## 9. Caso de referencia (factura de muestra entregada por el cliente)
 
 `Downloads/factura.pdf` — Edenorte, contrato NIC **7533709**, Ref. Pago 7533709022,
 No. Factura 202611033807, ENCF E320031847759, Suministro 4237690,
@@ -101,15 +137,16 @@ subsidio RD$‑166,797.83, **total RD$188,675.21**, **pagar antes del 07/11/2026
 Nota: la emisión (08/10/2026) es posterior al corte, así que la detección por
 fecha de corte debe leer el período dentro del PDF, no la fecha de emisión.
 
-## 8. Pendientes / decisiones del cliente
+## 10. Pendientes / decisiones del cliente
 
 1. Formato exacto del nombre: ¿`FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf`
    (espacio) o con guion bajo / guion medio?
 2. ¿Qué hacer si a las 7:00 a.m. la factura aún no está publicada (reintentar más
    tarde el mismo día)?
-3. ¿Se descarga solo la factura cuyo corte es hoy, o también cualquier factura
-   nueva que aparezca (p. ej. "Irregularidades intencionales")?
-4. Destino final de los PDFs: carpeta local, OneDrive, correo, sistema
+3. Consumo impreso en **0 kWh** (no en blanco): ¿se descarga igual o se omite
+   como si no tuviera consumo?
+4. Canal de la alerta cuando Edenorte falle: ¿aviso en el escritorio, correo,
+   WhatsApp o solo registro en el log?
+5. Destino final de los PDFs: carpeta local, OneDrive, correo, sistema
    contable… (lo indicará el cliente después).
-5. ¿Un contrato con dos facturas el mismo día (consumo + irregularidad) lleva
-   sufijo para no sobrescribirse?
+
