@@ -220,24 +220,31 @@ app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 # ------------------------------------------------------------------ API datos
 @app.get("/api/contrato/{nic}")
-def api_contrato(nic: str) -> JSONResponse:
+def api_contrato(nic: str, proveedor: str = "edenorte",
+                 referencia: str | None = None) -> JSONResponse:
     """Busca el NIC en la cuenta; si no esta, lo asocia y espera la confirmacion.
 
-    La asociacion en el portal de Edenorte tarda unos segundos, asi que esta
-    llamada puede tardar hasta ~1 minuto.
+    `?proveedor=edesur&referencia=2115589310` valida contra Edesur. La asociacion
+    en el portal de Edenorte tarda unos segundos, asi que puede tardar ~1 minuto.
     """
     nic = str(nic).strip()
+    proveedor = (proveedor or "edenorte").strip().lower()
     try:
-        cliente = EdenorteClient()
+        from .proveedores import portal_de
+        cliente = portal_de(proveedor)
         cliente.login()
         contrato = next((c for c in cliente.contratos() if c.nic == nic), None)
         asociado = False
         if contrato is None:
-            contrato = cliente.asociar_contrato(nic)
+            if proveedor == "edesur":
+                contrato = cliente.asociar_contrato(nic, referencia=referencia)
+            else:
+                contrato = cliente.asociar_contrato(nic)
             asociado = True
         with db.sesion() as conn:
             db.upsert_contrato(conn, contrato.nic, razon_social=contrato.titular,
-                               direccion=contrato.direccion, telefono=contrato.telefono)
+                               direccion=contrato.direccion, telefono=contrato.telefono,
+                               proveedor=proveedor)
             if asociado:
                 db.log_evento(conn, "info", f"Contrato {nic} asociado a la cuenta",
                               contrato.titular)
@@ -245,7 +252,7 @@ def api_contrato(nic: str) -> JSONResponse:
             "ok": True, "nic": contrato.nic, "razon_social": contrato.titular,
             "nombre_normalizado": naming.normalizar_razon_social(contrato.titular),
             "direccion": contrato.direccion, "telefono": contrato.telefono,
-            "asociado": asociado,
+            "asociado": asociado, "proveedor": proveedor,
         })
     except PortalError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
@@ -429,12 +436,16 @@ def clientes(request: Request):
 
 @app.get("/clientes/nuevo")
 def cliente_nuevo(request: Request):
+    from .proveedores import NOMBRES
     return templates.TemplateResponse(request, "cliente_nuevo.html",
-                                      {"activo": "cliente_nuevo"})
+                                      {"activo": "cliente_nuevo",
+                                       "proveedores": NOMBRES})
 
 
 @app.post("/clientes")
 def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
+                  proveedor: str = Form(default="edenorte"),
+                  referencia: str = Form(default=""),
                   alias: str = Form(default=""), asesor: str = Form(default=""),
                   dia_corte: str = Form(default=""), notas: str = Form(default=""),
                   direccion: str = Form(default=""), telefono: str = Form(default=""),
@@ -446,9 +457,27 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
     nic = nic.strip()
     if not nic.isdigit():
         raise HTTPException(400, "El NIC debe ser numérico")
+    proveedor = (proveedor or "edenorte").strip().lower()
+    if proveedor not in ("edenorte", "edesur"):
+        raise HTTPException(400, "Distribuidora no válida")
+
+    # Edesur: el nombre lo da el portal, validando NIC + referencia de pago
+    aviso = ""
+    if proveedor == "edesur" and referencia.strip():
+        try:
+            from .proveedores import EdesurPortal
+            portal = EdesurPortal()
+            portal.login()
+            contrato = portal.asociar_contrato(nic, referencia=referencia.strip())
+            razon_social = razon_social or contrato.titular
+            direccion = direccion or contrato.direccion
+        except Exception as exc:  # el cliente se guarda igual, con aviso
+            aviso = f"No se pudo validar en Edesur: {str(exc)[:200]}"
+
     with db.sesion() as conn:
         db.upsert_contrato(
             conn, nic, razon_social=razon_social, alias=alias, asesor=asesor,
+            proveedor=proveedor,
             notas=notas, direccion=direccion, telefono=telefono,
             latitud=_num(latitud), longitud=_num(longitud), paneles=paneles,
             potencia_paneles=_num(potencia_paneles), inversores=inversores,
@@ -456,7 +485,9 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
             fecha_instalacion=fecha_instalacion,
             dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
         )
-        db.log_evento(conn, "info", f"Cliente {nic} agregado desde el módulo de clientes")
+        db.log_evento(conn, "info",
+                      f"Cliente {nic} agregado desde el módulo de clientes ({proveedor})",
+                      aviso)
     return RedirectResponse(f"/clientes/{nic}", status_code=303)
 
 

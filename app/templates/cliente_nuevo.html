@@ -151,6 +151,15 @@
     <div class="cuerpo">
       <form method="post" action="/clientes" id="formNuevo">
         <div class="rejilla">
+          <div class="campo c12">
+            <label for="proveedor">Distribuidora <span class="req" aria-hidden="true">*</span></label>
+            <select id="proveedor" name="proveedor" required onchange="cambiarProveedor()">
+              {% for clave, nombre in (proveedores or {'edenorte': 'Edenorte', 'edesur': 'Edesur'}).items() %}
+              <option value="{{ clave }}">{{ nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
           <div class="campo c8">
             <label for="nic">NIC / contrato <span class="req" aria-hidden="true">*</span></label>
             <input id="nic" name="nic" required inputmode="numeric" pattern="[0-9]+" placeholder="7533709" autocomplete="off">
@@ -158,6 +167,14 @@
           <div class="con-boton c4">
             <button type="button" id="btnBuscar" onclick="buscar()"><i class="bi bi-search" aria-hidden="true"></i> Buscar</button>
           </div>
+
+          <div class="campo c12" id="campoRef" hidden>
+            <label for="referencia">Referencia de pago</label>
+            <input id="referencia" name="referencia" inputmode="numeric" pattern="[0-9]+"
+                   placeholder="2115589310 (los números antes del guion)">
+            <p class="nota" style="margin-top:6px">Edesur la pide para asociar un contrato que no está en la cuenta. Si no la tienes, se prueba sola en un rango cercano.</p>
+          </div>
+
           <p class="nota" id="pista" aria-live="polite">Escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (Edenorte tarda unos segundos).</p>
 
           <div class="campo c12">
@@ -297,16 +314,29 @@ async function ubicarPorDireccion(pref){
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
   finally{ b.disabled = false; b.removeAttribute('aria-busy'); b.textContent = orig; }
 }
+function cambiarProveedor(){
+  const esEdesur = document.getElementById('proveedor').value === 'edesur';
+  document.getElementById('campoRef').hidden = !esEdesur;
+  document.getElementById('pista').textContent = esEdesur
+    ? 'Edesur: escribe el NIC y, si lo tienes, la referencia de pago (los números antes del guion). Si el contrato no está asociado se agrega al buscarlo.'
+    : 'Edenorte: escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (tarda unos segundos).';
+}
 async function buscar(){
   const nic = document.getElementById('nic').value.trim();
+  const proveedor = document.getElementById('proveedor').value;
+  const referencia = document.getElementById('referencia').value.trim();
   if(!nic) return aviso('Escribe el NIC primero', 'warn');
   if(!/^[0-9]+$/.test(nic)) return aviso('El NIC debe ser numérico', 'warn');
-  aviso('Consultando la Oficina Virtual… si el NIC no está asociado, Edenorte lo agrega y eso tarda unos segundos.', 'info');
+  aviso(proveedor === 'edesur'
+    ? 'Consultando Edesur…'
+    : 'Consultando la Oficina Virtual… si el NIC no está asociado, Edenorte lo agrega y eso tarda unos segundos.', 'info');
   ocupado('btnBuscar', true, 'Buscando…');
   const lento = setTimeout(() => ocupado('btnBuscar', true, 'Agregando contrato…'), 6000);
   const muyLento = setTimeout(() => aviso('Edenorte está agregando el contrato; puede tardar hasta un minuto. No cierres la página.', 'info'), 15000);
   try{
-    const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
+    const url = '/api/contrato/' + encodeURIComponent(nic) + '?proveedor=' +
+                encodeURIComponent(proveedor) + (referencia ? '&referencia=' + encodeURIComponent(referencia) : '');
+    const r = await fetch(url);
     const d = await r.json();
     if(!d.ok) return aviso(d.error || 'No se pudo consultar', 'err');
     document.getElementById('razon_social').value = d.razon_social || '';
@@ -318,6 +348,8 @@ async function buscar(){
   }catch(e){ aviso('No se pudo conectar con el servidor', 'err'); }
   finally{ clearTimeout(lento); clearTimeout(muyLento); ocupado('btnBuscar', false); }
 }
+
+cambiarProveedor();
 
 // ---------- coordenadas: pegar "lat, lon", geocodificar y compartir ----------
 function enlaceMapa(lat, lon){

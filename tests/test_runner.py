@@ -183,3 +183,73 @@ def test_envio_telegram_tras_descarga(contrato, leer_pdf, texto, monkeypatch):
     r = runner.corrida(D0, enviar=True, cliente=p, chat_id="-100")
     assert len(llamadas) == 1 and len(llamadas[0]) == 1
     assert r.mensaje_enviado
+
+
+# --------------------------------------------------- dos distribuidoras a la vez
+def test_cada_contrato_usa_su_distribuidora(contrato, leer_pdf, texto):
+    """Un contrato de Edesur no debe consultarse en el portal de Edenorte."""
+    from app.edenorte import Contrato, FacturaRef, Historial
+
+    NIC_EDE = "2115589"
+    REF_EDE = "2115589102026081300"
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC_EDE, razon_social="ORTIZ MARTINEZ, WILLIAN MARIA",
+                           dia_corte=16, proveedor="edesur")
+
+    texto_edesur = """
+ REFERENCIADE PAGO: 2115589328-18 SUMIN.: Itiner.: 0003
+ FECHADE EMISIÓN: 18/08/2026 REF.: LDO DER N°42A NIC: 2115589
+ ORTIZ MARTINEZ, WILLIAN MARIA20223224 Sección: ZONA URBANA Medidor: 15606198
+ FECHALÍMITE DE PAGO: 17/09/2026 Este es su número de contrato
+ NIS: 2115589 2.121 kW 15/07/2026 - 16/09/2026 = 29 días
+ Activa B.T. 6,553 6,553 1.0000 267 kWh Cargo fijo
+ CALLE DUARTE IMPORTE EN RD$ 1,914.12
+"""
+
+    consultas = {"edenorte": [], "edesur": []}
+
+    def portal_falso(nombre, nic, ref, contenido):
+        p = MagicMock(name=nombre)
+        p.login.return_value = None
+        p.contratos.return_value = []
+        p.asociar_contrato.side_effect = AssertionError("no deberia asociar")
+        p.historial.side_effect = lambda n: (consultas[nombre].append(n),
+                                             Historial(nic=n, filas=[FacturaRef(
+                                                 nic=n, ref_pago=ref, cliente="", tipo="Recibos de consumos",
+                                                 emision="16/09/2026")]))[1]
+        p.descargar_pdf.side_effect = lambda r: contenido
+        return p
+
+    edenorte = portal_falso("edenorte", NIC, REF, texto().encode("latin-1"))
+    edesur = portal_falso("edesur", NIC_EDE, REF_EDE, texto_edesur.encode("latin-1"))
+
+    r = runner.corrida(D0, enviar=False, portales={"edenorte": edenorte, "edesur": edesur})
+
+    assert consultas["edenorte"] == [NIC]
+    assert consultas["edesur"] == [NIC_EDE]
+    assert {d["nic"] for d in r.descargadas} == {NIC, NIC_EDE}
+    edesur_ok = next(d for d in r.descargadas if d["nic"] == NIC_EDE)
+    assert edesur_ok["facturado"] == pytest.approx(1914.12)
+    assert edesur_ok["kwh"] == 267
+
+    with db.sesion(db_path=contrato) as c:
+        assert db.obtener_contrato(c, NIC_EDE)["proveedor"] == "edesur"
+        assert db.obtener_contrato(c, NIC)["proveedor"] == "edenorte"
+
+
+def test_si_una_distribuidora_falla_la_otra_sigue(contrato, leer_pdf, texto, monkeypatch):
+    from app.edenorte import PortalError
+
+    avisos = []
+    monkeypatch.setattr(telegram, "enviar_mensaje",
+                        lambda t, chat_id=None, **k: avisos.append(t))
+
+    edenorte = portal(filas=[fila()], pdfs={REF: texto().encode("latin-1")})
+    edesur = MagicMock(name="edesur")
+    edesur.login.side_effect = PortalError("Edesur no responde")
+
+    r = runner.corrida(D0, enviar=True, portales={"edenorte": edenorte, "edesur": edesur},
+                       chat_id="-100")
+
+    assert [d["nic"] for d in r.descargadas] == [NIC]        # Edenorte si trabajo
+    assert any("Edesur" in a for a in avisos)                # y se aviso de la falla

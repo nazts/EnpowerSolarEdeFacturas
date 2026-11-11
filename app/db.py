@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS eventos (
 
 # columnas agregadas despues de la v1 (se crean con ALTER TABLE si faltan)
 COLUMNAS_NUEVAS = {
+    "proveedor": "TEXT NOT NULL DEFAULT 'edenorte'",
     "direccion": "TEXT NOT NULL DEFAULT ''",
     "telefono": "TEXT NOT NULL DEFAULT ''",
     "latitud": "REAL",
@@ -185,7 +186,7 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                     potencia_paneles: float | None = None,
                     inversores: str = "", bateria: str = "",
                     capacidad_bateria: float | None = None,
-                    fecha_instalacion: str = "") -> None:
+                    fecha_instalacion: str = "", proveedor: str = "") -> None:
     """Crea o actualiza un contrato. Los campos vacios no pisan lo ya guardado."""
     nic = str(nic).strip()
     norm = normalizar_razon_social(razon_social)
@@ -200,6 +201,8 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
         if razon_social:
             poner("razon_social", razon_social.strip())
             poner("nombre_normalizado", norm)
+        if proveedor:
+            poner("proveedor", proveedor.strip().lower())
         for col, val in (("alias", alias), ("asesor", asesor), ("notas", notas),
                          ("direccion", direccion), ("telefono", telefono),
                          ("paneles", paneles), ("inversores", inversores), ("bateria", bateria),
@@ -220,13 +223,13 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
             """INSERT INTO contratos
                (nic, razon_social, nombre_normalizado, alias, asesor, dia_corte, activo, notas,
                 direccion, telefono, latitud, longitud, paneles, potencia_paneles, inversores,
-                bateria, capacidad_bateria, fecha_instalacion)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                bateria, capacidad_bateria, fecha_instalacion, proveedor)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (nic, razon_social.strip(), norm, alias.strip(), asesor.strip(),
              int(dia_corte) if dia_corte is not None else None, int(activo), notas,
              direccion.strip(), telefono.strip(), latitud, longitud, paneles.strip(),
              potencia_paneles, inversores.strip(), bateria.strip(), capacidad_bateria,
-             fecha_instalacion.strip()),
+             fecha_instalacion.strip(), (proveedor or "edenorte").strip().lower()),
         )
     conn.commit()
 

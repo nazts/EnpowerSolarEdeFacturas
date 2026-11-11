@@ -138,13 +138,16 @@
     <div class="cuerpo sin-pad">
       {% if clientes %}
       <div class="tabla-wrap"><table class="cards">
-        <thead><tr><th>NIC</th><th>Cliente</th><th>Pagador / alias</th><th>Asesor</th>
+        <thead><tr><th>NIC</th><th>Cliente</th><th>Distribuidora</th><th>Pagador / alias</th><th>Asesor</th>
           <th>Fecha de corte</th><th>Histórico</th><th class="num">Última factura</th><th>Estado</th><th></th></tr></thead>
         <tbody>
         {% for c in clientes %}
           <tr>
             <td data-label="NIC"><b>{{ c.nic }}</b></td>
             <td data-label="Cliente">{{ c.nombre_normalizado or c.razon_social or "—" }}<small>{{ c.razon_social }}</small></td>
+            <td data-label="Distribuidora">
+              <span class="pill {{ 'ok' if (c.proveedor or 'edenorte') == 'edesur' else '' }}">
+                {{ (c.proveedor or 'edenorte')|capitalize }}</span></td>
             <td data-label="Pagador / alias">{{ c.alias or "—" }}</td>
             <td data-label="Asesor">{{ c.asesor or "—" }}</td>
             <td data-label="Fecha de corte">

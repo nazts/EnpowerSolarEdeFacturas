@@ -140,7 +140,8 @@
       <div class="hero">
         <div>
           <h2>{{ cliente.nombre_normalizado or cliente.razon_social or cliente.nic }}</h2>
-          <span class="muted">NIC {{ cliente.nic }}</span>
+          <span class="muted">NIC {{ cliente.nic }} ·
+            {{ (cliente.proveedor or 'edenorte')|capitalize }}</span>
           {% if cliente.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}
         </div>
         <div class="corte-box" aria-label="Fecha de corte">

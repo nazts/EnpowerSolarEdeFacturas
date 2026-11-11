@@ -45,6 +45,16 @@ def texto_factura(*, titular="DE LA CRUZ TAVAREZ, JORGE RAMON", ref="6997885044"
     return "\r\n".join(l)
 
 
+@pytest.fixture(autouse=True)
+def sin_credenciales(monkeypatch):
+    """Ninguna prueba debe llegar a los portales reales."""
+    monkeypatch.setattr(config, "EDENORTE_EMAIL", "")
+    monkeypatch.setattr(config, "EDENORTE_PASSWORD", "")
+    monkeypatch.setattr(config, "EDESUR_USER", "")
+    monkeypatch.setattr(config, "EDESUR_PASSWORD", "")
+    monkeypatch.setattr(config, "EDESUR_TOKEN", "")
+
+
 @pytest.fixture
 def texto():
     return texto_factura
@@ -65,5 +75,9 @@ def db_path(tmp_path, monkeypatch):
 def leer_pdf(monkeypatch):
     """runner.datos_de_archivo sin pdftotext: los 'PDF' simulados son el texto en bytes."""
     from app import runner, pdfdata
-    monkeypatch.setattr(runner, "datos_de_archivo",
-                        lambda p: pdfdata.parsear(Path(p).read_bytes().decode("latin-1")))
+
+    def _leer(p, proveedor="edenorte"):
+        texto = Path(p).read_bytes().decode("latin-1")
+        return pdfdata.parsear_edesur(texto) if proveedor == "edesur" else pdfdata.parsear(texto)
+
+    monkeypatch.setattr(runner, "datos_de_archivo", _leer)

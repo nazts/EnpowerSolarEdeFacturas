@@ -11,9 +11,10 @@ from pathlib import Path
 from . import config, db, naming, telegram
 from .edenorte import EdenorteClient, PortalError
 from .pdfdata import DatosFactura, datos_de_archivo
+from .proveedores import ALERTA as ALERTA_PROVEEDOR, EdesurPortal, portal_de
 
 TIPO_CONSUMO = "consumo"
-ALERTA_PORTAL = "La plataforma de Edenorte tiene problemas"
+ALERTA_PORTAL = ALERTA_PROVEEDOR["edenorte"]   # compatibilidad
 
 
 # ------------------------------------------------------------------ utilidades
@@ -111,75 +112,114 @@ def _caption_pendientes(pendientes: list[dict]) -> str:
 # --------------------------------------------------------------------- corrida
 def corrida(fecha: date | None = None, enviar: bool = True,
             chat_id: str | None = None, cliente: EdenorteClient | None = None,
-            reporte: bool = False) -> Resultado:
+            reporte: bool = False, portales: dict | None = None) -> Resultado:
+    """Revisa Edenorte y Edesur. Cada distribuidora se trata por separado: si una
+    falla, la otra sigue y se avisa por Telegram cual fallo."""
     fecha = fecha or date.today()
     fiso = fecha.isoformat()
     res = Resultado(fecha=fiso)
-    portal = cliente or EdenorteClient()
+    if portales is None:
+        portales = {"edenorte": cliente or EdenorteClient()}
+        if config.EDESUR_TOKEN or (config.EDESUR_USER and config.EDESUR_PASSWORD):
+            portales["edesur"] = EdesurPortal()
 
     with db.sesion() as conn:
-        # 1. sesion
-        try:
-            portal.login()
-        except PortalError as exc:
-            res.portal_error = str(exc)
-            db.log_evento(conn, "error", ALERTA_PORTAL, str(exc))
-            if enviar:
-                try:
-                    telegram.enviar_mensaje(
-                        f"⚠️ <b>{ALERTA_PORTAL}</b>\nNo se pudo iniciar sesión el {fiso}."
-                        f"\nDetalle: {str(exc)[:300]}", chat_id=chat_id)
-                    res.mensaje_enviado = True
-                except telegram.TelegramError as terr:
-                    db.log_evento(conn, "error", "No se pudo enviar la alerta a Telegram", str(terr))
+        # 1. sesion en cada distribuidora
+        activos: dict[str, object] = {}
+        for nombre_prov, portal in portales.items():
+            try:
+                portal.login()
+                activos[nombre_prov] = portal
+            except PortalError as exc:
+                if "SIN_CREDENCIALES" in str(exc):
+                    db.log_evento(conn, "aviso",
+                                  f"{nombre_prov}: sin credenciales en .env, se omite",
+                                  str(exc)[:200])
+                    continue
+                alerta = ALERTA_PROVEEDOR.get(nombre_prov, ALERTA_PORTAL)
+                res.portal_error = f"{nombre_prov}: {exc}"
+                db.log_evento(conn, "error", alerta, str(exc))
+                if enviar:
+                    try:
+                        telegram.enviar_mensaje(
+                            f"⚠️ <b>{alerta}</b>\nNo se pudo iniciar sesión el {fiso}."
+                            f"\nDetalle: {str(exc)[:300]}", chat_id=chat_id)
+                        res.mensaje_enviado = True
+                    except telegram.TelegramError as terr:
+                        db.log_evento(conn, "error", "No se pudo enviar la alerta a Telegram",
+                                      str(terr))
+            except Exception as exc:  # credenciales ausentes, red, etc.
+                db.log_evento(conn, "error",
+                              ALERTA_PROVEEDOR.get(nombre_prov, ALERTA_PORTAL), str(exc)[:300])
+
+        if not activos:
             return res
 
-        # 2. sincronizar contratos del portal (y asociar los que falten)
+        # 2. sincronizar contratos de cada portal (queda marcada su distribuidora)
         del_portal: set[str] = set()
-        try:
-            for c in portal.contratos():
-                del_portal.add(c.nic)
-                existente = db.obtener_contrato(conn, c.nic)
-                if existente is None:
-                    db.upsert_contrato(conn, c.nic, razon_social=c.titular,
-                                       direccion=c.direccion, telefono=c.telefono)
-                elif not existente["razon_social"] and c.titular:
-                    db.upsert_contrato(conn, c.nic, razon_social=c.titular,
-                                       direccion=c.direccion, telefono=c.telefono)
-        except PortalError as exc:
-            db.log_evento(conn, "aviso", "No se pudieron listar los contratos", str(exc))
+        for nombre_prov, portal in activos.items():
+            try:
+                for c in portal.contratos():
+                    del_portal.add(c.nic)
+                    existente = db.obtener_contrato(conn, c.nic)
+                    if existente is None:
+                        db.upsert_contrato(conn, c.nic, razon_social=c.titular,
+                                           direccion=c.direccion, telefono=c.telefono,
+                                           proveedor=nombre_prov)
+                    elif not existente["razon_social"] and c.titular:
+                        db.upsert_contrato(conn, c.nic, razon_social=c.titular,
+                                           direccion=c.direccion, telefono=c.telefono,
+                                           proveedor=nombre_prov)
+                    elif not existente["dia_corte"]:
+                        aprender = getattr(portal, "ultimo_corte", None)
+                        if callable(aprender):
+                            try:
+                                dia = aprender(c.nic)
+                            except PortalError:
+                                dia = None
+                            if isinstance(dia, int) and 1 <= dia <= 31:
+                                db.upsert_contrato(conn, c.nic, dia_corte=dia,
+                                                   proveedor=nombre_prov)
+            except PortalError as exc:
+                db.log_evento(conn, "aviso",
+                              f"No se pudieron listar los contratos de {nombre_prov}", str(exc))
 
         # contratos registrados en el dashboard que aun no estan en la cuenta
-        asociar = getattr(portal, "asociar_contrato", None)
-        if callable(asociar):
-            for contrato in db.listar_contratos(conn):
-                nic_db = str(contrato["nic"])
-                if nic_db in del_portal:
-                    continue
-                try:
-                    nuevo_contrato = asociar(nic_db, espera_max=45)
-                    titular = getattr(nuevo_contrato, "titular", "")
-                    if not isinstance(titular, str) or not titular.strip():
-                        raise ValueError("el portal no devolvio el titular; "
-                                         "no se toca lo que ya esta guardado")
-                    db.upsert_contrato(
-                        conn, nic_db,
-                        razon_social=titular.strip(),
-                        direccion=str(getattr(nuevo_contrato, "direccion", "") or ""),
-                        telefono=str(getattr(nuevo_contrato, "telefono", "") or ""),
-                    )
-                    db.log_evento(conn, "info", f"Contrato {nic_db} asociado a la cuenta",
-                                  "desde la corrida diaria")
-                except Exception as exc:  # una asociacion fallida no tumba la corrida
-                    db.log_evento(conn, "aviso", f"No se pudo asociar el contrato {nic_db}",
-                                  str(exc)[:300])
+        for contrato in db.listar_contratos(conn):
+            nic_db = str(contrato["nic"])
+            if nic_db in del_portal:
+                continue
+            prov = (contrato["proveedor"] if "proveedor" in contrato.keys() else "") or "edenorte"
+            portal = activos.get(prov)
+            asociar = getattr(portal, "asociar_contrato", None)
+            if portal is None or not callable(asociar):
+                continue
+            try:
+                nuevo_contrato = asociar(nic_db, espera_max=45)
+                titular = getattr(nuevo_contrato, "titular", "")
+                if not isinstance(titular, str) or not titular.strip():
+                    raise ValueError("el portal no devolvio el titular; "
+                                     "no se toca lo que ya esta guardado")
+                db.upsert_contrato(
+                    conn, nic_db,
+                    razon_social=titular.strip(),
+                    direccion=str(getattr(nuevo_contrato, "direccion", "") or ""),
+                    telefono=str(getattr(nuevo_contrato, "telefono", "") or ""),
+                    proveedor=prov,
+                )
+                db.log_evento(conn, "info", f"Contrato {nic_db} asociado a la cuenta",
+                              "desde la corrida diaria")
+            except Exception as exc:  # una asociacion fallida no tumba la corrida
+                db.log_evento(conn, "aviso", f"No se pudo asociar el contrato {nic_db}",
+                              str(exc)[:300])
 
         # 3. objetivos: pendientes abiertos + contratos que cortan hoy
         objetivos: dict[str, set[str]] = {}
         for p in db.pendientes_abiertos(conn):
             objetivos.setdefault(str(p["nic"]), set()).add(p["fecha_corte"])
         for c in db.listar_contratos(conn):
-            if corta_hoy(c["dia_corte"], fecha):
+            prov = (c["proveedor"] if "proveedor" in c.keys() else "") or "edenorte"
+            if prov in activos and corta_hoy(c["dia_corte"], fecha):
                 objetivos.setdefault(str(c["nic"]), set()).add(fiso)
 
         if not objetivos:
@@ -193,6 +233,13 @@ def corrida(fecha: date | None = None, enviar: bool = True,
         for nic, cortes in objetivos.items():
             contrato = db.obtener_contrato(conn, nic)
             razon_social = contrato["razon_social"] if contrato else ""
+            prov = (contrato["proveedor"] if contrato and "proveedor" in contrato.keys()
+                    else "") or "edenorte"
+            portal = activos.get(prov)
+            if portal is None:
+                db.log_evento(conn, "aviso",
+                              f"NIC {nic}: {prov} no esta disponible en esta corrida")
+                continue
             try:
                 hist = portal.historial(nic)
             except PortalError as exc:
@@ -220,7 +267,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     tmp_pdf = Path(tmp) / "f.pdf"
                     tmp_pdf.write_bytes(contenido)
                     try:
-                        datos = datos_de_archivo(tmp_pdf)
+                        datos = datos_de_archivo(tmp_pdf, proveedor=prov)
                     except Exception as exc:
                         db.log_evento(conn, "error", f"No se pudo leer el PDF {fila.ref_pago}", str(exc))
                         continue
@@ -342,7 +389,7 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    ap = argparse.ArgumentParser(description="Corrida diaria de facturas Edenorte")
+    ap = argparse.ArgumentParser(description="Corrida diaria de facturas (Edenorte y Edesur)")
     ap.add_argument("--fecha", help="AAAA-MM-DD (por defecto hoy)")
     ap.add_argument("--sin-envio", action="store_true", help="no enviar a Telegram")
     ap.add_argument("--reporte", action="store_true", help="enviar resumen aunque no haya facturas")
