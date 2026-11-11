@@ -69,23 +69,42 @@ def _candidato_archivo(nic: str, datos: DatosFactura, razon_social: str,
     return destino
 
 
+def _fecha_legible(iso: str | None) -> str:
+    """2026-11-15 -> 15/11/2026."""
+    if not iso:
+        return ""
+    try:
+        return datetime.strptime(iso, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except ValueError:
+        return iso
+
+
 def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
-    lineas = [f"<b>Facturas Edenorte — corte {fecha}</b>",
-              f"{len(nuevas)} factura(s) descargada(s)"]
+    """Solo lo que pide el cliente: NIC, nombre normalizado, a pagar y asesor.
+
+    La fecha (vencimiento) se agrega unicamente si la factura la trae.
+    """
+    bloques = []
     for f in nuevas:
+        nombre = naming.normalizar_razon_social(f.get("razon_social") or "")
+        lineas = [f"NIC {f['nic']} · {nombre}"]
         monto = f"{f['facturado']:,.2f}" if f.get("facturado") is not None else "s/d"
-        lineas.append(
-            f"• <b>{naming.nombre_mostrado(f['razon_social'], f.get('alias', ''))}</b>"
-            f" — NIC {f['nic']} — RD${monto}"
-            + (f" — vence {f['vence']}" if f.get("vence") else "")
-        )
+        lineas.append(f"Pagar: RD${monto}")
         if f.get("asesor"):
-            lineas.append(f"   Asesor: {f['asesor']}")
-    if pendientes:
-        lineas.append("")
-        lineas.append("<b>Pendientes (no publicadas aún)</b>")
-        for p in pendientes:
-            lineas.append(f"• NIC {p['nic']} — corte {p['fecha_corte']} — intento {p['intentos']}")
+            lineas.append(f"Asesor: {f['asesor']}")
+        vence = _fecha_legible(f.get("vence"))
+        if vence:
+            lineas.append(f"Vence: {vence}")
+        bloques.append("\n".join(lineas))
+    return "\n\n".join(bloques)
+
+
+def _caption_pendientes(pendientes: list[dict]) -> str:
+    """Aviso aparte para lo que corto y no esta publicado."""
+    lineas = ["Pendientes (cortaron y aun no estan en el portal):"]
+    for p in pendientes:
+        lineas.append(f"NIC {p['nic']} · corte {_fecha_legible(p['fecha_corte'])} · "
+                      f"intento {p['intentos']}")
     return "\n".join(lineas)
 
 
@@ -252,22 +271,33 @@ def corrida(fecha: date | None = None, enviar: bool = True,
         res.pendientes = [abiertos[k] for k in
                           (str(p["nic"]) + p["fecha_corte"] for p in res.pendientes) if k in abiertos]
 
-        # 5. envio: todas las facturas del dia en un solo album
-        if enviar and res.descargadas:
-            texto = _caption(fiso, res.descargadas, res.pendientes)
+        # 5. envio: solo las facturas cuyo corte es el de la corrida, en un album
+        cortes_objetivo = {(nic, fc) for nic, cs in objetivos.items() for fc in cs}
+        enviables = [d for d in res.descargadas if (d["nic"], d["corte"]) in cortes_objetivo]
+        fuera = [d for d in res.descargadas if d not in enviables]
+        for d in fuera:
+            db.log_evento(conn, "aviso", "Factura no enviada: su corte no es el de la corrida",
+                          f"NIC {d['nic']} corte {d['corte']}")
+
+        if enviar and enviables:
+            texto = _caption(fiso, enviables, res.pendientes)
             try:
-                mensajes = telegram.enviar_album([d["path"] for d in res.descargadas],
+                mensajes = telegram.enviar_album([d["path"] for d in enviables],
                                                  caption=texto, chat_id=chat_id)
                 res.mensaje_enviado = True
                 ids = [r["id"] for r in db.facturas_del_dia(conn, fiso)]
                 db.marcar_enviadas(conn, ids, chat_id or config.TELEGRAM_CHAT_ID)
-                db.log_evento(conn, "info", f"Enviadas {len(res.descargadas)} facturas a Telegram",
+                db.log_evento(conn, "info", f"Enviadas {len(enviables)} facturas a Telegram",
                               f"{len(mensajes)} mensaje(s)")
+                if res.pendientes:
+                    telegram.enviar_mensaje(_caption_pendientes(res.pendientes), chat_id=chat_id)
             except telegram.TelegramError as exc:
                 db.log_evento(conn, "error", "Fallo el envio a Telegram", str(exc))
         elif enviar and (res.pendientes or reporte):
+            texto = (_caption_pendientes(res.pendientes) if res.pendientes
+                     else f"Sin facturas con corte {_fecha_legible(fiso)}.")
             try:
-                telegram.enviar_mensaje(_caption(fiso, [], res.pendientes), chat_id=chat_id)
+                telegram.enviar_mensaje(texto, chat_id=chat_id)
                 res.mensaje_enviado = True
             except telegram.TelegramError as exc:
                 db.log_evento(conn, "error", "Fallo el envio del reporte", str(exc))
