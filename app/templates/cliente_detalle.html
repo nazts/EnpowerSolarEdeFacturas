@@ -1,5 +1,42 @@
 {% extends 'base.html' %}
-{% block titulo %}{{ cliente.nic }} · Enpower Solar{% endblock %}
+{% block titulo %}{{ cliente.nic }} · Enpower Solar<script>
+(function(){
+  var btn = document.getElementById('btnEquipo');
+  var form = document.getElementById('formEquipo');
+  var cancelar = document.getElementById('btnCancelarEq');
+  function alternar(ver){
+    form.hidden = !ver;
+    btn.setAttribute('aria-expanded', ver ? 'true' : 'false');
+    btn.textContent = ver ? '✕ Cerrar' : '✏️ Cambiar equipo';
+    if(ver) document.getElementById('eq_direccion').focus();
+  }
+  btn.addEventListener('click', function(){ alternar(form.hidden); });
+  cancelar.addEventListener('click', function(){ alternar(false); });
+
+  document.getElementById('btnUbicarEq').addEventListener('click', async function(){
+    var dir = document.getElementById('eq_direccion').value.trim();
+    var pista = document.getElementById('eq_pista');
+    if(!dir){ pista.textContent = 'Escribe la dirección primero'; return; }
+    pista.textContent = 'Buscando la dirección…';
+    var fd = new FormData(); fd.append('direccion', dir);
+    try{
+      var r = await fetch('/api/geocodificar', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
+      document.getElementById('eq_lat').value = d.lat;
+      document.getElementById('eq_lon').value = d.lon;
+      pista.textContent = d.display_name;
+      if(window.toast) toast('Ubicación encontrada: ' + d.display_name);
+    }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
+    toast('Equipo e ubicación guardados ✓');
+    history.replaceState({}, '', location.pathname);
+  }
+})();
+</script>
+{% endblock %}
 {% block estilos %}<style>
   header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
     padding:16px 26px;border-bottom:1px solid var(--line);background:var(--header-bg)}
@@ -124,7 +161,44 @@
   .mm-pin{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-30px 0 0 -15px;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
   .mm-attr{position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);color:#222;font-size:10px;padding:1px 6px;border-radius:6px 0 0 0}
   @media(max-width:860px){.ubic-grid{grid-template-columns:1fr}}
-</style>{% endblock %}
+</style><script>
+(function(){
+  var btn = document.getElementById('btnEquipo');
+  var form = document.getElementById('formEquipo');
+  var cancelar = document.getElementById('btnCancelarEq');
+  function alternar(ver){
+    form.hidden = !ver;
+    btn.setAttribute('aria-expanded', ver ? 'true' : 'false');
+    btn.textContent = ver ? '✕ Cerrar' : '✏️ Cambiar equipo';
+    if(ver) document.getElementById('eq_direccion').focus();
+  }
+  btn.addEventListener('click', function(){ alternar(form.hidden); });
+  cancelar.addEventListener('click', function(){ alternar(false); });
+
+  document.getElementById('btnUbicarEq').addEventListener('click', async function(){
+    var dir = document.getElementById('eq_direccion').value.trim();
+    var pista = document.getElementById('eq_pista');
+    if(!dir){ pista.textContent = 'Escribe la dirección primero'; return; }
+    pista.textContent = 'Buscando la dirección…';
+    var fd = new FormData(); fd.append('direccion', dir);
+    try{
+      var r = await fetch('/api/geocodificar', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
+      document.getElementById('eq_lat').value = d.lat;
+      document.getElementById('eq_lon').value = d.lon;
+      pista.textContent = d.display_name;
+      if(window.toast) toast('Ubicación encontrada: ' + d.display_name);
+    }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
+    toast('Equipo e ubicación guardados ✓');
+    history.replaceState({}, '', location.pathname);
+  }
+})();
+</script>
+{% endblock %}
 {% block contenido %}
 <header>
   <h1>Histórico del cliente</h1>
@@ -174,7 +248,69 @@
           <div class="dato"><span class="k">Capacidad batería</span><span class="v">{% if cliente.capacidad_bateria is not none and cliente.capacidad_bateria != "" %}{{ cliente.capacidad_bateria }} kWh{% else %}—{% endif %}</span></div>
           <div class="dato"><span class="k">Instalación</span><span class="v">{{ cliente.fecha_instalacion or "—" }}</span></div>
         </div>
-        <p style="margin:16px 0 0"><a class="btn primario" href="/mapa?nic={{ cliente.nic }}">📍 Abrir en el mapa</a></p>
+        <p style="margin:16px 0 0;display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn primario" href="/mapa?nic={{ cliente.nic }}">📍 Abrir en el mapa</a>
+          <button class="btn" type="button" id="btnEquipo" aria-expanded="false" aria-controls="formEquipo">✏️ Cambiar equipo</button>
+        </p>
+
+        <form method="post" action="/clientes/{{ cliente.nic }}/equipo" id="formEquipo" hidden
+              style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+          <div class="ubic-grid">
+            <div>
+              <label for="eq_direccion">Dirección</label>
+              <input id="eq_direccion" name="direccion" value="{{ cliente.direccion or '' }}">
+            </div>
+            <div>
+              <label for="eq_telefono">Teléfono</label>
+              <input id="eq_telefono" name="telefono" value="{{ cliente.telefono or '' }}">
+            </div>
+          </div>
+          <div class="ubic-grid" style="margin-top:12px">
+            <div>
+              <label for="eq_lat">Latitud</label>
+              <input id="eq_lat" name="latitud" value="{{ cliente.latitud if cliente.latitud is not none else '' }}" inputmode="decimal">
+            </div>
+            <div>
+              <label for="eq_lon">Longitud</label>
+              <input id="eq_lon" name="longitud" value="{{ cliente.longitud if cliente.longitud is not none else '' }}" inputmode="decimal">
+            </div>
+          </div>
+          <p style="margin:10px 0 0">
+            <button class="btn" type="button" id="btnUbicarEq">📍 Ubicar por la dirección</button>
+            <span class="muted" id="eq_pista" aria-live="polite"></span>
+          </p>
+          <div class="ubic-grid" style="margin-top:14px">
+            <div>
+              <label for="eq_potencia">Potencia de paneles (kW)</label>
+              <input id="eq_potencia" name="potencia_paneles" value="{{ cliente.potencia_paneles if cliente.potencia_paneles is not none else '' }}" inputmode="decimal" placeholder="23.6">
+            </div>
+            <div>
+              <label for="eq_capacidad">Capacidad de batería (kWh)</label>
+              <input id="eq_capacidad" name="capacidad_bateria" value="{{ cliente.capacidad_bateria if cliente.capacidad_bateria is not none else '' }}" inputmode="decimal" placeholder="16">
+            </div>
+          </div>
+          <div class="ubic-grid" style="margin-top:12px">
+            <div>
+              <label for="eq_inversores">Inversores</label>
+              <input id="eq_inversores" name="inversores" value="{{ cliente.inversores or '' }}" placeholder="2 INVERSORES WECO XTS-12K">
+            </div>
+            <div>
+              <label for="eq_bateria">Batería</label>
+              <input id="eq_bateria" name="bateria" value="{{ cliente.bateria or '' }}" placeholder="4 BAT WECO 16K0 LV">
+            </div>
+          </div>
+          <div class="ubic-grid" style="margin-top:12px">
+            <div>
+              <label for="eq_fecha">Fecha de instalación</label>
+              <input id="eq_fecha" name="fecha_instalacion" type="date" value="{{ cliente.fecha_instalacion or '' }}">
+            </div>
+            <div></div>
+          </div>
+          <p style="margin:16px 0 0;display:flex;gap:10px">
+            <button class="btn primario" type="submit">Guardar equipo</button>
+            <button class="btn" type="button" id="btnCancelarEq">Cancelar</button>
+          </p>
+        </form>
       </div>
       <div id="miniMapa" class="mini-mapa" role="img" aria-label="Mapa estático de la ubicación"
         {% if cliente.latitud is not none and cliente.longitud is not none and cliente.latitud != "" %}data-lat="{{ cliente.latitud }}" data-lon="{{ cliente.longitud }}"{% endif %}>
@@ -246,6 +382,43 @@
     el.appendChild(im);
   }
   el.insertAdjacentHTML('beforeend','<svg class="mm-pin" viewBox="0 0 30 30"><path d="M15 29S4 19 4 11a11 11 0 0 1 22 0c0 8-11 18-11 18z" fill="#15803d" stroke="#fff" stroke-width="2"/><circle cx="15" cy="11" r="4" fill="#fde047"/></svg><span class="mm-attr">© OpenStreetMap</span>');
+})();
+</script>
+<script>
+(function(){
+  var btn = document.getElementById('btnEquipo');
+  var form = document.getElementById('formEquipo');
+  var cancelar = document.getElementById('btnCancelarEq');
+  function alternar(ver){
+    form.hidden = !ver;
+    btn.setAttribute('aria-expanded', ver ? 'true' : 'false');
+    btn.textContent = ver ? '✕ Cerrar' : '✏️ Cambiar equipo';
+    if(ver) document.getElementById('eq_direccion').focus();
+  }
+  btn.addEventListener('click', function(){ alternar(form.hidden); });
+  cancelar.addEventListener('click', function(){ alternar(false); });
+
+  document.getElementById('btnUbicarEq').addEventListener('click', async function(){
+    var dir = document.getElementById('eq_direccion').value.trim();
+    var pista = document.getElementById('eq_pista');
+    if(!dir){ pista.textContent = 'Escribe la dirección primero'; return; }
+    pista.textContent = 'Buscando la dirección…';
+    var fd = new FormData(); fd.append('direccion', dir);
+    try{
+      var r = await fetch('/api/geocodificar', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
+      document.getElementById('eq_lat').value = d.lat;
+      document.getElementById('eq_lon').value = d.lon;
+      pista.textContent = d.display_name;
+      if(window.toast) toast('Ubicación encontrada: ' + d.display_name);
+    }catch(e){ pista.textContent = 'No se pudo conectar'; }
+  });
+
+  if(new URLSearchParams(location.search).get('guardado') === '1' && window.toast){
+    toast('Equipo e ubicación guardados ✓');
+    history.replaceState({}, '', location.pathname);
+  }
 })();
 </script>
 {% endblock %}

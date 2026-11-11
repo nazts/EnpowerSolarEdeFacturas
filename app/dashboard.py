@@ -258,6 +258,31 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
     return RedirectResponse(f"/clientes/{nic}", status_code=303)
 
 
+@app.post("/clientes/{nic}/equipo")
+def guardar_equipo(nic: str, direccion: str = Form(default=""),
+                   telefono: str = Form(default=""), latitud: str = Form(default=""),
+                   longitud: str = Form(default=""),
+                   potencia_paneles: str = Form(default=""),
+                   inversores: str = Form(default=""), bateria: str = Form(default=""),
+                   capacidad_bateria: str = Form(default=""),
+                   fecha_instalacion: str = Form(default="")):
+    """Guarda ubicacion y equipo desde la ficha del cliente (reemplaza valores)."""
+    with db.sesion() as conn:
+        if db.obtener_contrato(conn, nic) is None:
+            raise HTTPException(404, "Ese NIC no está registrado")
+        db.actualizar_equipo(conn, nic, {
+            "direccion": direccion.strip(), "telefono": telefono.strip(),
+            "latitud": _num(latitud), "longitud": _num(longitud),
+            "potencia_paneles": _num(potencia_paneles),
+            "inversores": inversores.strip(), "bateria": bateria.strip(),
+            "capacidad_bateria": _num(capacidad_bateria),
+            "fecha_instalacion": fecha_instalacion.strip(),
+        })
+        db.log_evento(conn, "info", f"Equipo de {nic} actualizado",
+                      f"paneles={potencia_paneles} inversores={inversores[:40]}")
+    return RedirectResponse(f"/clientes/{nic}?guardado=1", status_code=303)
+
+
 @app.get("/clientes/{nic}")
 def cliente_detalle(request: Request, nic: str):
     from .fechas import dias_para_corte, proximo_corte

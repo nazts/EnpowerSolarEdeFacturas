@@ -200,6 +200,21 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
     conn.commit()
 
 
+CAMPOS_EQUIPO = ("direccion", "telefono", "latitud", "longitud", "potencia_paneles",
+                "inversores", "bateria", "capacidad_bateria", "fecha_instalacion")
+
+
+def actualizar_equipo(conn: sqlite3.Connection, nic: str, datos: dict) -> None:
+    """Reemplaza ubicacion/equipo tal cual se envia (permite vaciar campos)."""
+    campos = {k: v for k, v in datos.items() if k in CAMPOS_EQUIPO}
+    if not campos:
+        return
+    sets = ", ".join(f"{k} = ?" for k in campos)
+    conn.execute(f"UPDATE contratos SET {sets}, updated_at = ? WHERE nic = ?",
+                 [*campos.values(), ahora(), str(nic)])
+    conn.commit()
+
+
 def listar_contratos(conn: sqlite3.Connection, solo_activos: bool = True) -> list[sqlite3.Row]:
     sql = "SELECT * FROM contratos"
     if solo_activos:
