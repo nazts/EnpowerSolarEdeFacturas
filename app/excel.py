@@ -34,7 +34,8 @@ def exportar(destino: str | Path | None = None) -> Path:
     conn = conectar()
     contratos = conn.execute(
         """SELECT nic, razon_social, nombre_normalizado, alias, asesor, dia_corte,
-                  activo, notas FROM contratos ORDER BY nic"""
+                  activo, notas, paneles, potencia_paneles, inversores, bateria,
+                  capacidad_bateria FROM contratos ORDER BY nic"""
     ).fetchall()
     facturas = conn.execute(
         """SELECT f.nic, c.nombre_normalizado, c.alias, c.asesor, f.no_factura, f.ref_pago,
@@ -51,9 +52,12 @@ def exportar(destino: str | Path | None = None) -> Path:
     ws = wb.active or wb.create_sheet("Contratos")
     ws.title = "Contratos"
     _hoja(ws, ["NIC", "Razón social (factura)", "Nombre normalizado", "Alias / pagador",
-               "Asesor", "Día de corte", "Activo", "Notas"],
+               "Asesor", "Día de corte", "Activo", "Notas", "Paneles",
+               "Capacidad instalada (kW)", "Inversores", "Batería", "Capacidad batería (kWh)"],
           [[c["nic"], c["razon_social"], c["nombre_normalizado"], c["alias"], c["asesor"],
-            c["dia_corte"], "Sí" if c["activo"] else "No", c["notas"]] for c in contratos])
+            c["dia_corte"], "Sí" if c["activo"] else "No", c["notas"], c["paneles"],
+            c["potencia_paneles"], c["inversores"], c["bateria"], c["capacidad_bateria"]]
+           for c in contratos])
 
     ws2 = wb.create_sheet("Facturas")
     _hoja(ws2, ["NIC", "Nombre normalizado", "Alias / pagador", "Asesor", "No. Factura",

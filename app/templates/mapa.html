@@ -382,7 +382,8 @@
       '</dl></div>' +
       '<div class="ps" style="padding-bottom:0"><h4>Equipo instalado</h4></div>' +
       '<div class="eq"><div class="brillos" aria-hidden="true"><i></i><i></i><i></i></div>' + panelSvg() + '<dl class="kv">' +
-      '<dt>Paneles</dt><dd>' + (num(c.potencia_paneles) === null ? '—' : '<b>' + esc(c.potencia_paneles) + '</b> kW') + '</dd>' +
+      '<dt>Paneles</dt><dd>' + dato(c.paneles) + '</dd>' +
+      '<dt>Capacidad instalada</dt><dd>' + (num(c.potencia_paneles) === null ? '—' : '<b>' + esc(c.potencia_paneles) + '</b> kW') + '</dd>' +
       '<dt>Inversores</dt><dd>' + dato(c.inversores) + '</dd>' +
       '<dt>Batería</dt><dd>' + bat + '</dd>' +
       '<dt>Capacidad</dt><dd>' + (num(c.capacidad_bateria) === null ? '—' : '<b>' + esc(c.capacidad_bateria) + '</b> kWh') + '</dd>' +

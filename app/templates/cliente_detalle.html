@@ -352,7 +352,8 @@
           <div class="dato"><span class="k">Teléfono</span><span class="v">{{ cliente.telefono or "—" }}</span></div>
           <div class="dato"><span class="k">Latitud</span><span class="v">{{ cliente.latitud if cliente.latitud is not none else "—" }}</span></div>
           <div class="dato"><span class="k">Longitud</span><span class="v">{{ cliente.longitud if cliente.longitud is not none else "—" }}</span></div>
-          <div class="dato"><span class="k">Potencia paneles</span><span class="v">{% if cliente.potencia_paneles is not none and cliente.potencia_paneles != "" %}{{ cliente.potencia_paneles }} kW{% else %}—{% endif %}</span></div>
+          <div class="dato"><span class="k">Paneles</span><span class="v">{{ cliente.paneles or "—" }}</span></div>
+          <div class="dato"><span class="k">Capacidad instalada</span><span class="v">{% if cliente.potencia_paneles is not none and cliente.potencia_paneles != "" %}{{ cliente.potencia_paneles }} kW{% else %}—{% endif %}</span></div>
           <div class="dato"><span class="k">Inversores</span><span class="v">{{ cliente.inversores or "—" }}</span></div>
           <div class="dato"><span class="k">Batería</span><span class="v">{{ cliente.bateria or "—" }}</span></div>
           <div class="dato"><span class="k">Capacidad batería</span><span class="v">{% if cliente.capacidad_bateria is not none and cliente.capacidad_bateria != "" %}{{ cliente.capacidad_bateria }} kWh{% else %}—{% endif %}</span></div>
@@ -405,7 +406,11 @@
           </p>
           <div class="ubic-grid" style="margin-top:14px">
             <div>
-              <label for="eq_potencia">Potencia de paneles (kW)</label>
+              <label for="eq_paneles">Paneles (marca / modelo)</label>
+              <input id="eq_paneles" name="paneles" value="{{ cliente.paneles or '' }}" placeholder="12 x JA Solar 550W">
+            </div>
+            <div>
+              <label for="eq_potencia">Capacidad instalada (kW)</label>
               <input id="eq_potencia" name="potencia_paneles" value="{{ cliente.potencia_paneles if cliente.potencia_paneles is not none else '' }}" inputmode="decimal" placeholder="23.6">
             </div>
             <div>

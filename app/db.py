@@ -89,6 +89,7 @@ COLUMNAS_NUEVAS = {
     "telefono": "TEXT NOT NULL DEFAULT ''",
     "latitud": "REAL",
     "longitud": "REAL",
+    "paneles": "TEXT NOT NULL DEFAULT ''",
     "potencia_paneles": "REAL",
     "inversores": "TEXT NOT NULL DEFAULT ''",
     "bateria": "TEXT NOT NULL DEFAULT ''",
@@ -152,7 +153,8 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                     alias: str = "", asesor: str = "", dia_corte: int | None = None,
                     activo: int = 1, notas: str = "", direccion: str = "",
                     telefono: str = "", latitud: float | None = None,
-                    longitud: float | None = None, potencia_paneles: float | None = None,
+                    longitud: float | None = None, paneles: str = "",
+                    potencia_paneles: float | None = None,
                     inversores: str = "", bateria: str = "",
                     capacidad_bateria: float | None = None,
                     fecha_instalacion: str = "") -> None:
@@ -172,7 +174,7 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
             poner("nombre_normalizado", norm)
         for col, val in (("alias", alias), ("asesor", asesor), ("notas", notas),
                          ("direccion", direccion), ("telefono", telefono),
-                         ("inversores", inversores), ("bateria", bateria),
+                         ("paneles", paneles), ("inversores", inversores), ("bateria", bateria),
                          ("fecha_instalacion", fecha_instalacion)):
             if val:
                 poner(col, val.strip())
@@ -189,19 +191,21 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
         conn.execute(
             """INSERT INTO contratos
                (nic, razon_social, nombre_normalizado, alias, asesor, dia_corte, activo, notas,
-                direccion, telefono, latitud, longitud, potencia_paneles, inversores, bateria,
-                capacidad_bateria, fecha_instalacion)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                direccion, telefono, latitud, longitud, paneles, potencia_paneles, inversores,
+                bateria, capacidad_bateria, fecha_instalacion)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (nic, razon_social.strip(), norm, alias.strip(), asesor.strip(),
              int(dia_corte) if dia_corte is not None else None, int(activo), notas,
-             direccion.strip(), telefono.strip(), latitud, longitud, potencia_paneles,
-             inversores.strip(), bateria.strip(), capacidad_bateria, fecha_instalacion.strip()),
+             direccion.strip(), telefono.strip(), latitud, longitud, paneles.strip(),
+             potencia_paneles, inversores.strip(), bateria.strip(), capacidad_bateria,
+             fecha_instalacion.strip()),
         )
     conn.commit()
 
 
-CAMPOS_EQUIPO = ("direccion", "telefono", "latitud", "longitud", "potencia_paneles",
-                "inversores", "bateria", "capacidad_bateria", "fecha_instalacion")
+CAMPOS_EQUIPO = ("direccion", "telefono", "latitud", "longitud", "paneles",
+                "potencia_paneles", "inversores", "bateria", "capacidad_bateria",
+                "fecha_instalacion")
 
 
 def actualizar_equipo(conn: sqlite3.Connection, nic: str, datos: dict) -> None:

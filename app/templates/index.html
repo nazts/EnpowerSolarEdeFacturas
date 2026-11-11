@@ -304,7 +304,8 @@
       <div><label for="e_telefono">Teléfono</label><input name="telefono" id="e_telefono" inputmode="tel"></div>
       <div><label for="e_latitud">Latitud</label><input name="latitud" id="e_latitud" inputmode="decimal"></div>
       <div><label for="e_longitud">Longitud</label><input name="longitud" id="e_longitud" inputmode="decimal"></div>
-      <div><label for="e_potencia">Potencia paneles (kW)</label><input name="potencia_paneles" id="e_potencia" inputmode="decimal"></div>
+      <div><label for="e_paneles">Paneles (marca / modelo)</label><input name="paneles" id="e_paneles" placeholder="12 x JA Solar 550W"></div>
+      <div><label for="e_potencia">Capacidad instalada (kW)</label><input name="potencia_paneles" id="e_potencia" inputmode="decimal"></div>
       <div><label for="e_inversores">Inversores</label><input name="inversores" id="e_inversores" placeholder="2 x Growatt 5kW"></div>
       <div><label for="e_bateria">Batería</label><input name="bateria" id="e_bateria" placeholder="Litio 10 kWh"></div>
       <div><label for="e_capacidad">Capacidad batería (kWh)</label><input name="capacidad_bateria" id="e_capacidad" inputmode="decimal"></div>
@@ -415,6 +416,7 @@ function editar(c){
   document.getElementById('e_telefono').value = c.telefono != null ? c.telefono : '';
   document.getElementById('e_latitud').value = c.latitud != null ? c.latitud : '';
   document.getElementById('e_longitud').value = c.longitud != null ? c.longitud : '';
+  document.getElementById('e_paneles').value = c.paneles != null ? c.paneles : '';
   document.getElementById('e_potencia').value = c.potencia_paneles != null ? c.potencia_paneles : '';
   document.getElementById('e_inversores').value = c.inversores != null ? c.inversores : '';
   document.getElementById('e_bateria').value = c.bateria != null ? c.bateria : '';
