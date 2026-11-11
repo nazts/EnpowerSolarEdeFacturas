@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
 {% block titulo %}Conexión de Telegram · Enpower Solar{% endblock %}
 {% block estilos %}<style>
- a{color:#f5a623}
+ a{color:var(--accent)}
  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
- th,td{padding:9px 10px;border-bottom:1px solid #28324a;text-align:left}
- th{color:#8b98b5;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+ th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
+ th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
- .ok{background:rgba(62,207,142,.15);color:#3ecf8e}
- .bad{background:rgba(239,91,107,.15);color:#ef5b6b}
- .btn{display:inline-block;padding:9px 14px;border-radius:9px;border:1px solid #28324a;background:#1d2637;color:#e8eefc;text-decoration:none;cursor:pointer;font:inherit}
- .primario{background:#f5a623;border-color:#f5a623;color:#1a1200;font-weight:600}
- input{padding:10px 12px;border-radius:9px;border:1px solid #28324a;background:#0d131f;color:#e8eefc;font:inherit;min-width:260px}
- .card{background:#161d2c;border:1px solid #28324a;border-radius:14px;padding:18px;margin:16px 0}
+ .ok{background:var(--ok-bg);color:var(--ok)}
+ .bad{background:var(--bad-bg);color:var(--bad)}
+ .btn{display:inline-block;padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt);text-decoration:none;cursor:pointer;font:inherit}
+ .primario{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+ input{padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--input-bg);color:var(--txt);font:inherit;min-width:260px}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
  #msg{margin-top:12px;font-size:13.5px}
- code{background:#0d131f;padding:2px 6px;border-radius:6px}
+ code{background:var(--input-bg);padding:2px 6px;border-radius:6px}
 </style>{% endblock %}
 {% block contenido %}
 <div style="padding:22px 26px;max-width:1100px;margin:0 auto">
@@ -93,7 +93,7 @@
 <script>
 function aviso(t, ok=true){
   const m = document.getElementById('msg');
-  m.textContent = t; m.style.color = ok ? '#3ecf8e' : '#ef5b6b';
+  m.textContent = t; m.style.color = ok ? 'var(--ok)' : 'var(--bad)';
 }
 async function detectar(){
   aviso('Buscando el canal…');

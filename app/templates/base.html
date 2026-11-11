@@ -4,49 +4,76 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block titulo %}Enpower Solar{% endblock %}</title>
+<script>(function(){try{var t=localStorage.getItem('tema');if(t!=='claro'&&t!=='oscuro'){t='claro';}document.documentElement.setAttribute('data-tema',t);}catch(e){}})();</script>
 <style>
   :root{
-    --bg:#0f1420; --card:#161d2c; --card2:#1d2637; --line:#2f3b57;
-    --txt:#e8eefc; --muted:#9aa7c4; --accent:#f5a623; --ok:#3ecf8e; --bad:#ff7d8b; --info:#6bb6ff;
-    --side-w:260px; --side-w-min:76px; --side-bg:#111827; --side-hi:#1f2a40;
+    color-scheme:light;
+    --bg:#f3faf5; --card:#ffffff; --card2:#eef7f0; --line:#cfe3d5; --hover:#e6f3ea;
+    --txt:#14261b; --muted:#476153; --accent:#15803d; --on-accent:#ffffff; --focus:#0b5d2a;
+    --ok:#166534; --bad:#b91c1c; --warn:#92400e; --info:#1d4ed8;
+    --ok-bg:#dcfce7; --bad-bg:#fee2e2; --warn-bg:#fef3c7; --info-bg:#dbeafe;
+    --input-bg:#ffffff; --input-bd:#9db8a7; --ph:#5f7a6b; --backdrop:rgba(20,38,27,.45);
+    --header-bg:linear-gradient(90deg,#ffffff,#e9f6ee);
+    --side-w:260px; --side-w-min:76px; --side-bg:#ffffff; --side-hi:#dcfce7; --side-line:#cfe3d5;
+    --chart1:#16a34a; --chart2:#0e7490; --chart-hi:#d97706; --grid:#d8e8dd;
+  }
+  html[data-tema="oscuro"]{
+    color-scheme:dark;
+    --bg:#0b1410; --card:#12201a; --card2:#182a22; --line:#2a4536; --hover:#1a2f25;
+    --txt:#e6f4ea; --muted:#9fb8a8; --accent:#4ade80; --on-accent:#052e16; --focus:#fde68a;
+    --ok:#4ade80; --bad:#fca5a5; --warn:#fbbf24; --info:#7dd3fc;
+    --ok-bg:rgba(74,222,128,.16); --bad-bg:rgba(248,113,113,.2); --warn-bg:rgba(251,191,36,.16); --info-bg:rgba(125,211,252,.16);
+    --input-bg:#0e1a14; --input-bd:#44654f; --ph:#86a08f; --backdrop:rgba(0,0,0,.7);
+    --header-bg:linear-gradient(90deg,#12201a,#0b1410);
+    --side-bg:#0e1a14; --side-hi:#1c3a2a; --side-line:#2a4536;
+    --chart1:#4ade80; --chart2:#38bdf8; --chart-hi:#fbbf24; --grid:#2a4536;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.4}
 
   /* ---------- Sidebar ---------- */
   aside#sidebar{position:fixed;top:12px;left:12px;bottom:12px;width:var(--side-w);z-index:50;
-    display:flex;flex-direction:column;background:var(--side-bg);border:1px solid #28324a;
+    display:flex;flex-direction:column;background:var(--side-bg);border:1px solid var(--side-line);
     border-radius:22px;padding:16px 12px;overflow:hidden;transition:width .2s ease,transform .25s ease}
-  #sidebar .marca{display:flex;align-items:center;gap:12px;padding:4px 6px 16px;border-bottom:1px solid #28324a;margin-bottom:8px}
+  #sidebar .marca{display:flex;align-items:center;gap:12px;padding:4px 6px 16px;border-bottom:1px solid var(--side-line);margin-bottom:8px}
   #sidebar .logo{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
-    background:linear-gradient(135deg,#f5a623,#d9822b);color:#1a1200;font-weight:800;font-size:15px;letter-spacing:.5px}
+    background:var(--accent);color:var(--on-accent);font-weight:800;font-size:15px;letter-spacing:.5px}
   #sidebar .marca-txt{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden}
   #sidebar .marca-txt small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
   #sidebar nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0}
-  #sidebar .grupo{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#6b7896;
+  #sidebar .grupo{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);
     padding:14px 12px 6px;white-space:nowrap;overflow:hidden}
   #sidebar a.item{position:relative;display:flex;align-items:center;gap:12px;padding:10px 12px;margin:2px 0;
     border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;white-space:nowrap;transition:background .15s,color .15s}
   #sidebar a.item svg{flex:0 0 20px;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  #sidebar a.item:hover{background:#182033;color:var(--txt)}
+  #sidebar a.item:hover{background:var(--hover);color:var(--txt)}
   #sidebar a.item.activo{background:var(--side-hi);color:var(--txt);font-weight:600}
   #sidebar a.item.activo::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--accent)}
   #sidebar a.item.activo svg{color:var(--accent)}
-  #sidebar a.item:focus-visible,#sidebar button:focus-visible,#menuBtn:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}
-  #sidebar .pie{border-top:1px solid #28324a;padding-top:12px;margin-top:8px;display:flex;flex-direction:column;gap:10px}
-  #sidebar .usuario{display:flex;align-items:center;gap:10px;padding:6px;border-radius:12px;background:#151d2f;overflow:hidden}
-  #sidebar .avatar{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:#28324a;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--accent)}
+  #sidebar a.item:focus-visible,#sidebar button:focus-visible,#menuBtn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  #sidebar .pie{border-top:1px solid var(--side-line);padding-top:12px;margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  #sidebar .usuario{display:flex;align-items:center;gap:10px;padding:6px;border-radius:12px;background:var(--card2);overflow:hidden}
+  #sidebar .avatar{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--accent)}
   #sidebar .usuario-txt{font-size:13px;white-space:nowrap;overflow:hidden;line-height:1.25}
   #sidebar .usuario-txt small{display:block;color:var(--muted);font-size:11px}
   #sidebar button#colapsar{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:12px;
-    border:1px solid #28324a;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;min-height:0;white-space:nowrap}
+    border:1px solid var(--side-line);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;min-height:0;white-space:nowrap}
   #sidebar button#colapsar:hover{color:var(--accent);border-color:var(--accent)}
   #sidebar button#colapsar svg{flex:0 0 18px;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+
+  #sidebar button#tema{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:12px;
+    border:1px solid var(--side-line);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;min-height:0;white-space:nowrap}
+  #sidebar button#tema:hover{color:var(--accent);border-color:var(--accent)}
+  #sidebar button#tema svg{flex:0 0 18px;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  #tema .i-luna{display:none} html[data-tema="oscuro"] #tema .i-sol{display:none} html[data-tema="oscuro"] #tema .i-luna{display:inline}
+  body.side-min #sidebar button#tema{justify-content:center;padding-left:0;padding-right:0}
+  body.side-min #sidebar #tema span{display:none}
+  @media(max-width:768px){body.side-min #sidebar #tema span{display:inline}}
 
   /* ---------- Colapsado (rail) ---------- */
   body.side-min aside#sidebar{width:var(--side-w-min)}
   body.side-min #sidebar .marca-txt,body.side-min #sidebar .item span,body.side-min #sidebar .usuario-txt,body.side-min #sidebar #colapsar span{display:none}
-  body.side-min #sidebar .grupo{height:1px;padding:0;margin:12px 14px;background:#28324a;font-size:0}
+  body.side-min #sidebar .grupo{height:1px;padding:0;margin:12px 14px;background:var(--side-line);font-size:0}
   body.side-min #sidebar .marca{justify-content:center;padding-left:0;padding-right:0}
   body.side-min #sidebar a.item,body.side-min #sidebar button#colapsar{justify-content:center;padding-left:0;padding-right:0}
   body.side-min #sidebar .usuario{justify-content:center}
@@ -57,7 +84,7 @@
   body.side-min main#principal{margin-left:calc(var(--side-w-min) + 24px)}
 
   #menuBtn{display:none;position:fixed;top:12px;left:12px;z-index:60;width:42px;height:42px;padding:0;border-radius:12px;
-    border:1px solid #28324a;background:var(--side-bg);color:var(--txt);cursor:pointer;align-items:center;justify-content:center;min-height:0}
+    border:1px solid var(--side-line);background:var(--side-bg);color:var(--txt);cursor:pointer;align-items:center;justify-content:center;min-height:0}
   #menuBtn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
   #velo{display:none}
 
@@ -71,7 +98,7 @@
     main#principal,body.side-min main#principal{margin-left:0;padding-top:64px}
     #menuBtn{display:inline-flex}
     body.side-abierto #menuBtn{opacity:0;pointer-events:none}
-    body.side-abierto #velo{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}
+    body.side-abierto #velo{display:block;position:fixed;inset:0;background:var(--backdrop);z-index:40}
   }
 </style>
 {% block estilos %}{% endblock %}
@@ -109,6 +136,11 @@
       <div class="avatar">ES</div>
       <div class="usuario-txt">Enpower Solar<small>Administrador</small></div>
     </div>
+    <button type="button" id="tema" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
+      <svg class="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="i-luna" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <span>Cambiar tema</span>
+    </button>
     <button type="button" id="colapsar" aria-label="Colapsar menú" title="Colapsar menú">
       <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span>Colapsar</span>
     </button>
@@ -127,6 +159,12 @@
   document.getElementById('colapsar').addEventListener('click', function(){
     var min = b.classList.toggle('side-min');
     try { localStorage.setItem(KEY, min ? '1' : '0'); } catch(e){}
+  });
+  document.getElementById('tema').addEventListener('click', function(){
+    var h = document.documentElement, n = h.getAttribute('data-tema') === 'oscuro' ? 'claro' : 'oscuro';
+    h.setAttribute('data-tema', n);
+    try { localStorage.setItem('tema', n); } catch(e){}
+    document.dispatchEvent(new Event('tema-cambiado'));
   });
   var btn = document.getElementById('menuBtn');
   function abrir(v){
