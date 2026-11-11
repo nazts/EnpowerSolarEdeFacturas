@@ -176,7 +176,51 @@ subsidio RD$‑166,797.83, **total RD$188,675.21**, **pagar antes del 07/11/2026
 Nota: la emisión (08/10/2026) es posterior al corte, así que la detección por
 fecha de corte debe leer el período dentro del PDF, no la fecha de emisión.
 
-## 11. Pendientes / decisiones del cliente
+## 11. Casos de prueba de aceptación (QA)
+
+Estos casos son obligatorios antes de dar el sistema por bueno. Cada uno debe
+quedar como prueba automatizada en el repo.
+
+### 11.1 Nombre del archivo
+
+| Razón social en la factura | NIC | Nombre esperado |
+|---|---|---|
+| `GARCIA CASTRO, FRANCISCO ALBERT` | 7533709 | `FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf` |
+| `DE LA CRUZ TAVAREZ, JORGE RAMON` | 6997885 | `JORGE RAMON DE LA CRUZ TAVAREZ 6997885.pdf` |
+| `ENPOWER SOLAR SRL` (sin coma) | 1234567 | `ENPOWER SOLAR SRL 1234567.pdf` |
+| `A/B: SRL` | 1234568 | caracteres `\ / : * ? " < > |` sustituidos, nunca en el nombre |
+
+- Apellidos compuestos (`DE LA CRUZ TAVAREZ`) se mantienen unidos y en orden.
+- Se usa el **NIC de 7 dígitos**, nunca la Ref. de Pago (falla típica).
+- Caso con Ñ y tildes (`MUÑOZ PÉREZ, JOSÉ`): resultado pendiente de decisión
+  (§12), la prueba debe fijar el comportamiento elegido.
+
+### 11.2 Filtro de descarga
+
+- Contrato con dos facturas: una "Recibos de consumos" con corte **ayer** sin
+  descargar y una "Irregularidades intencionales" con corte **hoy** → **no se
+  descarga ninguna**.
+- Contraprueba: "Recibos de consumos" con corte **hoy** → se descarga una sola.
+- Factura de consumo con el consumo **en blanco** → no se descarga.
+
+### 11.3 Pendientes y fallas del portal
+
+Secuencia simulada (mock del portal):
+
+| Día | Estado del portal | Resultado esperado |
+|---|---|---|
+| 0 | sin factura | PENDIENTE (intentos = 1, primer_intento = día 0) |
+| 1 | error 502 al iniciar sesión | sigue PENDIENTE, intentos = 2, alerta "La plataforma de Edenorte tiene problemas" |
+| 3 | sin factura | PENDIENTE marcado **atrasado** |
+| 4 | factura publicada | descargada + renombrada, pendiente cerrado |
+
+- Una corrida que falla por el portal **no debe perder ni reiniciar** los
+  pendientes existentes.
+- `dia_corte = 31` en un mes de 28/29/30 días → se usa el último día del mes.
+- Un contrato recién asociado, sin historial, no rompe la corrida: queda sin
+  `dia_corte` hasta su primera factura y se reporta como tal.
+
+## 12. Pendientes / decisiones del cliente
 
 1. Formato exacto del nombre: ¿`FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf`
    (espacio) o con guion bajo / guion medio?
@@ -188,4 +232,7 @@ fecha de corte debe leer el período dentro del PDF, no la fecha de emisión.
    WhatsApp o solo registro en el log?
 5. Destino final de los PDFs: carpeta local, OneDrive, correo, sistema
    contable… (lo indicará el cliente después).
+6. ¿Se conservan tildes y Ñ en el nombre del archivo (`JOSÉ MUÑOZ PÉREZ`) o se
+   transliteran a ASCII (`JOSE MUNOZ PEREZ`)? Windows acepta las dos, pero la
+   segunda es más segura al subirlas a otros sistemas.
 
