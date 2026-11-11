@@ -13,6 +13,19 @@ from . import config, db, excel, naming, telegram
 from .edenorte import EdenorteClient, PortalError
 
 BASE = Path(__file__).resolve().parent
+
+
+def _num(valor: str | None) -> float | None:
+    """'3,5' o '3.5' -> float; vacio -> None."""
+    if valor is None:
+        return None
+    texto = str(valor).strip().replace(",", ".")
+    if not texto:
+        return None
+    try:
+        return float(texto)
+    except ValueError:
+        return None
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 
 app = FastAPI(title="Enpower Solar — Facturas Edenorte", docs_url="/api/docs")
@@ -65,6 +78,31 @@ def api_resumen() -> JSONResponse:
     proximos.sort(key=lambda x: x["fecha"])
     datos["proximos_cortes"] = proximos[:12]
     return JSONResponse(datos)
+
+
+@app.get("/mapa")
+def mapa_page(request: Request):
+    with db.sesion() as conn:
+        clientes = db.clientes_mapa(conn)
+    return templates.TemplateResponse(request, "mapa.html", {
+        "activo": "mapa", "clientes": clientes,
+        "con_ubicacion": [c for c in clientes if c.get("latitud") and c.get("longitud")],
+    })
+
+
+@app.get("/api/mapa")
+def api_mapa() -> JSONResponse:
+    with db.sesion() as conn:
+        clientes = db.clientes_mapa(conn)
+    return JSONResponse({"clientes": clientes})
+
+
+@app.post("/api/geocodificar")
+def api_geocodificar(direccion: str = Form(...),
+                     contexto: str = Form(default="Santiago, República Dominicana")) -> JSONResponse:
+    from .geo import geocodificar
+    resultado = geocodificar(direccion, contexto)
+    return JSONResponse(resultado, status_code=200 if resultado.get("ok") else 400)
 
 
 @app.get("/api/estado")
@@ -184,14 +222,23 @@ def cliente_nuevo(request: Request):
 @app.post("/clientes")
 def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
                   alias: str = Form(default=""), asesor: str = Form(default=""),
-                  dia_corte: str = Form(default=""), notas: str = Form(default="")):
+                  dia_corte: str = Form(default=""), notas: str = Form(default=""),
+                  direccion: str = Form(default=""), telefono: str = Form(default=""),
+                  latitud: str = Form(default=""), longitud: str = Form(default=""),
+                  potencia_paneles: str = Form(default=""), inversores: str = Form(default=""),
+                  bateria: str = Form(default=""), capacidad_bateria: str = Form(default=""),
+                  fecha_instalacion: str = Form(default="")):
     nic = nic.strip()
     if not nic.isdigit():
         raise HTTPException(400, "El NIC debe ser numérico")
     with db.sesion() as conn:
         db.upsert_contrato(
             conn, nic, razon_social=razon_social, alias=alias, asesor=asesor,
-            notas=notas,
+            notas=notas, direccion=direccion, telefono=telefono,
+            latitud=_num(latitud), longitud=_num(longitud),
+            potencia_paneles=_num(potencia_paneles), inversores=inversores,
+            bateria=bateria, capacidad_bateria=_num(capacidad_bateria),
+            fecha_instalacion=fecha_instalacion,
             dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
         )
         db.log_evento(conn, "info", f"Cliente {nic} agregado desde el módulo de clientes")
@@ -257,12 +304,21 @@ def crear_contrato(nic: str = Form(...), razon_social: str = Form(default=""),
 def editar_contrato(nic: str, razon_social: str = Form(default=""),
                     alias: str = Form(default=""), asesor: str = Form(default=""),
                     dia_corte: str = Form(default=""), notas: str = Form(default=""),
-                    activo: str = Form(default="1")):
+                    activo: str = Form(default="1"), direccion: str = Form(default=""),
+                    telefono: str = Form(default=""), latitud: str = Form(default=""),
+                    longitud: str = Form(default=""),
+                    potencia_paneles: str = Form(default=""), inversores: str = Form(default=""),
+                    bateria: str = Form(default=""), capacidad_bateria: str = Form(default=""),
+                    fecha_instalacion: str = Form(default="")):
     with db.sesion() as conn:
         db.upsert_contrato(
             conn, nic, razon_social=razon_social, alias=alias, asesor=asesor, notas=notas,
             dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
-            activo=1 if activo == "1" else 0,
+            activo=1 if activo == "1" else 0, direccion=direccion, telefono=telefono,
+            latitud=_num(latitud), longitud=_num(longitud),
+            potencia_paneles=_num(potencia_paneles), inversores=inversores,
+            bateria=bateria, capacidad_bateria=_num(capacidad_bateria),
+            fecha_instalacion=fecha_instalacion,
         )
         db.log_evento(conn, "info", f"Contrato {nic} actualizado")
     return RedirectResponse("/", status_code=303)

@@ -83,6 +83,29 @@ CREATE TABLE IF NOT EXISTS eventos (
 """
 
 
+# columnas agregadas despues de la v1 (se crean con ALTER TABLE si faltan)
+COLUMNAS_NUEVAS = {
+    "direccion": "TEXT NOT NULL DEFAULT ''",
+    "telefono": "TEXT NOT NULL DEFAULT ''",
+    "latitud": "REAL",
+    "longitud": "REAL",
+    "potencia_paneles": "REAL",
+    "inversores": "TEXT NOT NULL DEFAULT ''",
+    "bateria": "TEXT NOT NULL DEFAULT ''",
+    "capacidad_bateria": "REAL",
+    "fecha_instalacion": "TEXT NOT NULL DEFAULT ''",
+}
+
+
+def migrar(conn: sqlite3.Connection) -> None:
+    """Agrega columnas que falten en bases ya creadas."""
+    existentes = {r[1] for r in conn.execute("PRAGMA table_info(contratos)")}
+    for nombre, tipo in COLUMNAS_NUEVAS.items():
+        if nombre not in existentes:
+            conn.execute(f"ALTER TABLE contratos ADD COLUMN {nombre} {tipo}")
+    conn.commit()
+
+
 def hoy() -> str:
     return date.today().isoformat()
 
@@ -107,6 +130,7 @@ def init_db(conn: sqlite3.Connection | None = None) -> None:
     try:
         conn.executescript(SCHEMA)
         conn.commit()
+        migrar(conn)
     finally:
         if cerrar:
             conn.close()
@@ -126,37 +150,52 @@ def sesion(db_path: Path | str | None = None) -> Iterator[sqlite3.Connection]:
 # ------------------------------------------------------------------ contratos
 def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                     alias: str = "", asesor: str = "", dia_corte: int | None = None,
-                    activo: int = 1, notas: str = "") -> None:
+                    activo: int = 1, notas: str = "", direccion: str = "",
+                    telefono: str = "", latitud: float | None = None,
+                    longitud: float | None = None, potencia_paneles: float | None = None,
+                    inversores: str = "", bateria: str = "",
+                    capacidad_bateria: float | None = None,
+                    fecha_instalacion: str = "") -> None:
+    """Crea o actualiza un contrato. Los campos vacios no pisan lo ya guardado."""
     nic = str(nic).strip()
     norm = normalizar_razon_social(razon_social)
     fila = conn.execute("SELECT nic FROM contratos WHERE nic = ?", (nic,)).fetchone()
     if fila:
         campos, valores = [], []
+
+        def poner(col: str, val) -> None:
+            campos.append(f"{col} = ?")
+            valores.append(val)
+
         if razon_social:
-            campos += ["razon_social = ?", "nombre_normalizado = ?"]
-            valores += [razon_social.strip(), norm]
-        if alias:
-            campos.append("alias = ?")
-            valores.append(alias.strip())
-        if asesor:
-            campos.append("asesor = ?")
-            valores.append(asesor.strip())
-        if dia_corte is not None:
-            campos.append("dia_corte = ?")
-            valores.append(int(dia_corte))
-        if notas:
-            campos.append("notas = ?")
-            valores.append(notas)
-        campos += ["activo = ?", "updated_at = ?"]
-        valores += [int(activo), ahora(), nic]
+            poner("razon_social", razon_social.strip())
+            poner("nombre_normalizado", norm)
+        for col, val in (("alias", alias), ("asesor", asesor), ("notas", notas),
+                         ("direccion", direccion), ("telefono", telefono),
+                         ("inversores", inversores), ("bateria", bateria),
+                         ("fecha_instalacion", fecha_instalacion)):
+            if val:
+                poner(col, val.strip())
+        for col, val in (("dia_corte", dia_corte), ("latitud", latitud),
+                         ("longitud", longitud), ("potencia_paneles", potencia_paneles),
+                         ("capacidad_bateria", capacidad_bateria)):
+            if val is not None:
+                poner(col, val)
+        poner("activo", int(activo))
+        poner("updated_at", ahora())
+        valores.append(nic)
         conn.execute(f"UPDATE contratos SET {', '.join(campos)} WHERE nic = ?", valores)
     else:
         conn.execute(
             """INSERT INTO contratos
-               (nic, razon_social, nombre_normalizado, alias, asesor, dia_corte, activo, notas)
-               VALUES (?,?,?,?,?,?,?,?)""",
+               (nic, razon_social, nombre_normalizado, alias, asesor, dia_corte, activo, notas,
+                direccion, telefono, latitud, longitud, potencia_paneles, inversores, bateria,
+                capacidad_bateria, fecha_instalacion)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (nic, razon_social.strip(), norm, alias.strip(), asesor.strip(),
-             int(dia_corte) if dia_corte is not None else None, int(activo), notas),
+             int(dia_corte) if dia_corte is not None else None, int(activo), notas,
+             direccion.strip(), telefono.strip(), latitud, longitud, potencia_paneles,
+             inversores.strip(), bateria.strip(), capacidad_bateria, fecha_instalacion.strip()),
         )
     conn.commit()
 
@@ -237,6 +276,21 @@ def historico_facturas(conn: sqlite3.Connection, nic: str) -> list[sqlite3.Row]:
            ORDER BY corte DESC, id DESC""",
         (str(nic),),
     ).fetchall()
+
+
+def clientes_mapa(conn: sqlite3.Connection) -> list[dict]:
+    """Clientes con ubicacion y equipo instalado, para el modulo de mapa."""
+    filas = conn.execute(
+        """SELECT c.*,
+                  (SELECT COUNT(*) FROM facturas f WHERE f.nic = c.nic AND f.estado='descargada') AS total_facturas,
+                  (SELECT f.facturado FROM facturas f WHERE f.nic = c.nic AND f.estado='descargada'
+                    ORDER BY f.corte DESC LIMIT 1) AS ultimo_monto,
+                  (SELECT f.kwh FROM facturas f WHERE f.nic = c.nic AND f.estado='descargada'
+                    ORDER BY f.corte DESC LIMIT 1) AS ultimo_kwh,
+                  (SELECT MAX(f.corte) FROM facturas f WHERE f.nic = c.nic AND f.estado='descargada') AS ultimo_corte
+           FROM contratos c ORDER BY c.nic"""
+    ).fetchall()
+    return [dict(f) for f in filas]
 
 
 def resumen_dashboard(conn: sqlite3.Connection) -> dict:

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block titulo %}Mapa · Enpower Solar{% endblock %}
+{% block contenido %}
+<div class="pagina">
+  <h1>Mapa de clientes</h1>
+  <p class="muted">{{ con_ubicacion|length }} de {{ clientes|length }} clientes con ubicación registrada.</p>
+  <ul>
+    {% for c in clientes %}
+      <li>{{ c.nic }} — {{ c.nombre_normalizado }}
+        {% if c.latitud %}· {{ c.latitud }}, {{ c.longitud }}{% else %}· sin ubicación{% endif %}
+        · {{ c.potencia_paneles or "—" }} kW paneles
+        · {{ c.inversores or "—" }}
+        · {{ c.bateria or "sin batería" }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
