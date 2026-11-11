@@ -33,3 +33,23 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 DB_PATH = BASE_DIR / os.environ.get("DB_PATH", "data/enpower.db")
 FACTURAS_DIR = BASE_DIR / os.environ.get("FACTURAS_DIR", "facturas")
 EXPORT_DIR = BASE_DIR / os.environ.get("EXPORT_DIR", "exports")
+
+
+def guardar_chat_id(chat_id: str) -> None:
+    """Persiste TELEGRAM_CHAT_ID en .env y lo actualiza en memoria."""
+    global TELEGRAM_CHAT_ID
+    chat_id = str(chat_id).strip()
+    ruta = BASE_DIR / ".env"
+    lineas = ruta.read_text(encoding="utf-8").splitlines() if ruta.exists() else []
+    salida, encontrado = [], False
+    for linea in lineas:
+        if linea.strip().startswith("TELEGRAM_CHAT_ID="):
+            salida.append(f"TELEGRAM_CHAT_ID={chat_id}")
+            encontrado = True
+        else:
+            salida.append(linea)
+    if not encontrado:
+        salida.append(f"TELEGRAM_CHAT_ID={chat_id}")
+    ruta.write_text("\n".join(salida) + "\n", encoding="utf-8")
+    TELEGRAM_CHAT_ID = chat_id
+    os.environ["TELEGRAM_CHAT_ID"] = chat_id

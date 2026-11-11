@@ -63,6 +63,57 @@ def api_test_telegram() -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
 
 
+# ------------------------------------------------------------------ telegram
+@app.get("/telegram")
+def telegram_page(request: Request):
+    try:
+        info = telegram.info_bot()
+    except Exception as exc:
+        info = {"error": str(exc)}
+    try:
+        pendientes = telegram.updates()
+    except Exception:
+        pendientes = []
+    canales = []
+    for upd in pendientes:
+        msg = upd.get("channel_post") or upd.get("message") or upd.get("my_chat_member") or {}
+        chat = msg.get("chat") or {}
+        if chat.get("id"):
+            canales.append({"tipo": chat.get("type"), "id": chat.get("id"),
+                            "titulo": chat.get("title") or chat.get("username")})
+    with db.sesion() as conn:
+        envios = [dict(e) for e in conn.execute(
+            "SELECT * FROM envios ORDER BY id DESC LIMIT 20")]
+    return templates.TemplateResponse(request, "telegram.html", {
+        "activo": "telegram",
+        "bot": info, "canales": canales, "envios": envios,
+        "chat_id": config.TELEGRAM_CHAT_ID,
+        "token_configurado": bool(config.TELEGRAM_BOT_TOKEN),
+    })
+
+
+@app.post("/api/telegram/detectar")
+def api_telegram_detectar() -> JSONResponse:
+    """Busca el canal/grupo donde está el bot y guarda su chat_id."""
+    try:
+        chat_id = telegram.resolver_chat_id(config.TELEGRAM_CHAT_ID or None)
+    except telegram.TelegramError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    config.guardar_chat_id(chat_id)
+    with db.sesion() as conn:
+        db.log_evento(conn, "info", "Canal de Telegram detectado", chat_id)
+    return JSONResponse({"ok": True, "chat_id": chat_id})
+
+
+@app.post("/api/telegram/chat")
+def api_telegram_chat(chat_id: str = Form(...)) -> JSONResponse:
+    chat_id = chat_id.strip()
+    if not chat_id:
+        return JSONResponse({"ok": False, "error": "chat_id vacío"}, status_code=400)
+    config.guardar_chat_id(chat_id)
+    return JSONResponse({"ok": True, "chat_id": chat_id})
+
+
 @app.post("/api/corrida")
 def api_corrida(fecha: str | None = Form(default=None)) -> JSONResponse:
     from .runner import corrida
@@ -92,12 +143,14 @@ def clientes(request: Request):
     for f in filas:
         f["proximo_corte"] = proximo_corte(f.get("dia_corte"))
         f["dias_corte"] = dias_para_corte(f.get("dia_corte"))
-    return templates.TemplateResponse(request, "clientes.html", {"clientes": filas})
+    return templates.TemplateResponse(request, "clientes.html",
+                                      {"clientes": filas, "activo": "clientes"})
 
 
 @app.get("/clientes/nuevo")
 def cliente_nuevo(request: Request):
-    return templates.TemplateResponse(request, "cliente_nuevo.html", {})
+    return templates.TemplateResponse(request, "cliente_nuevo.html",
+                                      {"activo": "cliente_nuevo"})
 
 
 @app.post("/clientes")
@@ -133,7 +186,7 @@ def cliente_detalle(request: Request, nic: str):
     total = sum(f["facturado"] or 0 for f in historico)
     return templates.TemplateResponse(request, "cliente_detalle.html", {
         "cliente": datos, "historico": historico, "pendientes": pendientes,
-        "total_facturado": total,
+        "total_facturado": total, "activo": "clientes",
     })
 
 
@@ -151,6 +204,7 @@ def inicio(request: Request):
     return templates.TemplateResponse(request, "index.html", {
         "contratos": contratos, "pendientes": pendientes, "facturas": facturas,
         "eventos": eventos, "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
+        "activo": "panel",
     })
 
 

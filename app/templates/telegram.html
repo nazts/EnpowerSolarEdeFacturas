@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conexión de Telegram · Enpower Solar</title>
+<style>
+ body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f1420;color:#e8eefc;margin:0;padding:24px}
+ a{color:#f5a623}
+ table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+ th,td{padding:9px 10px;border-bottom:1px solid #28324a;text-align:left}
+ th{color:#8b98b5;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+ .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+ .ok{background:rgba(62,207,142,.15);color:#3ecf8e}
+ .bad{background:rgba(239,91,107,.15);color:#ef5b6b}
+ .btn{display:inline-block;padding:9px 14px;border-radius:9px;border:1px solid #28324a;background:#1d2637;color:#e8eefc;text-decoration:none;cursor:pointer;font:inherit}
+ .primario{background:#f5a623;border-color:#f5a623;color:#1a1200;font-weight:600}
+ input{padding:10px 12px;border-radius:9px;border:1px solid #28324a;background:#0d131f;color:#e8eefc;font:inherit;min-width:260px}
+ .card{background:#161d2c;border:1px solid #28324a;border-radius:14px;padding:18px;margin:16px 0}
+ #msg{margin-top:12px;font-size:13.5px}
+ code{background:#0d131f;padding:2px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<p><a href="/">← Dashboard</a></p>
+<h1>Conexión de Telegram</h1>
+
+<div class="card">
+  <h2 style="margin-top:0;font-size:15px">Bot</h2>
+  {% if bot and not bot.error %}
+    <p>Usuario: <b>@{{ bot.username }}</b> · nombre: {{ bot.first_name }} · id {{ bot.id }}
+      {% if token_configurado %}<span class="pill ok">token configurado</span>
+      {% else %}<span class="pill bad">sin token</span>{% endif %}</p>
+  {% else %}
+    <p><span class="pill bad">sin conexión</span> {{ bot.error if bot else "no se pudo consultar" }}</p>
+  {% endif %}
+  <p>Canal destino:
+    {% if chat_id %}<code>{{ chat_id }}</code> <span class="pill ok">configurado</span>
+    {% else %}<span class="pill bad">sin configurar</span>{% endif %}</p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+    <button class="btn primario" type="button" onclick="detectar()">🔎 Detectar canal</button>
+    <button class="btn" type="button" onclick="probar()">✉️ Enviar prueba</button>
+    <form method="post" action="/api/telegram/chat" onsubmit="return guardar(this)" style="display:flex;gap:8px">
+      <input name="chat_id" placeholder="-100… o @usuario" value="{{ chat_id }}">
+      <button class="btn" type="submit">Guardar</button>
+    </form>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;font-size:15px">Cómo conectarlo</h2>
+  <ol style="line-height:1.7;margin:0 0 0 18px">
+    <li>En Telegram, abre el grupo o canal de facturas.</li>
+    <li>Agrega <b>@{{ bot.username if bot and not bot.error else "el bot" }}</b> como <b>administrador</b>
+        con permiso de publicar mensajes.</li>
+    <li>Publica cualquier mensaje en el grupo.</li>
+    <li>Pulsa <b>Detectar canal</b> aquí: se guarda el <code>chat_id</code> automáticamente.</li>
+    <li>Pulsa <b>Enviar prueba</b> para confirmar.</li>
+  </ol>
+</div>
+
+{% if canales %}
+<div class="card">
+  <h2 style="margin-top:0;font-size:15px">Chats donde está el bot</h2>
+  <table>
+    <thead><tr><th>Título</th><th>Tipo</th><th>chat_id</th><th></th></tr></thead>
+    <tbody>
+    {% for c in canales %}
+      <tr>
+        <td>{{ c.titulo }}</td><td>{{ c.tipo }}</td><td><code>{{ c.id }}</code></td>
+        <td><button class="btn" type="button" onclick="usar('{{ c.id }}')">Usar este</button></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2 style="margin-top:0;font-size:15px">Envíos recientes</h2>
+  {% if envios %}
+  <table>
+    <thead><tr><th>Fecha</th><th>Chat</th><th>Facturas</th><th>Detalle</th></tr></thead>
+    <tbody>
+    {% for e in envios %}
+      <tr><td>{{ e.fecha }}</td><td><code>{{ e.chat_id }}</code></td>
+          <td>{{ e.facturas }}</td><td>{{ e.detalle }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Sin envíos registrados todavía.</p>
+  {% endif %}
+</div>
+
+<script>
+function aviso(t, ok=true){
+  const m = document.getElementById('msg');
+  m.textContent = t; m.style.color = ok ? '#3ecf8e' : '#ef5b6b';
+}
+async function detectar(){
+  aviso('Buscando el canal…');
+  const r = await fetch('/api/telegram/detectar', {method:'POST'});
+  const d = await r.json();
+  if(!d.ok) return aviso('⚠️ ' + (d.error || 'No se encontró el canal'), false);
+  aviso('Canal guardado: ' + d.chat_id);
+  setTimeout(()=>location.reload(), 1200);
+}
+async function probar(){
+  aviso('Enviando prueba…');
+  const r = await fetch('/api/test-telegram', {method:'POST'});
+  const d = await r.json();
+  aviso(d.ok ? 'Mensaje enviado al canal ✅' : ('⚠️ ' + d.error), d.ok);
+}
+async function usar(id){
+  const fd = new FormData(); fd.append('chat_id', id);
+  const r = await fetch('/api/telegram/chat', {method:'POST', body:fd});
+  const d = await r.json();
+  if(!d.ok) return aviso('⚠️ ' + d.error, false);
+  aviso('Canal guardado: ' + d.chat_id);
+  setTimeout(()=>location.reload(), 1200);
+}
+function guardar(form){
+  const fd = new FormData(form);
+  fetch('/api/telegram/chat', {method:'POST', body:fd})
+    .then(r=>r.json())
+    .then(d=>{ aviso(d.ok ? 'Canal guardado: ' + d.chat_id : '⚠️ ' + d.error, d.ok);
+               if(d.ok) setTimeout(()=>location.reload(), 1200); });
+  return false;
+}
+</script>
+</body>
+</html>
