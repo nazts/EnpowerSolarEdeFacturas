@@ -265,6 +265,9 @@ def api_contrato(nic: str, proveedor: str = "edenorte",
         })
     except PortalError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
+    except Exception as exc:  # noqa: BLE001 - red, timeouts, lo que sea
+        return JSONResponse({"ok": False, "error": f"Fallo la consulta: {exc}"[:300]},
+                            status_code=502)
 
 
 @app.get("/api/resumen")
@@ -490,6 +493,22 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
         raise HTTPException(400, "La referencia de pago es obligatoria para Edesur")
 
     aviso = ""
+    if proveedor == "edenorte" and not razon_social.strip():
+        # no pulso "Buscar": se valida (y asocia) contra el portal para no
+        # guardar un NIC inventado ni dejarlo vacio
+        try:
+            from .proveedores import portal_de
+            portal = portal_de("edenorte")
+            portal.login()
+            contrato = next((c for c in portal.contratos() if c.nic == nic), None)
+            if contrato is None:
+                contrato = portal.asociar_contrato(nic, espera_max=15)
+            razon_social = contrato.titular
+            direccion = direccion or contrato.direccion
+            telefono = telefono or contrato.telefono
+        except Exception as exc:  # noqa: BLE001 - se guarda y se avisa
+            aviso = f"No se pudo validar en Edenorte: {str(exc)[:200]}"
+
     if proveedor == "edesur" and referencia.strip():
         try:
             from .proveedores import EdesurPortal

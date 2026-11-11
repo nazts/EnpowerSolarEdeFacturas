@@ -9,7 +9,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from . import config, db, naming, telegram
-from .edenorte import EdenorteClient, PortalError
+from .edenorte import EdenorteClient, PdfNoDisponible, PortalError
 from .pdfdata import DatosFactura, datos_de_archivo
 from .proveedores import ALERTA as ALERTA_PROVEEDOR, EdesurPortal, portal_de
 
@@ -459,14 +459,20 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
             sin_pdf = 0
             for fila in faltan[:por_cliente]:
                 if sin_pdf >= 2:
-                    # el portal solo conserva los 2 PDFs mas recientes: no insistir
-                    db.log_evento(conn, "info",
-                                  f"NIC {nic}: el portal ya no conserva PDFs mas antiguos",
-                                  f"desde {fila.ref_pago}")
+                    # dos fallos seguidos: no insistir con las viejas
+                    db.log_evento(conn, "aviso",
+                                  f"NIC {nic}: no se pudo bajar mas facturas", fila.ref_pago)
                     break
                 try:
                     contenido = portal.descargar_pdf(fila.ref_pago)
                     sin_pdf = 0
+                except PdfNoDisponible:
+                    # vienen de la mas nueva a la mas vieja: de aqui para atras
+                    # el portal ya no conserva los PDFs
+                    db.log_evento(conn, "info",
+                                  f"NIC {nic}: el portal ya no conserva PDFs mas antiguos",
+                                  f"desde {fila.ref_pago}")
+                    break
                 except PortalError as exc:
                     sin_pdf += 1
                     res["errores"].append({"nic": nic, "ref": fila.ref_pago, "error": str(exc)[:160]})
@@ -580,14 +586,16 @@ def _razon_social(conn, nic: str) -> str:
 
 
 def _monto(conn, nic: str, corte: str | None) -> float | None:
-    fila = conn.execute("SELECT facturado FROM facturas WHERE nic = ? AND corte IS ?",
-                        (nic, corte)).fetchone()
+    fila = conn.execute(
+        "SELECT facturado FROM facturas WHERE nic = ? AND corte IS ? AND estado = 'descargada'"
+        " ORDER BY id DESC", (nic, corte)).fetchone()
     return fila[0] if fila else None
 
 
 def _vence(conn, nic: str, corte: str | None) -> str | None:
-    fila = conn.execute("SELECT vence FROM facturas WHERE nic = ? AND corte IS ?",
-                        (nic, corte)).fetchone()
+    fila = conn.execute(
+        "SELECT vence FROM facturas WHERE nic = ? AND corte IS ? AND estado = 'descargada'"
+        " ORDER BY id DESC", (nic, corte)).fetchone()
     return fila[0] if fila else None
 
 

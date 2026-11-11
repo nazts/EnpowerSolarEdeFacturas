@@ -345,3 +345,31 @@ def test_historial_aprende_el_dia_de_corte(contrato, leer_pdf, monkeypatch):
 
     with db.sesion(db_path=contrato) as c:
         assert db.obtener_contrato(c, NIC)["dia_corte"] == 16
+
+
+def test_pdf_que_el_portal_ya_no_tiene_no_es_error(contrato, leer_pdf):
+    """El portal conserva 2 PDFs: al llegar a uno viejo se corta sin llenar errores."""
+    from app.edenorte import PdfNoDisponible
+
+    refs = ["900", "899", "898", "897"]
+    p = portal(filas=[FacturaRef(nic=NIC, ref_pago=r, cliente="", tipo="Recibos de consumos",
+                                 emision="16/09/2026") for r in refs])
+    p.descargar_pdf.side_effect = lambda ref: (
+        _texto_factura("16/09/2026").encode("latin-1") if ref in ("900", "899")
+        else (_ for _ in ()).throw(PdfNoDisponible(f"PDF no disponible para {ref}")))
+
+    res = runner.sincronizar_historial(date(2026, 9, 20), por_cliente=4, enviar=False,
+                                       portales={"edenorte": p})
+
+    assert [n["corte"] for n in res["nuevos"]] == ["2026-09-16", "2026-09-16"]
+    assert res["errores"] == []          # ni un error: el portal simplemente no los tiene
+    assert p.descargar_pdf.call_count == 3   # 900, 899 y el que corta la busqueda
+
+
+def test_upsert_no_reactiva_un_cliente_desactivado(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, activo=0)
+        db.upsert_contrato(c, NIC, asesor="Steven")      # sin pasar activo
+        assert db.obtener_contrato(c, NIC)["activo"] == 0
+        db.upsert_contrato(c, NIC, activo=1)
+        assert db.obtener_contrato(c, NIC)["activo"] == 1

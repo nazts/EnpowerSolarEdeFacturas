@@ -19,6 +19,10 @@ class PortalError(RuntimeError):
     """El portal de Edenorte no respondio como se esperaba (falla del sitio)."""
 
 
+class PdfNoDisponible(PortalError):
+    """El portal ya no conserva ese PDF (solo guarda las 2 facturas mas recientes)."""
+
+
 @dataclass
 class Contrato:
     nic: str
@@ -111,7 +115,10 @@ class EdenorteClient:
     def contratos(self) -> list[Contrato]:
         """Todos los contratos asociados a la cuenta."""
         self._ensure()
-        resp = self.http.get(f"{self.base}/datos_contrato", timeout=self.timeout)
+        try:
+            resp = self.http.get(f"{self.base}/datos_contrato", timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise PortalError(f"No se pudo consultar los contratos: {exc}") from exc
         if resp.status_code >= 500:
             raise PortalError(f"El portal respondio {resp.status_code} en datos de contrato")
         html = resp.text
@@ -197,7 +204,10 @@ class EdenorteClient:
     # ------------------------------------------------------------- historial
     def historial(self, nic: str) -> Historial:
         self._ensure()
-        resp = self.http.get(f"{self.base}/historial/{nic}", timeout=self.timeout)
+        try:
+            resp = self.http.get(f"{self.base}/historial/{nic}", timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise PortalError(f"No se pudo consultar el historial de {nic}: {exc}") from exc
         if resp.status_code >= 500:
             raise PortalError(f"El portal respondio {resp.status_code} en el historial")
         html = resp.text
@@ -221,14 +231,26 @@ class EdenorteClient:
             ))
         return hist
 
+    def ultimo_corte(self, nic: str) -> int | None:
+        """Dia del mes en que corta el contrato, segun su factura mas reciente."""
+        hist = self.historial(nic)
+        for fila in hist.filas:            # vienen de la mas nueva a la mas vieja
+            m = re.match(r"\s*(\d{1,2})", fila.emision or "")   # "11 Oct 2026" -> 11
+            if m and 1 <= int(m.group(1)) <= 31:
+                return int(m.group(1))
+        return None
+
     def descargar_pdf(self, ref_pago: str) -> bytes:
         """Devuelve el PDF o lanza PortalError si el portal no lo tiene."""
         self._ensure()
-        resp = self.http.get(f"{self.base}/factpdf/{ref_pago}", timeout=self.timeout)
+        try:
+            resp = self.http.get(f"{self.base}/factpdf/{ref_pago}", timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise PortalError(f"No se pudo descargar {ref_pago}: {exc}") from exc
         if resp.status_code >= 500:
             raise PortalError(f"El portal respondio {resp.status_code} al pedir {ref_pago}")
         if not resp.content.startswith(b"%PDF-"):
-            raise PortalError(f"PDF no disponible para {ref_pago}")
+            raise PdfNoDisponible(f"PDF no disponible para {ref_pago}")
         return resp.content
 
 

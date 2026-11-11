@@ -180,7 +180,7 @@ def sesion(db_path: Path | str | None = None) -> Iterator[sqlite3.Connection]:
 # ------------------------------------------------------------------ contratos
 def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                     alias: str = "", asesor: str = "", dia_corte: int | None = None,
-                    activo: int = 1, notas: str = "", direccion: str = "",
+                    activo: int | None = None, notas: str = "", direccion: str = "",
                     telefono: str = "", latitud: float | None = None,
                     longitud: float | None = None, paneles: str = "",
                     potencia_paneles: float | None = None,
@@ -214,7 +214,8 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                          ("capacidad_bateria", capacidad_bateria)):
             if val is not None:
                 poner(col, val)
-        poner("activo", int(activo))
+        if activo is not None:                    # solo si se pide explicitamente
+            poner("activo", int(activo))
         poner("updated_at", ahora())
         valores.append(nic)
         conn.execute(f"UPDATE contratos SET {', '.join(campos)} WHERE nic = ?", valores)
@@ -226,7 +227,8 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                 bateria, capacidad_bateria, fecha_instalacion, proveedor)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (nic, razon_social.strip(), norm, alias.strip(), asesor.strip(),
-             int(dia_corte) if dia_corte is not None else None, int(activo), notas,
+             int(dia_corte) if dia_corte is not None else None,
+             1 if activo is None else int(activo), notas,
              direccion.strip(), telefono.strip(), latitud, longitud, paneles.strip(),
              potencia_paneles, inversores.strip(), bateria.strip(), capacidad_bateria,
              fecha_instalacion.strip(), (proveedor or "edenorte").strip().lower()),
