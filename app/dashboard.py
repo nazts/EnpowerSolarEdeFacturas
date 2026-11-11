@@ -29,6 +29,7 @@ def _num(valor: str | None) -> float | None:
     except ValueError:
         return None
 templates = Jinja2Templates(directory=str(BASE / "templates"))
+templates.env.auto_reload = True  # recarga plantillas sin reiniciar el servidor
 
 app = FastAPI(title="Enpower Solar — Facturas Edenorte", docs_url="/api/docs")
 

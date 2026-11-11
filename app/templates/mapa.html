@@ -60,6 +60,9 @@
   .mp-ctl button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font:inherit;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.18)}
   .mp-ctl button:hover{border-color:var(--accent);color:var(--accent)}
   .mp-ctl button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  .mp-ctl #mp-estilo{margin-top:6px;width:132px;font:inherit;font-size:12px;padding:6px 8px;
+    border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer}
+  .mp-ctl #mp-estilo:focus{outline:2px solid var(--focus);outline-offset:1px}
   .mp-attr{position:absolute;right:0;bottom:0;z-index:10;background:rgba(255,255,255,.88);color:#222;font-size:11px;padding:2px 8px;border-radius:8px 0 0 0}
   .mp-attr a{color:#0b5d2a}
   .mp-vacio{position:absolute;inset:0;z-index:12;display:none;place-items:center;padding:20px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:blur(2px)}
@@ -155,8 +158,17 @@
         <button type="button" id="zin" aria-label="Acercar" title="Acercar">+</button>
         <button type="button" id="zout" aria-label="Alejar" title="Alejar">−</button>
         <button type="button" id="zfit" aria-label="Ver todos" title="Ver todos" style="font-size:15px">⌖</button>
+        <select id="mp-estilo" aria-label="Estilo del mapa" title="Estilo del mapa">
+          <option value="osm">OpenStreetMap</option>
+          <option value="claro">Claro</option>
+          <option value="oscuro">Oscuro</option>
+          <option value="verde">Tinte solar</option>
+          <option value="calles">Calles</option>
+          <option value="relieve">Relieve</option>
+          <option value="satelite">Satélite</option>
+        </select>
       </div>
-      <div class="mp-attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
+      <div class="mp-attr" id="mp-attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
       <div class="mp-vacio" id="vacio">
         <div class="caja">
           <svg viewBox="0 0 60 60" aria-hidden="true"><g stroke="var(--chart-hi)" stroke-width="3" stroke-linecap="round"><path d="M30 2v7M30 51v7M2 30h7M51 30h7M10 10l5 5M45 45l5 5M10 50l5-5M45 15l5-5"/></g><circle cx="30" cy="30" r="12" fill="var(--chart-hi)"/></svg>
@@ -198,6 +210,55 @@
   }
   function size(){ return {w: el.clientWidth || 600, h: el.clientHeight || 500}; }
 
+  /* ---------- estilos de mapa ---------- */
+  /* Capas sin clave de API. Los estilos "claro"/"oscuro" son OpenStreetMap
+     con filtros CSS (CARTO ahora exige API key y marca las teselas). */
+  var ESTILOS = {
+    osm:      {nombre: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+               filtro: ''},
+    claro:    {nombre: 'Claro', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+               filtro: 'grayscale(.6) brightness(1.08) contrast(.92) saturate(.85)'},
+    oscuro:   {nombre: 'Oscuro', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+               filtro: 'invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.55)'},
+    verde:    {nombre: 'Tinte solar', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+               filtro: 'grayscale(.35) sepia(.25) hue-rotate(55deg) saturate(1.25) brightness(1.02)'},
+    relieve:  {nombre: 'Relieve', url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, SRTM · © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)',
+               filtro: ''},
+    satelite: {nombre: 'Satélite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+               attr: 'Imágenes © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics',
+               filtro: ''},
+    calles:   {nombre: 'Calles (Esri)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+               attr: '© <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> · © OpenStreetMap contributors',
+               filtro: ''}
+  };
+  var estiloActual = 'osm';
+  var selectEstilo = null;
+  function urlTile(z, x, y){
+    var e = ESTILOS[estiloActual] || ESTILOS.osm;
+    return e.url.replace('{z}', z).replace('{x}', x).replace('{y}', y);
+  }
+  function aplicarEstilo(nombre, redibujar){
+    if(!ESTILOS[nombre]) nombre = 'osm';
+    estiloActual = nombre;
+    try { localStorage.setItem('mapa-estilo', nombre); } catch(e){}
+    var e = ESTILOS[nombre];
+    var attr = document.getElementById('mp-attr');
+    if(attr) attr.innerHTML = e.attr;
+    if(selectEstilo) selectEstilo.value = nombre;
+    var capaTiles = document.querySelectorAll('.tile');
+    for(var i = 0; i < capaTiles.length; i++) capaTiles[i].style.filter = e.filtro || 'none';
+    if(redibujar !== false){
+      for(var k in tiles){ el.removeChild(tiles[k]); }
+      tiles = {};
+      dibujaTiles();
+    }
+  }
+
   /* ---------- tiles ---------- */
   function dibujaTiles(){
     var s = size(), n = Math.pow(2, st.z);
@@ -212,7 +273,8 @@
         var im = tiles[key];
         if(!im){
           im = new Image(); im.className = 'tile'; im.alt = ''; im.draggable = false;
-          im.src = 'https://tile.openstreetmap.org/' + st.z + '/' + wx + '/' + ty + '.png';
+          im.style.filter = (ESTILOS[estiloActual] || ESTILOS.osm).filtro || 'none';
+          im.src = urlTile(st.z, wx, ty);
           el.insertBefore(im, capa); tiles[key] = im;
         }
         im.style.transform = 'translate(' + Math.round(tx * TS - st.cx + s.w / 2) + 'px,' + Math.round(ty * TS - st.cy + s.h / 2) + 'px)';
@@ -421,6 +483,17 @@
   }).catch(function(){});
 
   iniciar();
+  selectEstilo = document.getElementById('mp-estilo');
+  var guardado = 'osm';
+  try { guardado = localStorage.getItem('mapa-estilo') || 'osm'; } catch(e){}
+  aplicarEstilo(guardado, true);
+  if(selectEstilo){
+    selectEstilo.addEventListener('change', function(){
+      aplicarEstilo(selectEstilo.value, true);
+      if(window.toast) toast('Estilo del mapa: ' + ESTILOS[selectEstilo.value].nombre);
+    });
+  }
+
   requestAnimationFrame(function(){ if(!sel) ajustar(); else render(); });
 })();
 </script>
