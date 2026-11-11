@@ -160,6 +160,26 @@
           </div>
           <div style="flex:2 1 260px"><label for="notas">Notas</label><input id="notas" name="notas" placeholder="opcional"></div>
         </div>
+        <h3 style="margin:22px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px">Ubicación y equipo instalado</h3>
+        <div class="fila">
+          <div style="flex:2 1 300px"><label for="direccion">Dirección</label><input id="direccion" name="direccion" placeholder="Calle, sector, ciudad"></div>
+          <div><label for="telefono">Teléfono</label><input id="telefono" name="telefono" inputmode="tel" placeholder="809-000-0000"></div>
+        </div>
+        <div class="fila">
+          <div><label for="latitud">Latitud</label><input id="latitud" name="latitud" inputmode="decimal" placeholder="19.4160666"></div>
+          <div><label for="longitud">Longitud</label><input id="longitud" name="longitud" inputmode="decimal" placeholder="-70.7085128"></div>
+          <div class="fijo"><button type="button" id="btnGeo" onclick="ubicarPorDireccion('')">📍 Ubicar por dirección</button></div>
+        </div>
+        <div class="ayuda" id="geoInfo" aria-live="polite">Rellena la dirección y pulsa «Ubicar por dirección» para obtener latitud y longitud.</div>
+        <div class="fila">
+          <div><label for="potencia">Potencia paneles (kW)</label><input id="potencia" name="potencia_paneles" inputmode="decimal" placeholder="5.5"></div>
+          <div style="flex:2 1 240px"><label for="inversores">Inversores</label><input id="inversores" name="inversores" placeholder="2 x Growatt 5kW"></div>
+        </div>
+        <div class="fila">
+          <div style="flex:2 1 240px"><label for="bateria">Batería</label><input id="bateria" name="bateria" placeholder="Litio 10 kWh (vacío si no tiene)"></div>
+          <div><label for="capacidad">Capacidad batería (kWh)</label><input id="capacidad" name="capacidad_bateria" inputmode="decimal" placeholder="10"></div>
+          <div><label for="instalacion">Fecha de instalación</label><input id="instalacion" name="fecha_instalacion" type="date"></div>
+        </div>
         <div class="pie-form">
           <button class="primario" type="submit">Guardar cliente</button>
           <a class="btn" href="/clientes">Cancelar</a>
@@ -180,6 +200,29 @@ function ocupado(id, on, txt){
   if(on){ b.dataset.orig = b.textContent; b.disabled = true; b.setAttribute('aria-busy','true');
     b.innerHTML = '<span class="spin" aria-hidden="true"></span> ' + txt; }
   else { b.disabled = false; b.removeAttribute('aria-busy'); if(b.dataset.orig) b.textContent = b.dataset.orig; }
+}
+
+async function ubicarPorDireccion(pref){
+  pref = pref || '';
+  const dir = document.getElementById(pref+'direccion').value.trim();
+  if(!dir){ if(typeof toast==='function') toast('Escribe la dirección primero', false); return; }
+  const b = document.getElementById(pref+'btnGeo'), info = document.getElementById(pref+'geoInfo');
+  const orig = b.textContent; b.disabled = true; b.setAttribute('aria-busy','true'); b.textContent = 'Buscando…';
+  try{
+    const fd = new FormData(); fd.append('direccion', dir); fd.append('contexto', 'Santiago, República Dominicana');
+    const r = await fetch('/api/geocodificar', {method:'POST', body:fd});
+    const d = await r.json().catch(()=>({}));
+    if(r.ok && d.ok){
+      document.getElementById(pref+'latitud').value = d.latitud != null ? d.latitud : (d.lat != null ? d.lat : '');
+      document.getElementById(pref+'longitud').value = d.longitud != null ? d.longitud : (d.lon != null ? d.lon : '');
+      const nom = d.display_name || 'Ubicación encontrada';
+      if(info) info.textContent = '📍 ' + nom;
+      toast(nom, true);
+    } else {
+      toast(d.error || d.detail || 'No se pudo ubicar la dirección', false);
+    }
+  }catch(e){ toast('No se pudo conectar con el servidor', false); }
+  finally{ b.disabled = false; b.removeAttribute('aria-busy'); b.textContent = orig; }
 }
 async function buscar(){
   const nic = document.getElementById('nic').value.trim();

@@ -298,6 +298,18 @@
       </div>
       <div><label for="e_notas">Notas</label><input name="notas" id="e_notas"></div>
     </div>
+    <h4 style="margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)">Ubicación y equipo instalado</h4>
+    <div class="grid">
+      <div style="grid-column:1/-1"><label for="e_direccion">Dirección</label><input name="direccion" id="e_direccion"></div>
+      <div><label for="e_telefono">Teléfono</label><input name="telefono" id="e_telefono" inputmode="tel"></div>
+      <div><label for="e_latitud">Latitud</label><input name="latitud" id="e_latitud" inputmode="decimal"></div>
+      <div><label for="e_longitud">Longitud</label><input name="longitud" id="e_longitud" inputmode="decimal"></div>
+      <div><label for="e_potencia">Potencia paneles (kW)</label><input name="potencia_paneles" id="e_potencia" inputmode="decimal"></div>
+      <div><label for="e_inversores">Inversores</label><input name="inversores" id="e_inversores" placeholder="2 x Growatt 5kW"></div>
+      <div><label for="e_bateria">Batería</label><input name="bateria" id="e_bateria" placeholder="Litio 10 kWh"></div>
+      <div><label for="e_capacidad">Capacidad batería (kWh)</label><input name="capacidad_bateria" id="e_capacidad" inputmode="decimal"></div>
+      <div><label for="e_instalacion">Fecha de instalación</label><input name="fecha_instalacion" id="e_instalacion" type="date"></div>
+    </div>
     <div class="pie-form" style="justify-content:flex-end">
       <button type="button" onclick="document.getElementById('dlg').close()">Cancelar</button>
       <button class="primario" type="submit">Guardar</button>
@@ -399,6 +411,15 @@ function editar(c){
   document.getElementById('e_corte').value = c.dia_corte || '';
   document.getElementById('e_activo').value = c.activo ? '1' : '0';
   document.getElementById('e_notas').value = c.notas || '';
+  document.getElementById('e_direccion').value = c.direccion != null ? c.direccion : '';
+  document.getElementById('e_telefono').value = c.telefono != null ? c.telefono : '';
+  document.getElementById('e_latitud').value = c.latitud != null ? c.latitud : '';
+  document.getElementById('e_longitud').value = c.longitud != null ? c.longitud : '';
+  document.getElementById('e_potencia').value = c.potencia_paneles != null ? c.potencia_paneles : '';
+  document.getElementById('e_inversores').value = c.inversores != null ? c.inversores : '';
+  document.getElementById('e_bateria').value = c.bateria != null ? c.bateria : '';
+  document.getElementById('e_capacidad').value = c.capacidad_bateria != null ? c.capacidad_bateria : '';
+  document.getElementById('e_instalacion').value = c.fecha_instalacion != null ? c.fecha_instalacion : '';
   document.getElementById('dlg').showModal();
 }
 </script>

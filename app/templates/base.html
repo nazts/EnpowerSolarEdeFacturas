@@ -139,6 +139,8 @@
       <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.3c2 .7 3.5 2.5 3.5 5.7"/></svg><span>Clientes agregados</span></a>
     <a class="item{% if activo == 'cliente_nuevo' %} activo{% endif %}" href="/clientes/nuevo" title="Nuevo cliente"{% if activo == 'cliente_nuevo' %} aria-current="page"{% endif %}>
       <svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3 20c0-3.6 3-6 7-6s7 2.4 7 6"/><path d="M19 8v6M16 11h6"/></svg><span>Nuevo cliente</span></a>
+    <a class="item{% if activo == 'mapa' %} activo{% endif %}" href="/mapa" title="Mapa de clientes"{% if activo == 'mapa' %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Mapa</span></a>
 
     <div class="grupo">Configuración</div>
     <a class="item{% if activo == 'telegram' %} activo{% endif %}" href="/telegram" title="Conexión Telegram"{% if activo == 'telegram' %} aria-current="page"{% endif %}>
