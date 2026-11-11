@@ -174,7 +174,11 @@ def corrida(fecha: date | None = None, enviar: bool = True,
 
             candidatas = [f for f in hist.filas
                           if es_consumo(f.tipo) and not db.factura_existe(conn, f.ref_pago)]
-            encontrado_por_corte: set[str] = set()
+            # cortes que ya tienen su factura descargada: no son pendientes
+            ya_descargados = {r["corte"] for r in conn.execute(
+                "SELECT corte FROM facturas WHERE nic = ? AND estado = 'descargada'", (nic,))
+                if r["corte"]}
+            encontrado_por_corte: set[str] = {c for c in cortes if c in ya_descargados}
 
             for fila in candidatas[:4]:  # el portal solo conserva las 2 mas recientes
                 try:
