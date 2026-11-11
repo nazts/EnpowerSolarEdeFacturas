@@ -5,58 +5,209 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nuevo cliente · Enpower Solar</title>
 <style>
- body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f1420;color:#e8eefc;margin:0;padding:24px}
- a{color:#f5a623}
- form{max-width:720px;margin-top:18px}
- label{display:block;font-size:11.5px;color:#8b98b5;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 5px}
- input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid #28324a;background:#0d131f;color:#e8eefc;font:inherit}
- button{padding:11px 18px;border-radius:9px;border:1px solid #f5a623;background:#f5a623;color:#1a1200;font-weight:600;cursor:pointer}
- .fila{display:flex;gap:12px;flex-wrap:wrap}
- .fila > div{flex:1 1 200px}
- #msg{margin-top:12px;font-size:13.5px}
+  :root{
+    --bg:#0f1420; --card:#161d2c; --card2:#1d2637; --line:#2f3b57;
+    --txt:#e8eefc; --muted:#9aa7c4; --accent:#f5a623; --ok:#3ecf8e; --bad:#ff7d8b; --info:#6bb6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.4}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
+    padding:16px 26px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#131a28,#0f1420)}
+  h1{margin:0;font-size:19px;letter-spacing:.3px;white-space:nowrap}
+  h1 span{color:var(--accent)}
+  .acciones{display:flex;gap:8px;flex-wrap:nowrap}
+  a.btn,button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;min-height:38px}
+  a.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}
+  .primario{background:var(--accent);color:#1a1200;border-color:var(--accent);font-weight:600}
+  .primario:hover{color:#1a1200;filter:brightness(1.08)}
+  button:disabled{opacity:.6;cursor:progress}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
+    outline:3px solid #ffd27a;outline-offset:2px}
+  main{padding:22px 26px;display:grid;gap:22px;max-width:1400px;margin:0 auto}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  section > h2{margin:0;padding:14px 18px;font-size:14px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .cuerpo{padding:18px}
+  .sin-pad{padding:0}
+  .tabla-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:#1a2233}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+  label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:.6px}
+  input,select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #3d4b6b;
+    background:#0d131f;color:var(--txt);font:inherit;min-height:38px}
+  input:focus,select:focus{border-color:var(--accent)}
+  input::placeholder{color:#7f8ca8}
+  .fila{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .fila > div{flex:1 1 170px}
+  .fila > .fijo{flex:0 0 auto}
+  .pie-form{margin-top:14px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .pill.ok{background:rgba(62,207,142,.15);color:var(--ok)}
+  .pill.bad{background:rgba(239,91,107,.18);color:var(--bad)}
+  .pill.warn{background:rgba(245,166,35,.15);color:var(--accent)}
+  .pill.info{background:rgba(78,168,255,.15);color:var(--info)}
+  .muted{color:var(--muted)}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .mini{padding:5px 10px;font-size:12px;border-radius:7px;min-height:32px}
+  .acc-fila{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .acc-fila form{margin:0}
+  /* Avisos: ok / err / warn / info */
+  #msg{margin:14px 26px 0;display:none;padding:11px 14px;border-radius:10px;font-size:13.5px;
+    border:1px solid var(--line);max-width:1348px}
+  @media(min-width:1400px){ #msg{margin-left:auto;margin-right:auto;width:calc(100% - 52px)}}
+  #msg.ok{display:block;background:rgba(62,207,142,.12);border-color:var(--ok)}
+  #msg.err{display:block;background:rgba(239,91,107,.14);border-color:var(--bad)}
+  #msg.info{display:block;background:rgba(78,168,255,.12);border-color:var(--info)}
+  #msg.warn{display:block;background:rgba(245,166,35,.12);border-color:var(--accent)}
+  #msg::before{font-weight:700;margin-right:8px}
+  #msg.ok::before{content:"Listo:";color:var(--ok)}
+  #msg.err::before{content:"Error:";color:var(--bad)}
+  #msg.info::before{content:"En curso:";color:var(--info)}
+  #msg.warn::before{content:"Aviso:";color:var(--accent)}
+  dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--txt);
+    padding:0;width:min(560px,92vw)}
+  dialog::backdrop{background:rgba(5,8,14,.7)}
+  dialog h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:15px}
+  .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
+  .vacio b{display:block;color:var(--txt);margin-bottom:3px;font-size:14px}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;
+    border-radius:50%;animation:giro .7s linear infinite}
+  @keyframes giro{to{transform:rotate(360deg)}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media(prefers-reduced-motion:reduce){.spin{animation:none}*{transition:none!important}}
+
+  @media(max-width:900px){
+    header{padding:14px 16px} main{padding:16px}
+    #msg{margin:12px 16px 0}
+  }
+  @media(max-width:640px){
+    h1{white-space:normal;font-size:17px}
+    .acciones{width:100%;flex-wrap:wrap}
+    .acciones > *{flex:1 1 auto}
+    .cuerpo{padding:14px}
+    /* tablas -> tarjetas */
+    table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
+    table.cards thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    table.cards tr{padding:10px 14px;border-bottom:1px solid var(--line)}
+    table.cards tbody tr:last-child{border-bottom:0}
+    table.cards td{border:0;padding:4px 0;display:flex;gap:12px;justify-content:space-between;text-align:right}
+    table.cards td::before{content:attr(data-label);color:var(--muted);font-size:11.5px;text-transform:uppercase;
+      letter-spacing:.6px;text-align:left;flex:0 0 38%}
+    table.cards td.acc{justify-content:flex-end}
+    table.cards td.acc::before{content:none}
+  }
+
+  .crumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cab-acc{display:flex;gap:8px;flex-wrap:wrap}
+  .hero{display:flex;gap:12px 24px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+  .hero h2{margin:0 0 4px;font-size:22px;text-transform:none;letter-spacing:0;color:var(--txt);padding:0;border:0}
+  .corte-box{background:var(--card2);border:1px solid var(--accent);border-radius:12px;padding:12px 18px;min-width:210px}
+  .corte-box .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .corte-box .v{font-size:22px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+  .datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:16px}
+  .dato .k{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:2px}
+  .dato .v{font-size:14.5px;word-break:break-word}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .stat .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .form-nuevo{max-width:860px;margin:0 auto;width:100%}
+  .req{color:var(--accent)}
+  .ayuda{font-size:12px;color:var(--muted);margin-top:4px}
+  .fila + .fila{margin-top:14px}
+  a.enlace{color:var(--accent);text-decoration:none}
+  a.enlace:hover{text-decoration:underline}
+  td small{display:block;color:var(--muted);font-size:12px}
+  @media(max-width:640px){ .corte-box{width:100%} .cab-acc{width:100%} .cab-acc>*{flex:1 1 auto} }
 </style>
 </head>
 <body>
-<p><a href="/clientes">← Clientes</a></p>
-<h1>Agregar nuevo cliente</h1>
-<form method="post" action="/clientes">
-  <div class="fila">
-    <div>
-      <label for="nic">NIC / contrato</label>
-      <input id="nic" name="nic" required inputmode="numeric" placeholder="7533709">
+<header>
+  <h1>Enpower <span>Solar</span> · Clientes</h1>
+  <nav class="acciones" aria-label="Navegación">
+    <a class="btn" href="/">← Dashboard</a>
+    <a class="btn" href="/clientes">← Clientes</a>
+  </nav>
+</header>
+<div id="msg" role="status" aria-live="polite"></div>
+<main>
+  <section class="form-nuevo">
+    <h2>Agregar nuevo cliente</h2>
+    <div class="cuerpo">
+      <form method="post" action="/clientes" id="formNuevo">
+        <div class="fila">
+          <div>
+            <label for="nic">NIC / contrato <span class="req" aria-hidden="true">*</span></label>
+            <input id="nic" name="nic" required inputmode="numeric" pattern="[0-9]+" placeholder="7533709" autocomplete="off">
+          </div>
+          <div class="fijo"><button type="button" id="btnBuscar" onclick="buscar()">🔎 Buscar</button></div>
+        </div>
+        <div class="ayuda" id="pista" aria-live="polite">Escribe el NIC y pulsa Buscar para autocompletar la razón social.</div>
+        <div class="fila">
+          <div style="flex:1 1 100%">
+            <label for="razon_social">Razón social (factura)</label>
+            <input id="razon_social" name="razon_social" placeholder="se autocompleta al buscar">
+          </div>
+        </div>
+        <div class="fila">
+          <div style="flex:1 1 260px">
+            <label for="alias">Nombre del pagador / alias</label>
+            <input id="alias" name="alias" placeholder="si paga otra persona o empresa">
+          </div>
+          <div><label for="asesor">Asesor</label><input id="asesor" name="asesor" placeholder="nombre del asesor"></div>
+        </div>
+        <div class="fila">
+          <div>
+            <label for="dia_corte">Día de corte</label>
+            <input id="dia_corte" name="dia_corte" inputmode="numeric" placeholder="se aprende solo">
+            <div class="ayuda">Opcional: se aprende con la primera factura.</div>
+          </div>
+          <div style="flex:2 1 260px"><label for="notas">Notas</label><input id="notas" name="notas" placeholder="opcional"></div>
+        </div>
+        <div class="pie-form">
+          <button class="primario" type="submit">Guardar cliente</button>
+          <a class="btn" href="/clientes">Cancelar</a>
+        </div>
+      </form>
     </div>
-    <div style="flex:2 1 300px">
-      <label for="razon_social">Razón social (factura)</label>
-      <input id="razon_social" name="razon_social" placeholder="se autocompleta al buscar">
-    </div>
-    <div style="flex:0 0 auto;display:flex;align-items:flex-end">
-      <button type="button" onclick="buscar()" style="background:#1d2637;color:#e8eefc;border-color:#28324a">🔎 Buscar</button>
-    </div>
-  </div>
-  <div class="fila">
-    <div><label for="alias">Nombre del pagador / alias</label>
-      <input id="alias" name="alias" placeholder="si paga otra persona o empresa"></div>
-    <div><label for="asesor">Asesor</label><input id="asesor" name="asesor"></div>
-  </div>
-  <div class="fila">
-    <div><label for="dia_corte">Día de corte</label>
-      <input id="dia_corte" name="dia_corte" inputmode="numeric" placeholder="se aprende con la primera factura"></div>
-    <div><label for="notas">Notas</label><input id="notas" name="notas"></div>
-  </div>
-  <div id="msg"></div>
-  <p><button type="submit">Guardar cliente</button></p>
-</form>
+  </section>
+</main>
 <script>
+function aviso(texto, tipo){
+  const m = document.getElementById('msg');
+  m.textContent = texto; m.className = tipo;
+  clearTimeout(window._t);
+  if (tipo !== 'info') window._t = setTimeout(()=>{m.className=''; m.textContent='';}, 8000);
+}
+function ocupado(id, on, txt){
+  const b = document.getElementById(id); if(!b) return;
+  if(on){ b.dataset.orig = b.textContent; b.disabled = true; b.setAttribute('aria-busy','true');
+    b.innerHTML = '<span class="spin" aria-hidden="true"></span> ' + txt; }
+  else { b.disabled = false; b.removeAttribute('aria-busy'); if(b.dataset.orig) b.textContent = b.dataset.orig; }
+}
 async function buscar(){
   const nic = document.getElementById('nic').value.trim();
-  const msg = document.getElementById('msg');
-  if(!nic){ msg.textContent = 'Escribe el NIC primero'; return; }
-  msg.textContent = 'Consultando la Oficina Virtual…';
-  const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
-  const d = await r.json();
-  if(!d.ok){ msg.textContent = '⚠️ ' + (d.error || 'No se pudo consultar'); return; }
-  document.getElementById('razon_social').value = d.razon_social || '';
-  msg.textContent = 'Titular: ' + d.razon_social + ' · ' + (d.direccion || '');
+  if(!nic) return aviso('Escribe el NIC primero', 'warn');
+  if(!/^[0-9]+$/.test(nic)) return aviso('El NIC debe ser numérico', 'warn');
+  aviso('Consultando la Oficina Virtual…', 'info');
+  ocupado('btnBuscar', true, 'Buscando…');
+  try{
+    const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
+    const d = await r.json();
+    if(!d.ok) return aviso(d.error || 'No se pudo consultar', 'err');
+    document.getElementById('razon_social').value = d.razon_social || '';
+    document.getElementById('pista').textContent =
+      'Titular: ' + (d.razon_social || '—') + (d.direccion ? ' · ' + d.direccion : '') + (d.telefono ? ' · Tel. ' + d.telefono : '');
+    aviso('Razón social encontrada: ' + d.razon_social, 'ok');
+  }catch(e){ aviso('No se pudo conectar con el servidor', 'err'); }
+  finally{ ocupado('btnBuscar', false); }
 }
 </script>
 </body>
