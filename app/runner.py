@@ -273,7 +273,9 @@ def corrida(fecha: date | None = None, enviar: bool = True,
 
         # 5. envio: solo las facturas cuyo corte es el de la corrida, en un album
         cortes_objetivo = {(nic, fc) for nic, cs in objetivos.items() for fc in cs}
-        enviables = [d for d in res.descargadas if (d["nic"], d["corte"]) in cortes_objetivo]
+        enviables = [d for d in res.descargadas
+                     if (d["nic"], d["corte"]) in cortes_objetivo
+                     and not db.factura_ya_enviada(conn, d["ref_pago"])]
         fuera = [d for d in res.descargadas if d not in enviables]
         for d in fuera:
             db.log_evento(conn, "aviso", "Factura no enviada: su corte no es el de la corrida",
@@ -289,15 +291,13 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 db.marcar_enviadas(conn, ids, chat_id or config.TELEGRAM_CHAT_ID)
                 db.log_evento(conn, "info", f"Enviadas {len(enviables)} facturas a Telegram",
                               f"{len(mensajes)} mensaje(s)")
-                if res.pendientes:
-                    telegram.enviar_mensaje(_caption_pendientes(res.pendientes), chat_id=chat_id)
             except telegram.TelegramError as exc:
                 db.log_evento(conn, "error", "Fallo el envio a Telegram", str(exc))
-        elif enviar and (res.pendientes or reporte):
-            texto = (_caption_pendientes(res.pendientes) if res.pendientes
-                     else f"Sin facturas con corte {_fecha_legible(fiso)}.")
+        elif enviar and reporte and not res.pendientes:
+            # silencio total: solo se habla por Telegram cuando hay factura nueva
             try:
-                telegram.enviar_mensaje(texto, chat_id=chat_id)
+                telegram.enviar_mensaje(f"Sin facturas con corte {_fecha_legible(fiso)}.",
+                                        chat_id=chat_id)
                 res.mensaje_enviado = True
             except telegram.TelegramError as exc:
                 db.log_evento(conn, "error", "Fallo el envio del reporte", str(exc))

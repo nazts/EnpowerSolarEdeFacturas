@@ -39,6 +39,34 @@ def api_contrato(nic: str) -> JSONResponse:
         return JSONResponse({"ok": False, "error": f"Portal: {exc}"}, status_code=502)
 
 
+@app.get("/api/resumen")
+def api_resumen() -> JSONResponse:
+    """Agregados para la vista grafica del panel (tarjetas + graficos)."""
+    from .fechas import dias_para_corte, proximo_corte
+
+    with db.sesion() as conn:
+        datos = db.resumen_dashboard(conn)
+        clientes = db.resumen_clientes(conn)
+
+    proximos = []
+    for c in clientes:
+        prox = proximo_corte(c.get("dia_corte"))
+        if not prox:
+            continue
+        proximos.append({
+            "nic": c["nic"],
+            "nombre": c.get("nombre_normalizado") or c.get("razon_social") or c["nic"],
+            "alias": c.get("alias") or "",
+            "asesor": c.get("asesor") or "",
+            "fecha": prox.isoformat(),
+            "dias": dias_para_corte(c.get("dia_corte")),
+            "ultimo_monto": c.get("ultimo_monto"),
+        })
+    proximos.sort(key=lambda x: x["fecha"])
+    datos["proximos_cortes"] = proximos[:12]
+    return JSONResponse(datos)
+
+
 @app.get("/api/estado")
 def api_estado() -> JSONResponse:
     with db.sesion() as conn:

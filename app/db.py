@@ -195,6 +195,13 @@ def factura_existe(conn: sqlite3.Connection, ref_pago: str) -> bool:
                         (str(ref_pago),)).fetchone() is not None
 
 
+def factura_ya_enviada(conn: sqlite3.Connection, ref_pago: str) -> bool:
+    """True si esa factura ya se publico en el canal (no se vuelve a mandar)."""
+    fila = conn.execute("SELECT enviada FROM facturas WHERE ref_pago = ?",
+                        (str(ref_pago),)).fetchone()
+    return bool(fila and fila["enviada"])
+
+
 def facturas_del_dia(conn: sqlite3.Connection, fecha: str | None = None) -> list[sqlite3.Row]:
     fecha = fecha or hoy()
     return conn.execute(
@@ -230,6 +237,41 @@ def historico_facturas(conn: sqlite3.Connection, nic: str) -> list[sqlite3.Row]:
            ORDER BY corte DESC, id DESC""",
         (str(nic),),
     ).fetchall()
+
+
+def resumen_dashboard(conn: sqlite3.Connection) -> dict:
+    """Datos agregados para la vista grafica del panel."""
+    clientes = conn.execute(
+        """SELECT COUNT(*) AS total,
+                  SUM(CASE WHEN activo = 1 THEN 1 ELSE 0 END) AS activos,
+                  SUM(CASE WHEN dia_corte IS NULL THEN 1 ELSE 0 END) AS sin_corte
+           FROM contratos"""
+    ).fetchone()
+    facturas = conn.execute(
+        """SELECT COUNT(*) AS total,
+                  COALESCE(SUM(facturado), 0) AS monto,
+                  COALESCE(SUM(kwh), 0) AS kwh,
+                  SUM(CASE WHEN enviada = 0 THEN 1 ELSE 0 END) AS sin_enviar
+           FROM facturas WHERE estado = 'descargada'"""
+    ).fetchone()
+    por_dia: dict[int, int] = {}
+    # cortes por dia del mes, calculado en Python para no depender de fechas
+    for fila in conn.execute("SELECT dia_corte FROM contratos WHERE dia_corte IS NOT NULL"):
+        dia = int(fila["dia_corte"])
+        por_dia[dia] = por_dia.get(dia, 0) + 1
+    meses = [dict(r) for r in conn.execute(
+        """SELECT substr(corte, 1, 7) AS mes, COUNT(*) AS facturas,
+                  COALESCE(SUM(facturado), 0) AS monto, COALESCE(SUM(kwh), 0) AS kwh
+           FROM facturas WHERE estado = 'descargada' AND corte IS NOT NULL
+           GROUP BY mes ORDER BY mes DESC LIMIT 12"""
+    )]
+    return {
+        "clientes": dict(clientes),
+        "facturas": dict(facturas),
+        "pendientes": len(pendientes_abiertos(conn)),
+        "cortes_por_dia": [{"dia": d, "clientes": por_dia.get(d, 0)} for d in range(1, 32)],
+        "facturas_por_mes": list(reversed(meses)),
+    }
 
 
 def resumen_clientes(conn: sqlite3.Connection) -> list[dict]:
