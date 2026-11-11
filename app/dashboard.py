@@ -35,21 +35,34 @@ app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 # ------------------------------------------------------------------ API datos
 @app.get("/api/contrato/{nic}")
 def api_contrato(nic: str) -> JSONResponse:
-    """Autocompleta razón social / dirección consultando el portal."""
+    """Busca el NIC en la cuenta; si no esta, lo asocia y espera la confirmacion.
+
+    La asociacion en el portal de Edenorte tarda unos segundos, asi que esta
+    llamada puede tardar hasta ~1 minuto.
+    """
+    nic = str(nic).strip()
     try:
         cliente = EdenorteClient()
         cliente.login()
-        for c in cliente.contratos():
-            if c.nic == str(nic).strip():
-                return JSONResponse({
-                    "ok": True, "nic": c.nic, "razon_social": c.titular,
-                    "nombre_normalizado": naming.normalizar_razon_social(c.titular),
-                    "direccion": c.direccion, "telefono": c.telefono,
-                })
-        return JSONResponse({"ok": False, "error": "Ese NIC no está asociado a la cuenta "
-                                                   "en la Oficina Virtual"}, status_code=404)
+        contrato = next((c for c in cliente.contratos() if c.nic == nic), None)
+        asociado = False
+        if contrato is None:
+            contrato = cliente.asociar_contrato(nic)
+            asociado = True
+        with db.sesion() as conn:
+            db.upsert_contrato(conn, contrato.nic, razon_social=contrato.titular,
+                               direccion=contrato.direccion, telefono=contrato.telefono)
+            if asociado:
+                db.log_evento(conn, "info", f"Contrato {nic} asociado a la cuenta",
+                              contrato.titular)
+        return JSONResponse({
+            "ok": True, "nic": contrato.nic, "razon_social": contrato.titular,
+            "nombre_normalizado": naming.normalizar_razon_social(contrato.titular),
+            "direccion": contrato.direccion, "telefono": contrato.telefono,
+            "asociado": asociado,
+        })
     except PortalError as exc:
-        return JSONResponse({"ok": False, "error": f"Portal: {exc}"}, status_code=502)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
 
 
 @app.get("/api/resumen")

@@ -68,7 +68,8 @@ class EdenorteClient:
 
     # ---------------------------------------------------------------- login
     def _csrf(self, html: str) -> str | None:
-        m = CSRF_RE.search(html) or CSRF_RE_ALT.search(html)
+        m = (CSRF_RE.search(html) or CSRF_RE_ALT.search(html)
+             or re.search(r'name="csrf-token"\s+content="([^"]+)"', html))
         return m.group(1) if m else None
 
     def login(self) -> None:
@@ -137,6 +138,55 @@ class EdenorteClient:
             if contrato.nic not in {x.nic for x in salida}:
                 salida.append(contrato)
         return salida
+
+    def asociar_contrato(self, nic: str, espera_max: int = 60) -> Contrato:
+        """Asocia un NIC a la cuenta si no esta y espera a que el portal lo confirme.
+
+        El portal tarda unos segundos en reflejarlo; se consulta /datos_contrato
+        hasta `espera_max` segundos antes de darse por vencido.
+        """
+        nic = str(nic).strip()
+        self._ensure()
+        try:
+            page = self.http.get(f"{self.base}/agregar_contrato", timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise PortalError(f"No se pudo abrir 'Asociar Contrato': {exc}") from exc
+        token = self._csrf(page.text)
+        if not token:
+            raise PortalError("No se encontro el token para asociar el contrato")
+
+        # 1. el portal valida el NIC y devuelve los datos del titular
+        headers = {"X-CSRF-Token": token, "X-Requested-With": "XMLHttpRequest",
+                   "Referer": f"{self.base}/agregar_contrato"}
+        info = self.http.post(f"{self.base}/contrato_info?op=add",
+                              data={"nic": nic}, headers=headers, timeout=self.timeout)
+        fragmento = info.text or ""
+        if f'name="ContratoForm[contrato]"' not in fragmento:
+            raise PortalError(f"Edenorte no reconoce el NIC {nic}")
+
+        def campo(etiqueta: str) -> str:
+            m = re.search(rf"{etiqueta}:?</b>\s*([^<]+)", fragmento)
+            return re.sub(r"\s+", " ", html_lib.unescape(m.group(1))).strip() if m else ""
+
+        datos = Contrato(nic=nic, titular=campo("Nombre Cliente"),
+                         direccion=campo("Direcci&oacute;n") or campo("Dirección"),
+                         telefono=campo("Tel&eacute;fono") or campo("Teléfono"))
+
+        # 2. asociar (formulario normal, sin cabecera AJAX)
+        self.http.post(f"{self.base}/agregar_contrato",
+                       data={"_csrf": token, "ContratoForm[contrato]": nic},
+                       timeout=max(self.timeout, 90), allow_redirects=True)
+
+        # 3. esperar a que aparezca en la cuenta
+        import time as _time
+        inicio = _time.time()
+        while _time.time() - inicio < espera_max:
+            if any(c.nic == nic for c in self.contratos()):
+                self.logged_in = True
+                return datos
+            _time.sleep(2)
+        raise PortalError(f"Edenorte no confirmo la asociacion del NIC {nic} "
+                          f"en {espera_max}s; vuelve a intentarlo")
 
     def titular(self, nic: str) -> str:
         for c in self.contratos():

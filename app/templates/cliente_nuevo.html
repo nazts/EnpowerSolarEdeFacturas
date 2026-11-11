@@ -138,7 +138,7 @@
           </div>
           <div class="fijo"><button type="button" id="btnBuscar" onclick="buscar()">🔎 Buscar</button></div>
         </div>
-        <div class="ayuda" id="pista" aria-live="polite">Escribe el NIC y pulsa Buscar para autocompletar la razón social.</div>
+        <div class="ayuda" id="pista" aria-live="polite">Escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (Edenorte tarda unos segundos).</div>
         <div class="fila">
           <div style="flex:1 1 100%">
             <label for="razon_social">Razón social (factura)</label>
@@ -228,8 +228,10 @@ async function buscar(){
   const nic = document.getElementById('nic').value.trim();
   if(!nic) return aviso('Escribe el NIC primero', 'warn');
   if(!/^[0-9]+$/.test(nic)) return aviso('El NIC debe ser numérico', 'warn');
-  aviso('Consultando la Oficina Virtual…', 'info');
+  aviso('Consultando la Oficina Virtual… si el NIC no está asociado, Edenorte lo agrega y eso tarda unos segundos.', 'info');
   ocupado('btnBuscar', true, 'Buscando…');
+  const lento = setTimeout(() => ocupado('btnBuscar', true, 'Agregando contrato…'), 6000);
+  const muyLento = setTimeout(() => aviso('Edenorte está agregando el contrato; puede tardar hasta un minuto. No cierres la página.', 'info'), 15000);
   try{
     const r = await fetch('/api/contrato/' + encodeURIComponent(nic));
     const d = await r.json();
@@ -237,9 +239,11 @@ async function buscar(){
     document.getElementById('razon_social').value = d.razon_social || '';
     document.getElementById('pista').textContent =
       'Titular: ' + (d.razon_social || '—') + (d.direccion ? ' · ' + d.direccion : '') + (d.telefono ? ' · Tel. ' + d.telefono : '');
-    aviso('Razón social encontrada: ' + d.razon_social, 'ok');
+    aviso(d.asociado
+      ? 'Contrato ' + nic + ' agregado a la Oficina Virtual. Titular: ' + d.razon_social
+      : 'Razón social encontrada: ' + d.razon_social, 'ok');
   }catch(e){ aviso('No se pudo conectar con el servidor', 'err'); }
-  finally{ ocupado('btnBuscar', false); }
+  finally{ clearTimeout(lento); clearTimeout(muyLento); ocupado('btnBuscar', false); }
 }
 </script>
 {% endblock %}

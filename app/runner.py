@@ -134,16 +134,45 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     db.log_evento(conn, "error", "No se pudo enviar la alerta a Telegram", str(terr))
             return res
 
-        # 2. sincronizar contratos del portal
+        # 2. sincronizar contratos del portal (y asociar los que falten)
+        del_portal: set[str] = set()
         try:
             for c in portal.contratos():
+                del_portal.add(c.nic)
                 existente = db.obtener_contrato(conn, c.nic)
                 if existente is None:
-                    db.upsert_contrato(conn, c.nic, razon_social=c.titular)
+                    db.upsert_contrato(conn, c.nic, razon_social=c.titular,
+                                       direccion=c.direccion, telefono=c.telefono)
                 elif not existente["razon_social"] and c.titular:
-                    db.upsert_contrato(conn, c.nic, razon_social=c.titular)
+                    db.upsert_contrato(conn, c.nic, razon_social=c.titular,
+                                       direccion=c.direccion, telefono=c.telefono)
         except PortalError as exc:
             db.log_evento(conn, "aviso", "No se pudieron listar los contratos", str(exc))
+
+        # contratos registrados en el dashboard que aun no estan en la cuenta
+        asociar = getattr(portal, "asociar_contrato", None)
+        if callable(asociar):
+            for contrato in db.listar_contratos(conn):
+                nic_db = str(contrato["nic"])
+                if nic_db in del_portal:
+                    continue
+                try:
+                    nuevo_contrato = asociar(nic_db, espera_max=45)
+                    titular = getattr(nuevo_contrato, "titular", "")
+                    if not isinstance(titular, str) or not titular.strip():
+                        raise ValueError("el portal no devolvio el titular; "
+                                         "no se toca lo que ya esta guardado")
+                    db.upsert_contrato(
+                        conn, nic_db,
+                        razon_social=titular.strip(),
+                        direccion=str(getattr(nuevo_contrato, "direccion", "") or ""),
+                        telefono=str(getattr(nuevo_contrato, "telefono", "") or ""),
+                    )
+                    db.log_evento(conn, "info", f"Contrato {nic_db} asociado a la cuenta",
+                                  "desde la corrida diaria")
+                except Exception as exc:  # una asociacion fallida no tumba la corrida
+                    db.log_evento(conn, "aviso", f"No se pudo asociar el contrato {nic_db}",
+                                  str(exc)[:300])
 
         # 3. objetivos: pendientes abiertos + contratos que cortan hoy
         objetivos: dict[str, set[str]] = {}
