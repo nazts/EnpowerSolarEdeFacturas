@@ -19,6 +19,32 @@ de las facturas del día a un canal de Telegram en un solo álbum.
 7. Si el portal falla, se emite la alerta **"La plataforma de Edenorte tiene
    problemas"** y no se pierde ningún pendiente.
 
+## Arranque rápido (local)
+
+```bash
+cd "C:\Users\Luis Martinez\Documents\proyectosGithub\EnpowerSolarEdeFacturas"
+.venv\Scripts\python.exe -m uvicorn app.dashboard:app --host 127.0.0.1 --port 8000
+```
+
+Luego abre `http://127.0.0.1:8000` e inicia sesión. Para detenerlo: `Ctrl+C`.
+
+Comandos útiles (siempre con el python del venv):
+
+```bash
+.venv\Scripts\python.exe -m pytest tests -q          # pruebas
+.venv\Scripts\python.exe -m app.runner                # escaneo del día + envío
+.venv\Scripts\python.exe -m app.runner --historial    # últimas facturas (histórico)
+.venv\Scripts\python.exe -m app.edesur --nic 2115589  # bajar una factura de Edesur
+```
+
+Si es una copia nueva (sin `.venv`):
+
+```bash
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+copy .env.example .env      # y llenar las credenciales
+```
+
 ## Instalación
 
 ```bash
