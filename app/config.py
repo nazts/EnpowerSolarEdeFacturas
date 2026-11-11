@@ -27,6 +27,12 @@ EDENORTE_URL = os.environ.get("EDENORTE_URL", "https://ofv.edenorte.com.do").rst
 EDENORTE_EMAIL = os.environ.get("EDENORTE_EMAIL", "")
 EDENORTE_PASSWORD = os.environ.get("EDENORTE_PASSWORD", "")
 
+# Edesur: portal Angular + API propia
+EDESUR_API = os.environ.get("EDESUR_API", "https://ovapi.edesur.com.do/ovapi").rstrip("/")
+EDESUR_USER = os.environ.get("EDESUR_USER", "")
+EDESUR_PASSWORD = os.environ.get("EDESUR_PASSWORD", "")
+EDESUR_TOKEN = os.environ.get("EDESUR_TOKEN", "")   # solo para pruebas puntuales
+
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 

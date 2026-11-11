@@ -73,6 +73,19 @@ paneles, capacidad instalada, inversores, batería, fecha, asesor y notas),
 guardados en la tabla `proyectos` y listados en la ficha del cliente, con su
 formulario para agregar y eliminar.
 
+## Distribuidoras
+
+- **Edenorte** (`app/edenorte.py`): scraping del portal con `requests` + CSRF.
+- **Edesur** (`app/edesur.py`): API propia (`ovapi.edesur.com.do/ovapi`) con token Bearer.
+  Descarga la factura mas reciente de un NIC:
+
+  ```
+  .venv\Scripts\python.exe -m app.edesur --nic 2115589 --ref 2115589310
+  ```
+
+  Si la referencia de pago ya no vale (los 3 digitos suben con cada factura),
+  el cliente prueba hasta 50 referencias cercanas antes de rendirse.
+
 ## Iconos
 
 La interfaz usa **Bootstrap Icons** (MIT), servidos **localmente** desde

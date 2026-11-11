@@ -236,3 +236,30 @@ Secuencia simulada (mock del portal):
    transliteran a ASCII (`JOSE MUNOZ PEREZ`)? Windows acepta las dos, pero la
    segunda es más segura al subirlas a otros sistemas.
 
+
+
+---
+
+## 8. Segunda distribuidora: EdeSur
+
+A diferencia de Edenorte (HTML), el portal de Edesur (`ov.edesur.com.do`) es una
+aplicación Angular que consume su propia API: `https://ovapi.edesur.com.do/ovapi`,
+autenticada con token Bearer. La integración se hace contra esa API.
+
+**Agregar un contrato** (`Contracts/ValidateContractSGC` + `Contracts/SaveContract`):
+se necesita el **NIC** y la **referencia de pago hasta el número antes del guion**
+(ej. factura `2115589310-93` → `2115589310`). El nombre se manda provisional (un
+solo carácter, el campo es corto); el portal responde con el titular real.
+Los **tres dígitos de la referencia suben de uno en uno con cada factura**, así que
+si la referencia que se tiene ya no vale se prueban hasta 50 referencias cercanas
+(primero hacia adelante).
+
+**Factura a descargar**: `Contract/GetContractBilling` y las facturas por mes
+(`IndraComplaints/GetAvabledBills?contractid=NIC&mes=M`); el PDF se pide a
+`IndraComplaints/GetBillpdf?facRef=<billId>` y llega en base64.
+Se aplican las mismas reglas que en Edenorte: sólo tipo **"Recibos de consumos"**,
+fecha de corte = fin del período de facturación, el PDF no se modifica (sólo se
+renombra `NOMBRES APELLIDOS NIC.pdf`), y consumo en blanco no se descarga.
+
+Verificado con los NIC `5786394` (corte 13/10/2026, 1,140 kWh, RD$15,051.19) y
+`2115589` (corte 13/08/2026, 0 kWh, RD$42.10).
