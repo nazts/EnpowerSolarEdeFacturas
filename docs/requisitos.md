@@ -75,7 +75,7 @@ Regla de consumo (dentro de las de tipo recibo de consumo):
 - Si el consumo **no aparece** (espacio en blanco, sin número) → **no se
   descarga**.
 - Consumo en **cero explícito** → *pendiente de confirmar con el cliente*
-  (ver §9).
+  (ver §11).
 
 **El PDF no se modifica de ninguna forma.** No se le agregan sellos, marcas,
 ni campos: la única transformación es el **nombre del archivo**.
@@ -101,7 +101,44 @@ ni campos: la única transformación es el **nombre del archivo**.
 - Reporte de la corrida: contratos revisados, facturas nuevas descargadas,
   facturas ya existentes, y facturas listadas por el portal pero sin PDF.
 
-## 7. Manejo de fallas del portal (Edenorte)
+## 7. Facturas pendientes: feedback y recordatorio
+
+Una factura puede **cortar un día y no estar subida** todavía a la plataforma
+(pasa seguido: la emisión real llega 2–3 días después del corte). El sistema no
+debe quedarse callado: tiene que avisar qué contratos cortaban y no aparecen, y
+volver a pedirlas.
+
+**Dato necesario:** el portal **no publica** el día de corte del contrato
+(`/datos_contrato` solo trae nombre, dirección y teléfono). Se aprende del propio
+historial: la fecha de corte del último período conocido de ese contrato
+(p. ej. NIC 7533709 corta el día **05** de cada mes). Se guarda por contrato en
+`contratos.json` → `dia_corte`.
+
+**Ciclo de cada corrida:**
+
+1. Se calcula qué contratos **cortan hoy** (día de corte esperado = hoy; si el
+   mes no tiene ese día, el último día del mes).
+2. Para cada uno se busca en el historial la factura de tipo "Recibos de
+   consumos" cuyo período cierre hoy.
+3. Si está → se descarga, se renombra y el contrato queda **resuelto**.
+4. Si **no está** → se registra como **PENDIENTE** en `pendientes.json`:
+   `{nic, razon_social, fecha_corte, primer_intento, ultimo_intento, intentos, estado}`.
+5. Las corridas siguientes **reintentan primero los pendientes** antes de mirar
+   los cortes del día, y los dejan abiertos hasta que aparezcan.
+6. El reporte diario incluye una sección explícita: *"Cortaron el dd/mm y aún no
+   están en la plataforma: NIC — nombre (intentos: N, desde dd/mm)"*.
+
+**Reglas del recordatorio:**
+
+- Un pendiente no se cierra nunca "por cansancio": se cierra cuando el PDF se
+  descarga, o cuando el cliente lo descarta a mano.
+- A los **3 días** sin aparecer, el aviso sube de nivel (queda marcado como
+  *atrasado*), porque el portal solo conserva las 2 facturas más recientes y una
+  factura que nunca se publique se pierde.
+- Ventana de reintento: hasta **30 días** desde el corte; después se marca
+  `perdida` y se reporta para pedirla por mesa de servicio.
+
+## 8. Manejo de fallas del portal (Edenorte)
 
 Si la plataforma de Edenorte falla —no deja iniciar sesión, da error 500/502,
 se cae el sitio, cambia el formulario— **no es un fallo nuestro**. En ese caso el
@@ -114,7 +151,7 @@ sistema debe:
 - Registrar el intento en el log de la corrida y reintentar en la siguiente
   ejecución programada.
 
-## 8. Restricciones y hechos del portal (verificados)
+## 9. Restricciones y hechos del portal (verificados)
 
 - Login por correo + contraseña; credenciales de la empresa en `.env`
   (`EDENORTE_EMAIL`, `EDENORTE_PASSWORD`, `EDENORTE_URL`), archivo ignorado por git.
@@ -126,7 +163,7 @@ sistema debe:
 - El PDF no se puede obtener sin sesión iniciada.
 
 
-## 9. Caso de referencia (factura de muestra entregada por el cliente)
+## 10. Caso de referencia (factura de muestra entregada por el cliente)
 
 `Downloads/factura.pdf` — Edenorte, contrato NIC **7533709**, Ref. Pago 7533709022,
 No. Factura 202611033807, ENCF E320031847759, Suministro 4237690,
@@ -137,12 +174,12 @@ subsidio RD$‑166,797.83, **total RD$188,675.21**, **pagar antes del 07/11/2026
 Nota: la emisión (08/10/2026) es posterior al corte, así que la detección por
 fecha de corte debe leer el período dentro del PDF, no la fecha de emisión.
 
-## 10. Pendientes / decisiones del cliente
+## 11. Pendientes / decisiones del cliente
 
 1. Formato exacto del nombre: ¿`FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf`
    (espacio) o con guion bajo / guion medio?
-2. ¿Qué hacer si a las 7:00 a.m. la factura aún no está publicada (reintentar más
-   tarde el mismo día)?
+2. Si la factura no aparece el día del corte: ¿solo se reintenta en la corrida
+   diaria de las 7:00, o quieres intentos extra el mismo día (p. ej. 12:00 y 5:00 p.m.)?
 3. Consumo impreso en **0 kWh** (no en blanco): ¿se descarga igual o se omite
    como si no tuviera consumo?
 4. Canal de la alerta cuando Edenorte falle: ¿aviso en el escritorio, correo,
