@@ -1,11 +1,10 @@
 """Corrida diaria: revisa contratos, descarga las facturas que cortan hoy y las envia."""
 from __future__ import annotations
 
-import sys
-
 import calendar
 import html as _html
 import shutil
+import sys
 import tempfile
 import threading
 from contextlib import contextmanager
@@ -13,10 +12,25 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
-try:                      # Windows
-    import msvcrt
-except ImportError:       # Linux/macOS
-    import fcntl
+# Bloqueo de archivo para que dos corridas no se pisen.
+# Ojo: en Linux `msvcrt` no existe; si se consulta con hasattr() se cae con
+# NameError, que es justo lo que pasaba en WSL al pulsar "Buscar facturas".
+if sys.platform == "win32":          # Windows
+    import msvcrt as _lockmod
+
+    def _tomar_bloqueo(archivo) -> None:
+        _lockmod.locking(archivo.fileno(), _lockmod.LK_NBLCK, 1)
+
+    def _soltar_bloqueo(archivo) -> None:
+        _lockmod.locking(archivo.fileno(), _lockmod.LK_UNLCK, 1)
+else:                                # Linux / macOS
+    import fcntl as _lockmod
+
+    def _tomar_bloqueo(archivo) -> None:
+        _lockmod.flock(archivo, _lockmod.LOCK_EX | _lockmod.LOCK_NB)
+
+    def _soltar_bloqueo(archivo) -> None:
+        _lockmod.flock(archivo, _lockmod.LOCK_UN)
 
 from . import config, db, naming, telegram
 from .edenorte import EdenorteClient, PdfNoDisponible, PortalError
@@ -44,10 +58,7 @@ def _exclusivo():
     tomado = False
     try:
         try:
-            if hasattr(msvcrt, "locking"):
-                msvcrt.locking(archivo.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                fcntl.flock(archivo, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _tomar_bloqueo(archivo)
             tomado = True
         except OSError:
             tomado = False
@@ -58,10 +69,7 @@ def _exclusivo():
         if tomado:
             _local.tomado = False
             try:
-                if hasattr(msvcrt, "locking"):
-                    msvcrt.locking(archivo.fileno(), msvcrt.LK_UNLCK, 1)
-                else:
-                    fcntl.flock(archivo, fcntl.LOCK_UN)
+                _soltar_bloqueo(archivo)
             except OSError:
                 pass
         archivo.close()

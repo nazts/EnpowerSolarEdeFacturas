@@ -475,3 +475,69 @@ def test_actualizar_contrato_ignora_columnas_desconocidas(contrato):
         db.upsert_contrato(c, NIC, razon_social="X")
         assert db.actualizar_contrato(c, NIC, {"nic": "999", "inventada": "borrame"}) is False
         assert db.obtener_contrato(c, NIC)["nic"] == NIC
+
+
+# ------------------------------------------------- bloqueo entre corridas (Linux)
+def test_el_bloqueo_existe_en_esta_plataforma():
+    from app import runner
+
+    assert callable(runner._tomar_bloqueo)
+    assert callable(runner._soltar_bloqueo)
+
+
+def test_no_usa_nombres_que_solo_existen_en_windows():
+    """En WSL `msvcrt` no existe: consultarlo con hasattr() daba NameError."""
+    from pathlib import Path
+
+    from app import runner
+
+    fuente = Path(runner.__file__).read_text(encoding="utf-8")
+    assert "hasattr(msvcrt" not in fuente
+    assert "msvcrt.locking" not in fuente or "sys.platform" in fuente
+
+
+def test_si_otro_proceso_tiene_el_bloqueo_no_se_rompe(db_path, monkeypatch):
+    from app import runner
+
+    def ocupado(archivo):
+        raise OSError("lo tiene otro proceso")
+
+    monkeypatch.setattr(runner, "_tomar_bloqueo", ocupado)
+    with runner._exclusivo() as tomado:
+        assert tomado is False
+
+
+def test_la_rama_de_linux_del_bloqueo_es_valida(monkeypatch):
+    """Ejecuta el bloque de bloqueo con sys.platform='linux' y un fcntl falso.
+
+    Asi se valida la rama que en Windows nunca se ejecuta (el bug del NameError
+    solo aparecia al correr en WSL).
+    """
+    import sys
+    import types
+    from pathlib import Path
+
+    from app import runner
+
+    fuente = Path(runner.__file__).read_text(encoding="utf-8")
+    inicio = fuente.index("# Bloqueo de archivo")
+    fin = fuente.index("from . import config")
+    bloque = fuente[inicio:fin]
+
+    falso = types.ModuleType("fcntl")
+    falso.LOCK_EX, falso.LOCK_NB, falso.LOCK_UN = 2, 4, 8
+    llamadas = []
+    falso.flock = lambda archivo, modo: llamadas.append(modo)
+    monkeypatch.setitem(sys.modules, "fcntl", falso)
+
+    class SysFalso:
+        platform = "linux"
+
+    espacio: dict = {"sys": SysFalso}
+    exec(compile(bloque, "<bloqueo>", "exec"), espacio)
+
+    assert callable(espacio["_tomar_bloqueo"])
+    assert callable(espacio["_soltar_bloqueo"])
+    espacio["_tomar_bloqueo"](object())
+    espacio["_soltar_bloqueo"](object())
+    assert llamadas == [2 | 4, 8]
