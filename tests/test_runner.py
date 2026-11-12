@@ -567,3 +567,62 @@ def test_la_rama_de_linux_del_bloqueo_es_valida(monkeypatch):
     espacio["_tomar_bloqueo"](object())
     espacio["_soltar_bloqueo"](object())
     assert llamadas == [2 | 4, 8]
+
+
+def test_historial_guarda_todas_las_facturas_por_defecto(contrato, leer_pdf, monkeypatch):
+    """Sin limite: baja todas las de tipo recibo de consumo que tenga el portal."""
+    enviados = []
+    monkeypatch.setattr(telegram, "enviar_documento",
+                        lambda path, caption="", chat_id=None: enviados.append(path) or {})
+
+    refs = ["901", "902", "903", "904", "905", "906"]
+    filas = [FacturaRef(nic=NIC, ref_pago=r, cliente="", tipo="Recibos de consumos",
+                        emision="16/09/2026") for r in refs]
+    # cada una con su corte, de la mas nueva a la mas vieja
+    pdfs = {r: _texto_factura(f"16/{8 - i:02d}/2026").encode("latin-1")
+            for i, r in enumerate(refs)}
+    p = portal(filas=filas, pdfs=pdfs)
+
+    res = runner.sincronizar_historial(date(2026, 9, 20), enviar=False,
+                                       portales={"edenorte": p})
+
+    assert len(res["nuevos"]) == 6          # todas, no tres
+    with db.sesion(db_path=contrato) as c:
+        n = c.execute("SELECT COUNT(*) AS n FROM facturas WHERE nic = ?",
+                      (NIC,)).fetchone()["n"]
+    assert n == 6
+
+
+def test_historial_manda_una_sola_por_cliente_aunque_guarde_muchas(contrato, leer_pdf,
+                                                                   monkeypatch):
+    mensajes = []
+    monkeypatch.setattr(telegram, "enviar_documento",
+                        lambda path, caption="", chat_id=None: mensajes.append(
+                            (str(path), caption)) or {})
+
+    refs = ["911", "912", "913", "914"]
+    filas = [FacturaRef(nic=NIC, ref_pago=r, cliente="", tipo="Recibos de consumos",
+                        emision="16/09/2026") for r in refs]
+    pdfs = {r: _texto_factura(f"16/{8 - i:02d}/2026").encode("latin-1")
+            for i, r in enumerate(refs)}
+    p = portal(filas=filas, pdfs=pdfs)
+
+    res = runner.sincronizar_historial(date(2026, 9, 20), enviar=True,
+                                       portales={"edenorte": p}, chat_id="-100")
+
+    assert len(res["nuevos"]) == 4          # guarda las cuatro
+    assert res["enviados"] == 1             # manda una sola
+    assert len(mensajes) == 1
+    assert "NIC 6997885" in mensajes[0][1]
+
+    # la que se mando es la de corte mas reciente
+    with db.sesion(db_path=contrato) as c:
+        enviada = c.execute(
+            "SELECT corte FROM facturas WHERE nic = ? AND enviada = 1", (NIC,)).fetchall()
+    assert [f["corte"] for f in enviada] == ["2026-08-16"]
+
+    # y una segunda pasada no reenvia nada
+    mensajes.clear()
+    res2 = runner.sincronizar_historial(date(2026, 9, 21), enviar=True,
+                                        portales={"edenorte": p}, chat_id="-100")
+    assert res2["enviados"] == 0 and mensajes == []

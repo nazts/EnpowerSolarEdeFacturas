@@ -492,10 +492,12 @@ def corrida(fecha: date | None = None, enviar: bool = True,
 
 
 # ------------------------------------------------------------------ historico
-def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
+def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = None,
                           enviar: bool = True, chat_id: str | None = None,
                           portales: dict | None = None, nic: str | None = None) -> dict:
-    """Guarda las ultimas facturas de cada cliente (minimo las 2 anteriores).
+    """Guarda TODAS las facturas de consumo que el portal conserve de cada cliente.
+
+    `por_cliente` limita cuantas guardar (0 o None = todas).
 
     Descarga las que falten en la base, las deja en `facturas/` con el mismo
     nombrado y despues las manda a Telegram una sola vez (las ya enviadas no se
@@ -537,7 +539,8 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
             faltan = [f for f in hist.filas
                       if es_consumo(f.tipo) and not db.factura_existe(conn, f.ref_pago)]
             sin_pdf = 0
-            for fila in faltan[:por_cliente]:
+            tope = len(faltan) if not por_cliente else min(int(por_cliente), len(faltan))
+            for fila in faltan[:tope]:
                 if sin_pdf >= 2:
                     # dos fallos seguidos: no insistir con las viejas
                     db.log_evento(conn, "aviso",
@@ -724,8 +727,8 @@ if __name__ == "__main__":
     ap.add_argument("--reporte", action="store_true", help="enviar resumen aunque no haya facturas")
     ap.add_argument("--historial", action="store_true",
                     help="solo sincronizar las ultimas facturas (historico) y enviarlas")
-    ap.add_argument("--por-cliente", type=int, default=3,
-                    help="cuantas facturas recientes guardar por cliente (defecto 3)")
+    ap.add_argument("--por-cliente", type=int, default=0,
+                    help="cuantas facturas guardar por cliente (0 = todas, es el defecto)")
     args = ap.parse_args()
 
     fecha = datetime.strptime(args.fecha, "%Y-%m-%d").date() if args.fecha else None

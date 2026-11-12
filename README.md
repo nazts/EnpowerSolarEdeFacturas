@@ -183,7 +183,7 @@ formulario para agregar y eliminar.
 ## Histórico
 
 `python -m app.runner --historial` guarda las últimas facturas de cada cliente
-(3 por defecto) y manda a Telegram **solo la más reciente, un mensaje por cliente**.
+(todas las que conserve el portal) y manda a Telegram **una sola por cliente: la más reciente que no se haya enviado**.
 
 ## Iconos
 
