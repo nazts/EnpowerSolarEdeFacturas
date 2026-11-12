@@ -96,6 +96,9 @@ bash scripts/instalar_wsl.sh
 El paso a paso completo —Windows, WSL, red de la oficina y credenciales de
 producción— está en **[docs/produccion.md](docs/produccion.md)**.
 
+Para que el equipo entre desde cualquier lado (casa, celular) sin abrir puertos:
+**[docs/tailscale.md](docs/tailscale.md)** y `bash scripts/instalar_tailscale.sh`.
+
 Comandos útiles (siempre con el python del venv):
 
 ```bash
