@@ -547,12 +547,17 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
                     contenido = portal.descargar_pdf(fila.ref_pago)
                     sin_pdf = 0
                 except PdfNoDisponible:
-                    # vienen de la mas nueva a la mas vieja: de aqui para atras
-                    # el portal ya no conserva los PDFs
+                    # La factura mas nueva suele estar publicada SIN PDF todavia.
+                    # Antes se cortaba aca y por eso un cliente recien agregado
+                    # quedaba con el historico vacio aunque las anteriores si
+                    # tuvieran PDF. Ahora se salta esa y se sigue con las otras.
+                    sin_pdf += 1
                     db.log_evento(conn, "info",
-                                  f"NIC {nic}: el portal ya no conserva PDFs mas antiguos",
-                                  f"desde {fila.ref_pago}")
-                    break
+                                  f"NIC {nic}: factura sin PDF publicado",
+                                  f"ref {fila.ref_pago} (se sigue con las anteriores)")
+                    if sin_pdf >= 3:
+                        break
+                    continue
                 except PortalError as exc:
                     sin_pdf += 1
                     res["errores"].append({"nic": nic, "ref": fila.ref_pago, "error": str(exc)[:160]})
@@ -599,8 +604,9 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
                     "nic": nic, "proveedor": prov, "corte": datos.corte,
                     "facturado": datos.facturado, "kwh": datos.kwh, "path": str(destino),
                 })
+            guardadas = sum(1 for n in res["nuevos"] if str(n.get("nic")) == nic)
             db.log_evento(conn, "info", f"Historico revisado NIC {nic}",
-                          f"{len(faltan[:por_cliente])} factura(s) nuevas")
+                          f"{guardadas} guardada(s) de {len(faltan)} disponible(s)")
 
         # completar el dia de corte de clientes que ya tienen facturas guardadas
         sin_dia = conn.execute(

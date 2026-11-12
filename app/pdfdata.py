@@ -9,18 +9,28 @@ from datetime import datetime
 from pathlib import Path
 
 _POSIBLES = [
-    "pdftotext",
+    "pdftotext",                    # PATH (Linux: /usr/bin, Windows: Git for Windows)
+    "/usr/bin/pdftotext",           # WSL / Ubuntu (poppler-utils)
+    "/usr/local/bin/pdftotext",
     r"C:\Program Files\Git\mingw64\bin\pdftotext.exe",
     r"C:\Program Files\Git\usr\bin\pdftotext.exe",
 ]
 
 
 def _binario() -> str:
-    for candidato in _POSIBLES:
+    """Ruta de pdftotext: PDFTOTEXT_BIN del .env, el PATH o las rutas conocidas."""
+    import os
+
+    elegido = os.environ.get("PDFTOTEXT_BIN", "").strip()
+    candidatos = ([elegido] if elegido else []) + _POSIBLES
+    for candidato in candidatos:
         ruta = shutil.which(candidato) or (candidato if Path(candidato).exists() else None)
         if ruta:
             return ruta
-    raise RuntimeError("pdftotext no encontrado (instalar poppler / viene con Git for Windows)")
+    raise RuntimeError(
+        "pdftotext no encontrado. En Ubuntu/WSL: sudo apt install poppler-utils. "
+        "En Windows viene con Git for Windows, o define PDFTOTEXT_BIN en el .env"
+    )
 
 
 def texto_pdf(path: str | Path) -> str:

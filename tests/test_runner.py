@@ -357,7 +357,7 @@ def test_historial_aprende_el_dia_de_corte(contrato, leer_pdf, monkeypatch):
 
 
 def test_pdf_que_el_portal_ya_no_tiene_no_es_error(contrato, leer_pdf):
-    """El portal conserva 2 PDFs: al llegar a uno viejo se corta sin llenar errores."""
+    """Sin PDF se salta esa factura y sigue; si fallan 3 seguidas se detiene."""
     from app.edenorte import PdfNoDisponible
 
     refs = ["900", "899", "898", "897"]
@@ -372,7 +372,33 @@ def test_pdf_que_el_portal_ya_no_tiene_no_es_error(contrato, leer_pdf):
 
     assert [n["corte"] for n in res["nuevos"]] == ["2026-09-16", "2026-09-16"]
     assert res["errores"] == []          # ni un error: el portal simplemente no los tiene
-    assert p.descargar_pdf.call_count == 3   # 900, 899 y el que corta la busqueda
+    assert p.descargar_pdf.call_count == 4   # 900, 899 y las dos sin PDF
+
+
+def test_factura_nueva_sin_pdf_no_tapa_las_anteriores(contrato, leer_pdf):
+    """El caso real: la factura recien cortada esta publicada pero SIN pdf todavia.
+
+    Antes el historico cortaba ahi y el cliente quedaba con 0 facturas.
+    """
+    from app.edenorte import PdfNoDisponible
+
+    refs = ["900", "899", "898"]
+    p = portal(filas=[FacturaRef(nic=NIC, ref_pago=r, cliente="", tipo="Recibos de consumos",
+                                 emision="16/09/2026") for r in refs])
+    p.descargar_pdf.side_effect = lambda ref: (
+        (_ for _ in ()).throw(PdfNoDisponible(f"PDF no disponible para {ref}"))
+        if ref == "900"
+        else _texto_factura(f"{15 - int(ref[-1])}/09/2026").encode("latin-1"))
+
+    res = runner.sincronizar_historial(date(2026, 9, 20), por_cliente=3, enviar=False,
+                                       portales={"edenorte": p})
+
+    assert [n["nic"] for n in res["nuevos"]] == [NIC, NIC]     # las dos viejas si
+    assert p.descargar_pdf.call_count == 3                     # incluida la sin PDF
+    assert res["errores"] == []
+    with db.sesion(db_path=contrato) as c:
+        n = c.execute("SELECT COUNT(*) AS n FROM facturas WHERE nic = ?", (NIC,)).fetchone()["n"]
+    assert n == 2          # quedaron guardadas en la base del panel
 
 
 def test_upsert_no_reactiva_un_cliente_desactivado(contrato):
