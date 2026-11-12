@@ -2,11 +2,19 @@
 from __future__ import annotations
 
 import calendar
+import html as _html
 import shutil
 import tempfile
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
+
+try:                      # Windows
+    import msvcrt
+except ImportError:       # Linux/macOS
+    import fcntl
 
 from . import config, db, naming, telegram
 from .edenorte import EdenorteClient, PdfNoDisponible, PortalError
@@ -14,6 +22,47 @@ from .pdfdata import DatosFactura, datos_de_archivo
 from .proveedores import ALERTA as ALERTA_PROVEEDOR, EdesurPortal, portal_de
 
 TIPO_CONSUMO = "consumo"
+
+_local = threading.local()
+
+
+@contextmanager
+def _exclusivo():
+    """True si nadie mas esta corriendo. Bloquea por proceso y entre procesos.
+
+    El panel lanza la sincronizacion en un hilo y la tarea de Windows corre en
+    otro proceso: sin esto se duplican descargas, albumes y pendientes.
+    """
+    if getattr(_local, "tomado", False):        # llamada anidada (mismo hilo)
+        yield True
+        return
+    ruta = config.DB_PATH.parent / "runner.lock"
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    archivo = open(ruta, "a+b")
+    tomado = False
+    try:
+        try:
+            if hasattr(msvcrt, "locking"):
+                msvcrt.locking(archivo.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                fcntl.flock(archivo, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            tomado = True
+        except OSError:
+            tomado = False
+        if tomado:
+            _local.tomado = True
+        yield tomado
+    finally:
+        if tomado:
+            _local.tomado = False
+            try:
+                if hasattr(msvcrt, "locking"):
+                    msvcrt.locking(archivo.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(archivo, fcntl.LOCK_UN)
+            except OSError:
+                pass
+        archivo.close()
 ALERTA_PORTAL = ALERTA_PROVEEDOR["edenorte"]   # compatibilidad
 
 
@@ -100,11 +149,12 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
     bloques = []
     for f in nuevas:
         nombre = naming.normalizar_razon_social(f.get("razon_social") or "")
-        lineas = [f"NIC {f['nic']} · {nombre}"]
+        # parse_mode=HTML: un nombre con <, > o & haria fallar el envio
+        lineas = [f"NIC {f['nic']} · {_html.escape(nombre)}"]
         monto = f"{f['facturado']:,.2f}" if f.get("facturado") is not None else "s/d"
         lineas.append(f"Pagar: RD${monto}")
         if f.get("asesor"):
-            lineas.append(f"Asesor: {f['asesor']}")
+            lineas.append(f"Asesor: {_html.escape(str(f['asesor']))}")
         vence = _fecha_legible(f.get("vence"))
         if vence:
             lineas.append(f"Vence: {vence}")
@@ -234,6 +284,8 @@ def corrida(fecha: date | None = None, enviar: bool = True,
         for p in db.pendientes_abiertos(conn):
             objetivos.setdefault(str(p["nic"]), set()).add(p["fecha_corte"])
         for c in db.listar_contratos(conn):
+            if not c["activo"]:
+                continue
             prov = (c["proveedor"] if "proveedor" in c.keys() else "") or "edenorte"
             if prov in activos and corta_hoy(c["dia_corte"], fecha):
                 objetivos.setdefault(str(c["nic"]), set()).add(fiso)
@@ -241,13 +293,26 @@ def corrida(fecha: date | None = None, enviar: bool = True,
         if not objetivos:
             db.log_evento(conn, "info", f"Sin cortes ni pendientes para {fiso}")
             if reporte and enviar:
-                telegram.enviar_mensaje(f"Sin facturas con corte {fiso}.", chat_id=chat_id)
-                res.mensaje_enviado = True
+                try:
+                    telegram.enviar_mensaje(f"Sin facturas con corte {fiso}.", chat_id=chat_id)
+                    res.mensaje_enviado = True
+                except telegram.TelegramError as exc:
+                    db.log_evento(conn, "error", "Fallo el envio del reporte", str(exc)[:300])
+            # igual se mantiene el historico (y se manda lo que quedo pendiente)
+            if historico:
+                try:
+                    res.historico = sincronizar_historial(fecha=fecha, enviar=enviar,
+                                                          chat_id=chat_id, portales=portales)
+                except Exception as exc:  # noqa: BLE001
+                    res.historico = {"errores": [str(exc)[:200]]}
             return res
 
         # 4. revisar cada contrato objetivo
         for nic, cortes in objetivos.items():
             contrato = db.obtener_contrato(conn, nic)
+            if not contrato or not contrato["activo"]:
+                db.log_evento(conn, "aviso", f"NIC {nic} inactivo o inexistente: se omite")
+                continue
             razon_social = contrato["razon_social"] if contrato else ""
             prov = (contrato["proveedor"] if contrato and "proveedor" in contrato.keys()
                     else "") or "edenorte"
@@ -262,6 +327,9 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 db.log_evento(conn, "error", f"Historial no disponible para NIC {nic}", str(exc))
                 for fc in cortes:
                     db.registrar_pendiente(conn, nic, fc, f"historial: {exc}")
+                continue
+            except Exception as exc:  # noqa: BLE001 - red, parseo, lo que sea
+                db.log_evento(conn, "error", f"Fallo inesperado en NIC {nic}", str(exc)[:300])
                 continue
 
             candidatas = [f for f in hist.filas
@@ -315,7 +383,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 destino = _candidato_archivo(nic, datos, razon_social, config.FACTURAS_DIR)
                 _guardar_pdf(contenido, destino)
 
-                db.guardar_factura(conn, {
+                id_guardado = db.guardar_factura(conn, {
                     "nic": nic,
                     "ref_pago": fila.ref_pago,
                     "no_factura": datos.no_factura,
@@ -341,6 +409,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 db.cerrar_pendiente(conn, nic, datos.corte)
                 encontrado_por_corte.add(datos.corte)
                 res.descargadas.append({
+                    "id": id_guardado,
                     "nic": nic,
                     "ref_pago": fila.ref_pago,
                     "razon_social": razon_social or (datos.titular or ""),
@@ -383,8 +452,9 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 mensajes = telegram.enviar_album([d["path"] for d in enviables],
                                                  caption=texto, chat_id=chat_id)
                 res.mensaje_enviado = True
-                ids = [r["id"] for r in db.facturas_del_dia(conn, fiso)]
-                db.marcar_enviadas(conn, ids, chat_id or config.TELEGRAM_CHAT_ID)
+                # solo las que de verdad fueron en el album (no todo el dia)
+                db.marcar_enviadas(conn, [d["id"] for d in enviables if d.get("id")],
+                                   chat_id or config.TELEGRAM_CHAT_ID)
                 db.log_evento(conn, "info", f"Enviadas {len(enviables)} facturas a Telegram",
                               f"{len(mensajes)} mensaje(s)")
             except telegram.TelegramError as exc:
@@ -510,6 +580,8 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int = 3,
                     "subsidio": datos.subsidio, "facturado": datos.facturado,
                     "pdf_path": str(destino), "estado": "descargada",
                 })
+                if datos.corte:
+                    db.cerrar_pendiente(conn, nic, datos.corte)
                 if datos.corte and not contrato["dia_corte"]:
                     # el dia de corte se aprende de la propia factura
                     db.upsert_contrato(conn, nic, dia_corte=int(datos.corte[-2:]))
@@ -599,6 +671,31 @@ def _vence(conn, nic: str, corte: str | None) -> str | None:
     return fila[0] if fila else None
 
 
+
+
+def _envolver_con_lock(fn):
+    """Una sola corrida a la vez. Si ya hay otra, devuelve una respuesta vacia."""
+    import functools
+
+    @functools.wraps(fn)
+    def envoltura(*args, **kwargs):
+        with _exclusivo() as libre:
+            if libre:
+                return fn(*args, **kwargs)
+            with db.sesion() as conn:
+                db.log_evento(conn, "aviso",
+                              f"Ya hay una corrida en curso; se omite {fn.__name__}")
+            if fn.__name__ == "corrida":
+                r = Resultado(fecha=(kwargs.get("fecha") or date.today()).isoformat())
+                r.historico = {"ocupado": True, "nuevos": [], "enviados": 0, "errores": []}
+                return r
+            return {"nuevos": [], "errores": [{"error": "ya hay una corrida en curso"}],
+                    "enviados": 0, "albumes": 0}
+    return envoltura
+
+
+corrida = _envolver_con_lock(corrida)                       # noqa: F811
+sincronizar_historial = _envolver_con_lock(sincronizar_historial)  # noqa: F811
 
 
 if __name__ == "__main__":

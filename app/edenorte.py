@@ -232,12 +232,38 @@ class EdenorteClient:
         return hist
 
     def ultimo_corte(self, nic: str) -> int | None:
-        """Dia del mes en que corta el contrato, segun su factura mas reciente."""
-        hist = self.historial(nic)
-        for fila in hist.filas:            # vienen de la mas nueva a la mas vieja
-            m = re.match(r"\s*(\d{1,2})", fila.emision or "")   # "11 Oct 2026" -> 11
-            if m and 1 <= int(m.group(1)) <= 31:
-                return int(m.group(1))
+        """Dia de corte real, leido del PDF mas reciente que el portal conserve.
+
+        No se usa la fecha de emision: en Edenorte la emision cae 1-3 dias
+        despues del corte (una factura con corte 09/11 puede emitirse el 14/11),
+        y con ese dia el escaneo dispararia en la fecha equivocada.
+        """
+        import tempfile
+        from pathlib import Path
+
+        from . import pdfdata
+
+        try:
+            hist = self.historial(nic)
+        except PortalError:
+            return None
+        for fila in hist.filas[:3]:         # de la mas nueva a la mas vieja
+            try:
+                contenido = self.descargar_pdf(fila.ref_pago)
+            except PortalError:
+                continue
+            with tempfile.TemporaryDirectory() as tmp:
+                ruta = Path(tmp) / "f.pdf"
+                ruta.write_bytes(contenido)
+                try:
+                    datos = pdfdata.datos_de_archivo(ruta)
+                except Exception:  # noqa: BLE001 - PDF ilegible
+                    continue
+            if datos.corte:
+                try:
+                    return int(datos.corte[-2:])
+                except ValueError:
+                    continue
         return None
 
     def descargar_pdf(self, ref_pago: str) -> bytes:

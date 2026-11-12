@@ -266,19 +266,39 @@ def obtener_contrato(conn: sqlite3.Connection, nic: str) -> sqlite3.Row | None:
 
 def eliminar_contrato(conn: sqlite3.Connection, nic: str) -> None:
     conn.execute("DELETE FROM contratos WHERE nic = ?", (str(nic),))
+    # sin contrato no tiene sentido seguir reintentando sus pendientes
+    conn.execute("DELETE FROM pendientes WHERE nic = ?", (str(nic),))
     conn.commit()
 
 
 # ------------------------------------------------------------------- facturas
 def guardar_factura(conn: sqlite3.Connection, datos: dict) -> int:
-    campos = ",".join(datos.keys())
-    marcas = ",".join("?" for _ in datos)
-    cur = conn.execute(
-        f"INSERT OR REPLACE INTO facturas ({campos}) VALUES ({marcas})",
+    """Inserta o actualiza la factura SIN perder su id ni el estado de envio.
+
+    `INSERT OR REPLACE` borra y recrea la fila: cambiaba el id y dejaba
+    `enviada=0`, asi que la misma factura se reenviaba a Telegram. Aqui se hace
+    upsert por `ref_pago` (que es UNIQUE) conservando id/enviada/created_at.
+    """
+    datos = {k: v for k, v in datos.items() if k != "id"}
+    campos = list(datos)
+    marcas = ",".join("?" for _ in campos)
+    ref = datos.get("ref_pago")
+    if not ref:                       # sin referencia no hay upsert posible
+        cur = conn.execute(
+            f"INSERT INTO facturas ({','.join(campos)}) VALUES ({marcas})",
+            list(datos.values()))
+        conn.commit()
+        return int(cur.lastrowid or 0)
+
+    actualiza = ", ".join(f"{c}=excluded.{c}" for c in campos if c != "ref_pago")
+    conn.execute(
+        f"INSERT INTO facturas ({','.join(campos)}) VALUES ({marcas}) "
+        f"ON CONFLICT(ref_pago) DO UPDATE SET {actualiza}",
         list(datos.values()),
     )
     conn.commit()
-    return int(cur.lastrowid or 0)
+    fila = conn.execute("SELECT id FROM facturas WHERE ref_pago = ?", (ref,)).fetchone()
+    return int(fila["id"]) if fila else 0
 
 
 def factura_existe(conn: sqlite3.Connection, ref_pago: str) -> bool:

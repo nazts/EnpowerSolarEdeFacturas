@@ -94,6 +94,8 @@ class EdesurClient:
 
     # ------------------------------------------------------------------ login
     def login(self) -> str:
+        if self.token and not (self.usuario and self.password):
+            return self.token          # ya hay token (p.ej. EDESUR_TOKEN en .env)
         if not self.usuario or not self.password:
             raise EdesurError(
                 "Faltan las credenciales de Edesur (EDESUR_USER / EDESUR_PASSWORD en .env)")
@@ -119,15 +121,21 @@ class EdesurClient:
     def _get(self, ruta: str, **params) -> requests.Response:
         if not self.token:
             self.login()
-        return self.sesion.get(f"{API}/{ruta.lstrip('/')}",
-                               params=params or None, headers=self._cabeceras(),
-                               timeout=self.timeout)
+        try:
+            return self.sesion.get(f"{API}/{ruta.lstrip('/')}",
+                                   params=params or None, headers=self._cabeceras(),
+                                   timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise EdesurError(f"Fallo de red en {ruta}: {exc}") from exc
 
     def _post(self, ruta: str, cuerpo: dict) -> requests.Response:
         if not self.token:
             self.login()
-        return self.sesion.post(f"{API}/{ruta.lstrip('/')}", json=cuerpo,
-                                headers=self._cabeceras(), timeout=self.timeout)
+        try:
+            return self.sesion.post(f"{API}/{ruta.lstrip('/')}", json=cuerpo,
+                                    headers=self._cabeceras(), timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise EdesurError(f"Fallo de red en {ruta}: {exc}") from exc
 
     def _cabeceras(self) -> dict:
         return {"Authorization": f"Bearer {self.token}"}
@@ -148,7 +156,10 @@ class EdesurClient:
                               f"{(detalle or '')[:250]}")
         if not r.content:
             return None
-        return r.json()
+        try:
+            return r.json()
+        except ValueError as exc:
+            raise EdesurError(f"Respuesta invalida de Edesur en {que}") from exc
 
     # -------------------------------------------------------------- contratos
     def contratos(self) -> list[dict]:

@@ -40,6 +40,13 @@ DB_PATH = BASE_DIR / os.environ.get("DB_PATH", "data/enpower.db")
 FACTURAS_DIR = BASE_DIR / os.environ.get("FACTURAS_DIR", "facturas")
 EXPORT_DIR = BASE_DIR / os.environ.get("EXPORT_DIR", "exports")
 
+# --- servidor web (panel) ---
+# 127.0.0.1 = solo esta PC | 0.0.0.0 = accesible en la red local
+HOST = os.environ.get("HOST", "127.0.0.1")
+PORT = int(os.environ.get("PORT", "8000") or 8000)
+# poner 1 cuando el panel se sirva por HTTPS (tunel/Cloudflare/Tailscale)
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "0").strip() in ("1", "true", "yes", "si", "sí")
+
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
