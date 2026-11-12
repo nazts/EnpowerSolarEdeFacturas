@@ -125,10 +125,45 @@ chmod +x scripts/*.sh 2>/dev/null || true
 cyan "Preparando el .env"
 
 if [[ -z "$ARCHIVO_ENV" ]]; then
-    for candidato in .env.produccion .env; do
+    for candidato in .env.produccion .env .env.example; do
         [[ -f "$candidato" ]] && { ARCHIVO_ENV="$candidato"; break; }
     done
 fi
+
+# esqueleto minimo: si no hay ni .env.example el instalador no se detiene,
+# deja el archivo creado y sigue (asi se ve el error real mas adelante)
+escribir_env_base() {
+    cat > .env <<'ENV'
+# Generado por scripts/instalar_wsl.sh — completar con las credenciales de la empresa
+EDENORTE_URL=https://ofv.edenorte.com.do
+EDENORTE_EMAIL=
+EDENORTE_PASSWORD=
+
+# Edesur (Oficina Virtual) - API ovapi.edesur.com.do
+EDESUR_USER=
+EDESUR_PASSWORD=
+
+# Base de datos: vacio -> SQLite local | postgresql://... -> Supabase
+DATABASE_URL=
+
+# Bot de Telegram (BotFather) y canal destino
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# Rutas de trabajo (relativas al proyecto)
+DB_PATH=data/enpower.db
+FACTURAS_DIR=facturas
+EXPORT_DIR=exports
+
+# Sesiones y usuario administrador inicial
+SECRET_KEY=
+ADMIN_USER=admin
+ADMIN_PASSWORD=
+
+PORT=8000
+HOST=127.0.0.1
+ENV
+}
 
 CREDENCIALES_COMPLETAS=1
 if [[ -f .env ]]; then
@@ -138,7 +173,21 @@ elif [[ -n "$ARCHIVO_ENV" && -f "$ARCHIVO_ENV" ]]; then
     ok ".env creado desde $ARCHIVO_ENV"
     [[ "$ARCHIVO_ENV" == ".env.example" ]] && CREDENCIALES_COMPLETAS=0
 else
-    fail "no encuentro .env, .env.produccion ni .env.example"
+    escribir_env_base
+    CREDENCIALES_COMPLETAS=0
+    warn "no habia .env, .env.produccion ni .env.example en esta carpeta"
+    warn "deje un .env vacio para que puedas seguir; hay que llenar las credenciales"
+    warn "carpeta actual: $RAIZ"
+    if command -v git >/dev/null 2>&1 && git -C "$RAIZ" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        warn "es un repo git, pero faltan archivos: revisa que no sea una copia parcial"
+        warn "  git -C \"$RAIZ\" ls-files | grep env      (deberia listar .env.example)"
+        warn "  git -C \"$RAIZ\" checkout -- .env.example  (si el archivo esta en el repo)"
+    else
+        warn "esta carpeta NO es un repo git: parece una copia incompleta"
+        warn "vuelve a traerlo con: git clone https://github.com/nazts/EnpowerSolarEdeFacturas.git ~/enpower"
+    fi
+    warn "si el .env real esta en Windows, copialo con:"
+    warn "  cp \"/mnt/c/Users/<usuario>/Documents/EnpowerSolarEdeFacturas/.env.produccion\" \"$RAIZ/.env\""
 fi
 
 # el .env tiene credenciales: solo el dueño lo lee
@@ -175,7 +224,20 @@ fi
 
 if ! grep -qE '^DATABASE_URL=postgres' .env; then
     if [[ $CREDENCIALES_COMPLETAS -eq 0 ]]; then
-        fail "el .env vino de .env.example: faltan las credenciales. Copia el .env.produccion del servidor y vuelve a correr."
+        cat <<FIN
+
+   El .env existe pero esta vacio: faltan las credenciales (Edenorte, Edesur,
+   Telegram y DATABASE_URL de Supabase).
+
+   Que hacer:
+     1. consigue el .env.produccion de quien administra el sistema hoy
+     2. copialo a esta carpeta como .env (reemplaza el vacio):
+          cp /ruta/al/.env.produccion "$RAIZ/.env"
+          chmod 600 "$RAIZ/.env"
+     3. vuelve a correr este instalador
+
+FIN
+        fail "faltan las credenciales en el .env"
     fi
     warn "DATABASE_URL vacio: se usara SQLite local (produccion espera Supabase)"
 fi
