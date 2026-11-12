@@ -34,11 +34,30 @@ def _binario() -> str:
 
 
 def texto_pdf(path: str | Path) -> str:
+    """Texto del PDF tal cual (el archivo no se modifica).
+
+    Ojo con el encoding: pdftotext en Linux/WSL escupe UTF-8 y en Windows latin-1.
+    Decodificar siempre como latin-1 rompia los acentos ("Días" -> "DÃ­as") y con
+    eso se perdian la fecha de corte y el periodo facturado.
+    """
     salida = subprocess.run(
-        [_binario(), "-layout", str(path), "-"],
+        [_binario(), "-layout", "-enc", "UTF-8", str(path), "-"],
         capture_output=True, check=True,
     )
-    return salida.stdout.decode("latin-1", errors="replace")
+    for codec in ("utf-8", "cp1252", "latin-1"):
+        try:
+            return salida.stdout.decode(codec)
+        except UnicodeDecodeError:
+            continue
+    return salida.stdout.decode("utf-8", errors="replace")
+
+
+def _sin_acentos(texto: str) -> str:
+    """Copia sin tildes, solo para comparar etiquetas (no se usa para guardar)."""
+    import unicodedata
+
+    return "".join(c for c in unicodedata.normalize("NFKD", texto)
+                   if not unicodedata.combining(c))
 
 
 def _num(valor: str | None) -> float | None:
@@ -96,13 +115,22 @@ def parsear(texto: str) -> DatosFactura:
     if m:
         d.titular = re.sub(r"\s+", " ", m.group(1)).strip()
 
-    m = re.search(r"No\. De D[ií]as Facturados\s*:\s*(\d{2}/\d{2}/\d{4})\s*-\s*"
-                  r"(\d{2}/\d{2}/\d{4})\s*=\s*(\d+)\s*d", plano)
+    # Periodo facturado: "No. De Dias Facturados : 20/09/2026 - 20/10/2026 = 30 dias"
+    # El fin del periodo ES la fecha de corte. Se busca sobre una copia sin tildes
+    # porque segun la plataforma el texto llega como "Días" o como "DÃ­as".
+    plano_n = _sin_acentos(plano)
+    pareja = r"(\d{1,2}/\d{1,2}/\d{4})\s*(?:-|–|—|al?)\s*(\d{1,2}/\d{1,2}/\d{4})"
+    m = re.search(r"D.{0,4}as\s+Facturados[^\d]{0,20}" + pareja + r"(?:\s*=?\s*(\d+)\s*d)?",
+                  plano_n)
+    if not m:
+        # otras variantes: "PERIODO FACTURADO 20/09/2026 al 20/10/2026"
+        m = re.search(r"PERIODO\s+(?:DE\s+)?FACTURACION[^\d]{0,20}" + pareja, plano_n)
     if m:
         d.periodo_ini = _fecha(m.group(1))
         d.periodo_fin = _fecha(m.group(2))
         d.corte = _fecha(m.group(2))
-        d.dias = int(m.group(3))
+        if m.lastindex and m.lastindex >= 3 and m.group(3):
+            d.dias = int(m.group(3))
 
     m = re.search(r"FECHA EMISION\.*:?\s*(\d{2}/\d{2}/\d{4})", plano)
     if m:
@@ -138,6 +166,10 @@ def parsear(texto: str) -> DatosFactura:
         m = re.search(r"\*(\d{10})\d{11}([\d]+\.\d{2})\*", plano)
         if m:
             d.facturado = _num(m.group(2))
+
+    # red de seguridad: si no aparecio la etiqueta, el corte es el fin del periodo
+    if not d.corte and d.periodo_fin:
+        d.corte = d.periodo_fin
 
     m = re.search(r"TARIFA\.*:?\s*([A-Z0-9\-]+)", plano)
     if m:
