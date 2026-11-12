@@ -69,6 +69,10 @@ def leer_token(token: str | None) -> int | None:
 
 
 # -------------------------------------------------------------------- usuarios
+ROLES = ("admin", "soporte", "asesor")
+ROLES_OPERADOR = ("admin", "soporte")   # pueden correr descargas / exportar
+
+
 @dataclass
 class Usuario:
     id: int
@@ -80,6 +84,15 @@ class Usuario:
     @property
     def es_admin(self) -> bool:
         return self.rol == "admin"
+
+    @property
+    def es_soporte(self) -> bool:
+        return self.rol == "soporte"
+
+    @property
+    def puede_operar(self) -> bool:
+        """admin y soporte pueden lanzar corridas y exportar; el asesor no."""
+        return self.rol in ROLES_OPERADOR
 
 
 def crear_usuario(conn: sqlite3.Connection, usuario: str, password: str,

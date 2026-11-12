@@ -86,7 +86,9 @@
               <td data-label="Nombre">{{ u.nombre or "—" }}</td>
               <td data-label="Rol">
                 {% if u.rol == 'admin' %}<span class="pill info">administrador</span>
+                {% elif u.rol == 'soporte' %}<span class="pill info">soporte</span>
                 {% else %}<span class="pill">asesor</span>{% endif %}
+                {% if admin_principal and u.usuario == admin_principal %}<span class="pill ok">principal</span>{% endif %}
               </td>
               <td data-label="Estado">
                 {% if u.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}
@@ -137,10 +139,16 @@
             <label for="rol">Rol</label>
             <select id="rol" name="rol">
               <option value="asesor">Asesor</option>
+              <option value="soporte">Soporte</option>
               <option value="admin">Administrador</option>
             </select>
           </div>
         </div>
+        <p class="muted" style="margin:12px 0 0;font-size:.86rem">
+          <b>Asesor:</b> consulta clientes y facturas. &nbsp;·&nbsp;
+          <b>Soporte:</b> además puede correr la descarga, guardar histórico y exportar. &nbsp;·&nbsp;
+          <b>Administrador:</b> todo, incluidos usuarios y borrados.
+        </p>
         <p style="margin:16px 0 0"><button class="btn primario" type="submit">Crear usuario</button></p>
       </form>
     </div>

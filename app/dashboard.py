@@ -91,6 +91,21 @@ def requiere_admin(request: Request) -> None:
         raise HTTPException(403, "Solo un administrador puede hacer esta acción")
 
 
+def es_admin_principal(nombre_usuario: str) -> bool:
+    """El admin del .env (ADMIN_USER) manda: nadie mas lo puede tocar."""
+    principal = (config.ADMIN_USER or "").strip().lower()
+    return bool(principal) and nombre_usuario.strip().lower() == principal
+
+
+def requiere_operador(request: Request) -> None:
+    """Para lanzar corridas, sincronizar historico y exportar: admin o soporte."""
+    usuario = usuario_actual(request)
+    if not usuario:
+        raise HTTPException(401, "Sesión no iniciada")
+    if not usuario.puede_operar:
+        raise HTTPException(403, "Hace falta rol soporte o administrador")
+
+
 def usuario_actual(request: Request) -> auth.Usuario | None:
     if getattr(request.state, "usuario", None):
         return request.state.usuario
@@ -209,6 +224,7 @@ def usuarios_page(request: Request):
         lista = [dict(u) for u in auth.listar_usuarios(conn)]
     return templates.TemplateResponse(request, "usuarios.html",
                                       {"activo": "usuarios", "usuarios": lista,
+                                       "admin_principal": (config.ADMIN_USER or "").strip().lower(),
                                        "usuario": usuario})
 
 
@@ -238,11 +254,13 @@ def usuarios_crear(request: Request, usuario_nuevo: str = Form(...),
         raise HTTPException(403, "Solo un administrador puede crear usuarios")
     if len(password) < 8:
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
-    if rol not in ("admin", "asesor"):
-        raise HTTPException(400, "Rol no válido (admin o asesor)")
+    if rol not in auth.ROLES:
+        raise HTTPException(400, f"Rol no válido ({', '.join(auth.ROLES)})")
     nombre_usuario = usuario_nuevo.strip().lower()
     if not re.fullmatch(r"[a-z0-9._-]{3,32}", nombre_usuario):
         raise HTTPException(400, "El usuario debe tener 3-32 caracteres: letras, números, . _ -")
+    if es_admin_principal(nombre_usuario):
+        raise HTTPException(400, "Ese nombre está reservado para el administrador principal")
     with db.sesion() as conn:
         if auth.existe_usuario(conn, nombre_usuario):
             raise HTTPException(409, "Ese usuario ya existe")
@@ -259,6 +277,12 @@ def usuarios_password(request: Request, usuario_id: int, password: str = Form(..
     if len(password) < 8:
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
     with db.sesion() as conn:
+        objetivo = conn.execute("SELECT usuario FROM usuarios WHERE id = ?",
+                                (usuario_id,)).fetchone()
+        if not objetivo:
+            raise HTTPException(404, "Usuario no encontrado")
+        if es_admin_principal(objetivo["usuario"]):
+            raise HTTPException(400, "La clave del administrador principal solo la cambia él mismo")
         auth.cambiar_password(conn, usuario_id, password)
         db.log_evento(conn, "aviso", f"Contraseña cambiada por {actual.usuario}",
                       f"usuario_id={usuario_id}")
@@ -273,6 +297,12 @@ def usuarios_estado(request: Request, usuario_id: int, activo: str = Form(...)):
     if usuario_id == actual.id:
         raise HTTPException(400, "No puedes desactivar tu propio usuario")
     with db.sesion() as conn:
+        objetivo = conn.execute("SELECT usuario FROM usuarios WHERE id = ?",
+                                (usuario_id,)).fetchone()
+        if not objetivo:
+            raise HTTPException(404, "Usuario no encontrado")
+        if es_admin_principal(objetivo["usuario"]):
+            raise HTTPException(400, "El administrador principal no se puede desactivar")
         conn.execute("UPDATE usuarios SET activo = ? WHERE id = ?",
                      (1 if activo == "1" else 0, usuario_id))
         conn.commit()
@@ -448,7 +478,7 @@ def api_estado() -> JSONResponse:
 
 @app.post("/api/test-telegram")
 def api_test_telegram(request: Request) -> JSONResponse:
-    requiere_admin(request)
+    requiere_operador(request)
     try:
         telegram.enviar_mensaje("✅ Prueba de conexión del bot Enpower Solar.")
         return JSONResponse({"ok": True})
@@ -489,7 +519,7 @@ def telegram_page(request: Request):
 
 @app.post("/api/telegram/detectar")
 def api_telegram_detectar(request: Request) -> JSONResponse:
-    requiere_admin(request)
+    requiere_operador(request)
     """Busca el canal/grupo donde está el bot y guarda su chat_id."""
     try:
         chat_id = telegram.resolver_chat_id(config.TELEGRAM_CHAT_ID or None)
@@ -503,7 +533,7 @@ def api_telegram_detectar(request: Request) -> JSONResponse:
 
 @app.post("/api/telegram/chat")
 def api_telegram_chat(request: Request, chat_id: str = Form(...)) -> JSONResponse:
-    requiere_admin(request)
+    requiere_operador(request)
     chat_id = chat_id.strip()
     if not chat_id:
         return JSONResponse({"ok": False, "error": "chat_id vacío"}, status_code=400)
@@ -513,7 +543,7 @@ def api_telegram_chat(request: Request, chat_id: str = Form(...)) -> JSONRespons
 
 @app.post("/api/corrida")
 def api_corrida(request: Request, fecha: str | None = Form(default=None)) -> JSONResponse:
-    requiere_admin(request)
+    requiere_operador(request)
     from .runner import corrida
     f = datetime.strptime(fecha, "%Y-%m-%d").date() if fecha else None
     try:
@@ -526,7 +556,7 @@ def api_corrida(request: Request, fecha: str | None = Form(default=None)) -> JSO
 @app.post("/api/historial")
 def api_historial(request: Request, nic: str = Form(default=""),
                   enviar: str = Form(default="1")) -> JSONResponse:
-    requiere_admin(request)
+    requiere_operador(request)
     """Guarda las ultimas facturas (de todos los clientes o de uno) y envia."""
     from .runner import sincronizar_historial
     try:
@@ -541,7 +571,7 @@ def api_historial(request: Request, nic: str = Form(default=""),
 
 @app.get("/export/excel")
 def exportar_excel(request: Request):
-    requiere_admin(request)
+    requiere_operador(request)
     ruta = excel.exportar()
     return FileResponse(
         ruta, filename=Path(ruta).name,

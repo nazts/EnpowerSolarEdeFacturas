@@ -27,3 +27,6 @@ logs/
 .env.respaldo-*
 # copia local de la config de red de WSL
 .wslconfig
+
+# claves entregadas a cada persona
+credenciales_usuarios.txt
