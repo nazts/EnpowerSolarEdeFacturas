@@ -135,6 +135,7 @@
     <div class="marca-txt">Enpower Solar<small>Panel de facturas</small></div>
   </div>
   <nav>
+    {% set uu = request.state.usuario if request and request.state else None %}
     <div class="grupo">General</div>
     <a class="item{% if activo == 'panel' %} activo{% endif %}" href="/" title="Panel"{% if activo == 'panel' %} aria-current="page"{% endif %}>
       <i class="bi bi-grid-1x2-fill" aria-hidden="true"></i><span>Panel</span></a>
@@ -144,18 +145,21 @@
     <div class="grupo">Módulos</div>
     <a class="item{% if activo == 'clientes' %} activo{% endif %}" href="/clientes" title="Clientes agregados"{% if activo == 'clientes' %} aria-current="page"{% endif %}>
       <i class="bi bi-people-fill" aria-hidden="true"></i><span>Clientes agregados</span></a>
+    {% if uu and uu.puede_operar %}
     <a class="item{% if activo == 'cliente_nuevo' %} activo{% endif %}" href="/clientes/nuevo" title="Nuevo cliente"{% if activo == 'cliente_nuevo' %} aria-current="page"{% endif %}>
       <i class="bi bi-person-plus-fill" aria-hidden="true"></i><span>Nuevo cliente</span></a>
+    {% endif %}
     <a class="item{% if activo == 'mapa' %} activo{% endif %}" href="/mapa" title="Mapa de clientes"{% if activo == 'mapa' %} aria-current="page"{% endif %}>
       <i class="bi bi-geo-alt-fill" aria-hidden="true"></i><span>Mapa</span></a>
 
     <div class="grupo">Configuración</div>
     <a class="item{% if activo == 'telegram' %} activo{% endif %}" href="/telegram" title="Conexión Telegram"{% if activo == 'telegram' %} aria-current="page"{% endif %}>
       <i class="bi bi-telegram" aria-hidden="true"></i><span>Conexión Telegram</span></a>
-    {% set uu = request.state.usuario if request and request.state else None %}
     {% if uu and uu.es_admin %}
     <a class="item{% if activo == 'usuarios' %} activo{% endif %}" href="/usuarios" title="Usuarios"{% if activo == 'usuarios' %} aria-current="page"{% endif %}>
       <i class="bi bi-person-gear" aria-hidden="true"></i><span>Usuarios</span></a>
+    <a class="item{% if activo == 'eventos' %} activo{% endif %}" href="/eventos" title="Actividad de los usuarios"{% if activo == 'eventos' %} aria-current="page"{% endif %}>
+      <i class="bi bi-journal-text" aria-hidden="true"></i><span>Actividad</span></a>
     {% endif %}
 
     <div class="grupo">Acciones</div>
@@ -174,7 +178,7 @@
     <div class="usuario">
       <div class="avatar">{{ (u.nombre or u.usuario)[:2]|upper if u else "ES" }}</div>
       <div class="usuario-txt">{{ u.nombre or u.usuario if u else "Enpower Solar" }}
-        <small>{{ "Administrador" if u and u.es_admin else ("Asesor" if u else "") }}</small>
+        <small>{% if u %}{% if u.es_admin %}Administrador{% elif u.es_soporte %}Soporte{% else %}Asesor{% endif %}{% endif %}</small>
       </div>
     </div>
     {% if u %}

@@ -28,6 +28,17 @@ cd "C:\Users\Luis Martinez\Documents\proyectosGithub\EnpowerSolarEdeFacturas"
 
 Luego abre `http://127.0.0.1:8000` e inicia sesión. Para detenerlo: `Ctrl+C`.
 
+### Roles
+
+| Rol | Puede |
+|---|---|
+| **asesor** | consultar clientes, facturas y mapa |
+| **soporte** | además: agregar y editar clientes, correr la descarga, guardar histórico, exportar Excel |
+| **admin** | todo, incluidos usuarios, borrados y el registro de **Actividad** (`/eventos`) |
+
+El administrador principal es el `ADMIN_USER` del `.env`: nadie más lo desactiva ni
+le cambia la clave. Cada movimiento queda registrado con el usuario que lo hizo.
+
 ### Instalación automática
 
 Windows (crea el venv, el `.env`, la base y las tareas programadas):

@@ -143,7 +143,13 @@ async def exigir_sesion(request: Request, call_next):
             return JSONResponse({"ok": False, "error": "Sesión no iniciada"}, status_code=401)
         destino = quote(ruta + (("?" + request.url.query) if request.url.query else ""))
         return RedirectResponse(f"/login?next={destino}", status_code=303)
-    respuesta = await call_next(request)
+
+    # para que log_evento sepa quien hizo cada movimiento
+    marca = db.usuario_en_curso.set(usuario.usuario)
+    try:
+        respuesta = await call_next(request)
+    finally:
+        db.usuario_en_curso.reset(marca)
     return _con_cabeceras(respuesta)
 
 
@@ -180,15 +186,18 @@ def login(request: Request, usuario: str = Form(...), password: str = Form(...),
     clave = request.client.host if request.client else "?"
     if _demasiados_intentos(clave) or _demasiados_intentos("u:" + usuario.strip().lower()):
         with db.sesion() as conn:
-            db.log_evento(conn, "aviso", "Demasiados intentos de acceso", clave)
+            db.log_evento(conn, "aviso", "Demasiados intentos de acceso", clave,
+                          usuario="(bloqueado)")
         raise HTTPException(429, "Demasiados intentos. Espera unos minutos.")
     with db.sesion() as conn:
         encontrado = auth.autenticar(conn, usuario, password)
         if encontrado:
             auth.marcar_acceso(conn, encontrado.id)
-            db.log_evento(conn, "info", f"Acceso de {encontrado.usuario}")
+            db.log_evento(conn, "info", f"Acceso de {encontrado.usuario}",
+                          usuario=encontrado.usuario)
         else:
-            db.log_evento(conn, "aviso", f"Intento de acceso fallido: {usuario[:40]}")
+            db.log_evento(conn, "aviso", f"Intento de acceso fallido: {usuario[:40]}",
+                          usuario=usuario[:40])
             _anotar_fallo(clave)
             _anotar_fallo("u:" + usuario.strip().lower())
     if not encontrado:
@@ -207,7 +216,12 @@ def login(request: Request, usuario: str = Form(...), password: str = Form(...),
 
 
 @app.get("/logout")
-def logout():
+def logout(request: Request):
+    usuario = usuario_actual(request)
+    if usuario:
+        with db.sesion() as conn:
+            db.log_evento(conn, "info", f"{usuario.usuario} cerró sesión",
+                          usuario=usuario.usuario)
     respuesta = RedirectResponse("/login", status_code=303)
     respuesta.delete_cookie(COOKIE)
     return respuesta
@@ -226,6 +240,27 @@ def usuarios_page(request: Request):
                                       {"activo": "usuarios", "usuarios": lista,
                                        "admin_principal": (config.ADMIN_USER or "").strip().lower(),
                                        "usuario": usuario})
+
+
+@app.get("/eventos")
+def eventos_page(request: Request, usuario: str = "", texto: str = "", nivel: str = "",
+                 pagina: int = 1):
+    """Registro de movimientos de todos los usuarios (solo administradores)."""
+    requiere_admin(request)
+    por_pagina = 100
+    pagina = max(1, pagina)
+    with db.sesion() as conn:
+        total = db.contar_eventos(conn, usuario=usuario, texto=texto, nivel=nivel)
+        filas = db.eventos_pagina(conn, usuario=usuario, texto=texto, nivel=nivel,
+                                  limite=por_pagina, offset=(pagina - 1) * por_pagina)
+        usuarios = db.usuarios_de_eventos(conn)
+    paginas = max(1, (total + por_pagina - 1) // por_pagina)
+    return templates.TemplateResponse(request, "eventos.html",
+                                      {"activo": "eventos", "eventos": filas,
+                                       "usuarios": usuarios, "total": total,
+                                       "pagina": pagina, "paginas": paginas,
+                                       "f_usuario": usuario, "f_texto": texto,
+                                       "f_nivel": nivel})
 
 
 @app.post("/mi-clave")
@@ -310,12 +345,13 @@ def usuarios_estado(request: Request, usuario_id: int, activo: str = Form(...)):
 
 
 @app.post("/clientes/{nic}/proyectos")
-def proyectos_crear(nic: str, nombre: str = Form(default=""),
+def proyectos_crear(request: Request, nic: str, nombre: str = Form(default=""),
                     paneles: str = Form(default=""), capacidad_instalada: str = Form(default=""),
                     inversores: str = Form(default=""), bateria: str = Form(default=""),
                     capacidad_bateria: str = Form(default=""),
                     fecha_instalacion: str = Form(default=""), asesor: str = Form(default=""),
                     notas: str = Form(default="")):
+    requiere_operador(request)
     with db.sesion() as conn:
         if db.obtener_contrato(conn, nic) is None:
             raise HTTPException(404, "Ese NIC no está registrado")
@@ -594,6 +630,7 @@ def clientes(request: Request):
 
 @app.get("/clientes/nuevo")
 def cliente_nuevo(request: Request):
+    requiere_operador(request)
     from .proveedores import NOMBRES
     return templates.TemplateResponse(request, "cliente_nuevo.html",
                                       {"activo": "cliente_nuevo",
@@ -601,7 +638,7 @@ def cliente_nuevo(request: Request):
 
 
 @app.post("/clientes")
-def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
+def crear_cliente(request: Request, nic: str = Form(...), razon_social: str = Form(default=""),
                   proveedor: str = Form(default="edenorte"),
                   referencia: str = Form(default=""),
                   alias: str = Form(default=""), asesor: str = Form(default=""),
@@ -612,6 +649,7 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
                   potencia_paneles: str = Form(default=""), inversores: str = Form(default=""),
                   bateria: str = Form(default=""), capacidad_bateria: str = Form(default=""),
                   fecha_instalacion: str = Form(default="")):
+    requiere_operador(request)
     nic = nic.strip()
     if not nic.isdigit():
         raise HTTPException(400, "El NIC debe ser numérico")
@@ -680,7 +718,7 @@ def crear_cliente(nic: str = Form(...), razon_social: str = Form(default=""),
 
 
 @app.post("/clientes/{nic}/equipo")
-def guardar_equipo(nic: str, direccion: str = Form(default=""),
+def guardar_equipo(request: Request, nic: str, direccion: str = Form(default=""),
                    telefono: str = Form(default=""), latitud: str = Form(default=""),
                    longitud: str = Form(default=""), paneles: str = Form(default=""),
                    potencia_paneles: str = Form(default=""),
@@ -688,6 +726,7 @@ def guardar_equipo(nic: str, direccion: str = Form(default=""),
                    capacidad_bateria: str = Form(default=""),
                    fecha_instalacion: str = Form(default="")):
     """Guarda ubicacion y equipo desde la ficha del cliente (reemplaza valores)."""
+    requiere_operador(request)
     with db.sesion() as conn:
         if db.obtener_contrato(conn, nic) is None:
             raise HTTPException(404, "Ese NIC no está registrado")
@@ -707,7 +746,7 @@ def guardar_equipo(nic: str, direccion: str = Form(default=""),
 @app.get("/clientes/{nic}/editar")
 def cliente_editar(request: Request, nic: str):
     """Ficha completa editable del cliente (solo administradores)."""
-    requiere_admin(request)
+    requiere_operador(request)
     with db.sesion() as conn:
         contrato = db.obtener_contrato(conn, nic)
     if contrato is None:
@@ -739,7 +778,7 @@ def cliente_editar_guardar(request: Request, nic: str,
                            fecha_instalacion: str = Form(default=""),
                            activo: str = Form(default="1")):
     """Guarda la ficha completa: lo que venga vacio se guarda vacio."""
-    requiere_admin(request)
+    requiere_operador(request)
     proveedor = (proveedor or "edenorte").strip().lower()
     if proveedor not in ("edenorte", "edesur"):
         raise HTTPException(400, "Distribuidora no válida")
@@ -812,9 +851,10 @@ def inicio(request: Request):
 
 
 @app.post("/contratos")
-def crear_contrato(nic: str = Form(...), razon_social: str = Form(default=""),
+def crear_contrato(request: Request, nic: str = Form(...), razon_social: str = Form(default=""),
                    alias: str = Form(default=""), asesor: str = Form(default=""),
                    dia_corte: str = Form(default=""), notas: str = Form(default="")):
+    requiere_operador(request)
     nic = nic.strip()
     if not nic.isdigit():
         raise HTTPException(400, "El NIC debe ser numérico")
@@ -838,7 +878,7 @@ def editar_contrato(request: Request, nic: str, razon_social: str = Form(default
                     potencia_paneles: str = Form(default=""), inversores: str = Form(default=""),
                     bateria: str = Form(default=""), capacidad_bateria: str = Form(default=""),
                     fecha_instalacion: str = Form(default="")):
-    requiere_admin(request)
+    requiere_operador(request)
     with db.sesion() as conn:
         db.actualizar_contrato(conn, nic, {
             "razon_social": razon_social.strip(), "alias": alias.strip(),

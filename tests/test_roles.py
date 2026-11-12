@@ -175,3 +175,139 @@ def test_asesor_no_crea_usuarios():
                                  password="ClaveSegura123", nombre="Colado",
                                  rol="admin")
     assert exc.value.status_code == 403
+
+
+# ------------------------------------------- soporte tambien opera con clientes
+def test_soporte_puede_abrir_el_alta_de_cliente(monkeypatch):
+    _crear("soporte1", "soporte")
+    dashboard.cliente_nuevo(Peticion(_usuario("soporte1")))      # no lanza
+
+
+def test_asesor_no_abre_el_alta_de_cliente():
+    _crear("asesor1", "asesor")
+    with pytest.raises(HTTPException) as exc:
+        dashboard.cliente_nuevo(Peticion(_usuario("asesor1")))
+    assert exc.value.status_code == 403
+
+
+def test_soporte_crea_un_cliente(monkeypatch):
+    from app import runner
+
+    # el alta dispara una descarga en segundo plano: aqui no hace falta
+    monkeypatch.setattr(runner, "sincronizar_historial", lambda **kw: {"ok": True})
+    _crear("soporte1", "soporte")
+
+    # el middleware del panel deja el usuario en el contextvar: se simula aqui
+    marca = db.usuario_en_curso.set("soporte1")
+    try:
+        respuesta = dashboard.crear_cliente(Peticion(_usuario("soporte1")), nic="8877665",
+                                           razon_social="PRUEBA SOPORTE", proveedor="edenorte",
+                                           referencia="", alias="", asesor="", dia_corte="",
+                                           notas="", direccion="", telefono="", latitud="",
+                                           longitud="", paneles="", potencia_paneles="",
+                                           inversores="", bateria="", capacidad_bateria="",
+                                           fecha_instalacion="")
+    finally:
+        db.usuario_en_curso.reset(marca)
+    assert respuesta.status_code == 303
+    with db.sesion() as conn:
+        assert db.obtener_contrato(conn, "8877665") is not None
+        quien = conn.execute("SELECT usuario FROM eventos WHERE mensaje LIKE '%8877665%'"
+                             ).fetchone()["usuario"]
+    assert quien == "soporte1"
+
+
+def test_asesor_no_crea_clientes():
+    _crear("asesor1", "asesor")
+    with pytest.raises(HTTPException) as exc:
+        dashboard.crear_cliente(Peticion(_usuario("asesor1")), nic="1122334",
+                                razon_social="X", proveedor="edenorte", referencia="",
+                                alias="", asesor="", dia_corte="", notas="", direccion="",
+                                telefono="", latitud="", longitud="", paneles="",
+                                potencia_paneles="", inversores="", bateria="",
+                                capacidad_bateria="", fecha_instalacion="")
+    assert exc.value.status_code == 403
+
+
+def test_soporte_edita_la_ficha_y_el_equipo(monkeypatch):
+    from app import runner
+    monkeypatch.setattr(runner, "sincronizar_historial", lambda **kw: {"ok": True})
+    _crear("soporte1", "soporte")
+    with db.sesion() as conn:
+        db.upsert_contrato(conn, "5550001", razon_social="CLIENTE PRUEBA")
+
+    peticion = Peticion(_usuario("soporte1"))
+    assert dashboard.cliente_editar(peticion, "5550001").status_code == 200
+
+    respuesta = dashboard.guardar_equipo(peticion, "5550001", direccion="Calle 1",
+                                         telefono="809-000-0000", latitud="", longitud="",
+                                         paneles="12", potencia_paneles="",
+                                         inversores="", bateria="", capacidad_bateria="",
+                                         fecha_instalacion="")
+    assert respuesta.status_code == 303
+    with db.sesion() as conn:
+        assert db.obtener_contrato(conn, "5550001")["direccion"] == "Calle 1"
+
+
+def test_asesor_no_edita_la_ficha():
+    _crear("asesor1", "asesor")
+    with db.sesion() as conn:
+        db.upsert_contrato(conn, "5550002", razon_social="OTRO")
+    with pytest.raises(HTTPException) as exc:
+        dashboard.cliente_editar(Peticion(_usuario("asesor1")), "5550002")
+    assert exc.value.status_code == 403
+
+
+# ------------------------------------------------------- registro de actividad
+def test_log_evento_guarda_quien_lo_hizo():
+    marca = db.usuario_en_curso.set("soporte2")
+    try:
+        with db.sesion() as conn:
+            db.log_evento(conn, "info", "Prueba de auditoria")
+    finally:
+        db.usuario_en_curso.reset(marca)
+
+    with db.sesion() as conn:
+        fila = conn.execute("SELECT usuario FROM eventos WHERE mensaje = 'Prueba de auditoria'"
+                            ).fetchone()
+    assert fila["usuario"] == "soporte2"
+
+
+def test_log_evento_acepta_usuario_explicito():
+    with db.sesion() as conn:
+        db.log_evento(conn, "info", "Prueba con nombre", usuario="admin3")
+    with db.sesion() as conn:
+        assert conn.execute("SELECT usuario FROM eventos WHERE mensaje = 'Prueba con nombre'"
+                            ).fetchone()["usuario"] == "admin3"
+
+
+def test_actividad_filtra_y_pagina():
+    with db.sesion() as conn:
+        db.log_evento(conn, "info", "Alta de cliente 123", usuario="soporte1")
+        db.log_evento(conn, "aviso", "Fallo al descargar", usuario="enpower")
+        db.log_evento(conn, "info", "Alta de cliente 456", usuario="soporte1")
+
+        todos = db.contar_eventos(conn)
+        assert todos >= 3
+
+        assert db.contar_eventos(conn, usuario="soporte1") == 2
+        de_soporte = db.eventos_pagina(conn, usuario="soporte1")
+        assert [e["mensaje"] for e in de_soporte] == ["Alta de cliente 456", "Alta de cliente 123"]
+
+        # el mas nuevo primero y el limite respeta el offset
+        primera = db.eventos_pagina(conn, limite=1)
+        segunda = db.eventos_pagina(conn, limite=1, offset=1)
+        assert primera[0]["id"] > segunda[0]["id"]
+
+        assert db.contar_eventos(conn, texto="456") == 1
+        assert db.contar_eventos(conn, nivel="aviso") == 1
+        assert "soporte1" in db.usuarios_de_eventos(conn)
+
+
+def test_solo_admin_ve_la_actividad():
+    _crear("soporte1", "soporte")
+    with pytest.raises(HTTPException) as soporte:
+        dashboard.requiere_admin(Peticion(_usuario("soporte1")))
+    assert soporte.value.status_code == 403
+
+    dashboard.requiere_admin(Peticion(_usuario("principal", "ClavePrincipal123")))

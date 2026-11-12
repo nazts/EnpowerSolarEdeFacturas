@@ -110,10 +110,14 @@ CREATE TABLE IF NOT EXISTS eventos (
     fecha   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     nivel   TEXT NOT NULL,
     mensaje TEXT NOT NULL,
-    detalle TEXT NOT NULL DEFAULT ''
+    detalle TEXT NOT NULL DEFAULT '',
+    usuario TEXT NOT NULL DEFAULT ''
 );
 
 -- Columnas que se agregaron despues (bases ya creadas)
 ALTER TABLE facturas ADD COLUMN IF NOT EXISTS tg_file_id    TEXT;
 ALTER TABLE facturas ADD COLUMN IF NOT EXISTS tg_message_id TEXT;
 ALTER TABLE contratos ADD COLUMN IF NOT EXISTS proveedor TEXT NOT NULL DEFAULT 'edenorte';
+
+-- quien hizo cada movimiento (panel de actividad)
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS usuario TEXT NOT NULL DEFAULT '';

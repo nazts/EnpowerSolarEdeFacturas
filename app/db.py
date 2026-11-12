@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import sqlite3
+from contextvars import ContextVar
 from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
 from typing import Iterator
 
 from . import config, pg
+
+# quien esta haciendo la peticion (lo pone el middleware del panel)
+usuario_en_curso: ContextVar[str] = ContextVar("usuario_en_curso", default="")
 from .naming import normalizar_razon_social
 
 SCHEMA = """
@@ -108,7 +112,8 @@ CREATE TABLE IF NOT EXISTS eventos (
     fecha      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     nivel      TEXT NOT NULL,
     mensaje    TEXT NOT NULL,
-    detalle    TEXT NOT NULL DEFAULT ''
+    detalle    TEXT NOT NULL DEFAULT '',
+    usuario    TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -145,6 +150,10 @@ def migrar(conn: sqlite3.Connection) -> None:
                 pass
         conn.commit()
         return
+    columnas_eventos = {r[1] for r in conn.execute("PRAGMA table_info(eventos)")}
+    if "usuario" not in columnas_eventos:
+        conn.execute("ALTER TABLE eventos ADD COLUMN usuario TEXT NOT NULL DEFAULT ''")
+        conn.commit()
     existentes = {r[1] for r in conn.execute("PRAGMA table_info(contratos)")}
     for nombre, tipo in COLUMNAS_NUEVAS.items():
         if nombre not in existentes:
@@ -545,10 +554,55 @@ def pendientes_abiertos(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 # --------------------------------------------------------------------- eventos
-def log_evento(conn: sqlite3.Connection, nivel: str, mensaje: str, detalle: str = "") -> None:
-    conn.execute("INSERT INTO eventos (nivel, mensaje, detalle) VALUES (?,?,?)",
-                 (nivel, mensaje, detalle))
+def log_evento(conn: sqlite3.Connection, nivel: str, mensaje: str, detalle: str = "",
+               usuario: str | None = None) -> None:
+    """Anota un movimiento. Sin `usuario` se usa el de la peticion en curso."""
+    quien = usuario if usuario is not None else usuario_en_curso.get()
+    conn.execute("INSERT INTO eventos (nivel, mensaje, detalle, usuario) VALUES (?,?,?,?)",
+                 (nivel, mensaje, detalle, (quien or "")[:60]))
     conn.commit()
+
+
+def eventos_pagina(conn: sqlite3.Connection, usuario: str = "", texto: str = "",
+                   nivel: str = "", limite: int = 100, offset: int = 0) -> list[sqlite3.Row]:
+    """Movimientos filtrados, del mas nuevo al mas viejo."""
+    sql = "SELECT id, fecha, nivel, mensaje, detalle, usuario FROM eventos WHERE 1=1"
+    params: list = []
+    if usuario:
+        sql += " AND usuario = ?"
+        params.append(usuario)
+    if nivel:
+        sql += " AND nivel = ?"
+        params.append(nivel)
+    if texto:
+        sql += " AND (mensaje LIKE ? OR detalle LIKE ?)"
+        params += [f"%{texto}%", f"%{texto}%"]
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params += [limite, offset]
+    return conn.execute(sql, params).fetchall()
+
+
+def contar_eventos(conn: sqlite3.Connection, usuario: str = "", texto: str = "",
+                   nivel: str = "") -> int:
+    sql = "SELECT COUNT(*) AS n FROM eventos WHERE 1=1"
+    params: list = []
+    if usuario:
+        sql += " AND usuario = ?"
+        params.append(usuario)
+    if nivel:
+        sql += " AND nivel = ?"
+        params.append(nivel)
+    if texto:
+        sql += " AND (mensaje LIKE ? OR detalle LIKE ?)"
+        params += [f"%{texto}%", f"%{texto}%"]
+    return conn.execute(sql, params).fetchone()["n"]
+
+
+def usuarios_de_eventos(conn: sqlite3.Connection) -> list[str]:
+    filas = conn.execute(
+        "SELECT usuario, COUNT(*) AS n FROM eventos WHERE usuario <> '' "
+        "GROUP BY usuario ORDER BY n DESC").fetchall()
+    return [f["usuario"] for f in filas]
 
 
 def ultimos_eventos(conn: sqlite3.Connection, limite: int = 50) -> list[sqlite3.Row]:

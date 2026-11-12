@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block titulo %}Actividad · Enpower Solar{% endblock %}
+{% block estilos %}
+<style>
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:16px}
+  section > h2{margin:0;padding:14px 18px;font-size:14px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .cuerpo{padding:18px}
+  .tabla-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.6px;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--hover)}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+    background:var(--card2);color:var(--muted);white-space:nowrap}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  .pill.info{background:var(--info-bg);color:var(--info)}
+  .quien{font-weight:600}
+  .detalle{color:var(--muted);font-size:12.5px;display:block;margin-top:2px;word-break:break-word}
+  .fecha{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+  .btn{font:inherit;font-size:13px;padding:8px 12px;border-radius:9px;cursor:pointer;
+    border:1px solid var(--line);background:var(--card2);color:var(--txt);text-decoration:none;
+    display:inline-block}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primario{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  .filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+  label{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.6px;margin-bottom:5px}
+  input,select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--txt);font:inherit;min-height:40px}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
+  .paginacion{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:12px 18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+  @media(max-width:700px){
+    table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
+    table.cards thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    table.cards tr{padding:10px 14px;border-bottom:1px solid var(--line)}
+    table.cards td{border:0;padding:4px 0;display:flex;gap:12px;justify-content:space-between;text-align:right}
+    table.cards td::before{content:attr(data-label);color:var(--muted);font-size:11.5px;
+      text-transform:uppercase;letter-spacing:.6px}
+  }
+</style>
+{% endblock %}
+{% block contenido %}
+<div class="pagina">
+  <h1>Actividad</h1>
+  <p class="muted">Todo lo que hacen los usuarios del panel: accesos, clientes, facturas y cambios.
+    Solo lo ven los administradores.</p>
+
+  <section>
+    <h2>Buscar</h2>
+    <div class="cuerpo">
+      <form method="get" action="/eventos" class="filtros">
+        <div>
+          <label for="usuario">Usuario</label>
+          <select id="usuario" name="usuario">
+            <option value="">Todos</option>
+            {% for u in usuarios %}
+            <option value="{{ u }}"{% if u == f_usuario %} selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="nivel">Tipo</label>
+          <select id="nivel" name="nivel">
+            <option value="">Todos</option>
+            <option value="info"{% if f_nivel == 'info' %} selected{% endif %}>Información</option>
+            <option value="aviso"{% if f_nivel == 'aviso' %} selected{% endif %}>Aviso</option>
+            <option value="error"{% if f_nivel == 'error' %} selected{% endif %}>Error</option>
+          </select>
+        </div>
+        <div>
+          <label for="texto">Texto</label>
+          <input id="texto" name="texto" value="{{ f_texto }}" placeholder="NIC, cliente, mensaje…">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn primario" type="submit">Filtrar</button>
+          <a class="btn" href="/eventos">Limpiar</a>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section>
+    <h2>{{ total }} movimiento{% if total != 1 %}s{% endif %}</h2>
+    <div class="tabla-wrap">
+      <table class="cards">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Tipo</th>
+            <th>Qué pasó</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in eventos %}
+          <tr>
+            <td data-label="Fecha" class="fecha">{{ e.fecha }}</td>
+            <td data-label="Usuario" class="quien">{{ e.usuario or "sistema" }}</td>
+            <td data-label="Tipo">
+              {% if e.nivel == 'error' %}<span class="pill bad">error</span>
+              {% elif e.nivel == 'aviso' %}<span class="pill info">aviso</span>
+              {% else %}<span class="pill">info</span>{% endif %}
+            </td>
+            <td data-label="Qué pasó">
+              {{ e.mensaje }}
+              {% if e.detalle %}<span class="detalle">{{ e.detalle }}</span>{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="muted" style="padding:18px">Sin movimientos con esos filtros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if paginas > 1 %}
+    <div class="paginacion">
+      <span>Página {{ pagina }} de {{ paginas }}</span>
+      <span style="display:flex;gap:8px">
+        {% if pagina > 1 %}
+        <a class="btn" href="/eventos?usuario={{ f_usuario }}&nivel={{ f_nivel }}&texto={{ f_texto }}&pagina={{ pagina - 1 }}">← Anterior</a>
+        {% endif %}
+        {% if pagina < paginas %}
+        <a class="btn" href="/eventos?usuario={{ f_usuario }}&nivel={{ f_nivel }}&texto={{ f_texto }}&pagina={{ pagina + 1 }}">Siguiente →</a>
+        {% endif %}
+      </span>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

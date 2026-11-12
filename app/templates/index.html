@@ -259,11 +259,12 @@
     <div class="cuerpo sin-pad">
       {% if eventos %}
       <div class="tabla-wrap"><table class="cards">
-        <thead><tr><th>Fecha</th><th>Nivel</th><th>Mensaje</th><th>Detalle</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Nivel</th><th>Mensaje</th><th>Detalle</th></tr></thead>
         <tbody>
         {% for e in eventos %}
           <tr>
             <td class="muted" data-label="Fecha">{{ e.fecha }}</td>
+            <td data-label="Usuario">{{ e.usuario or "sistema" }}</td>
             <td data-label="Nivel">{% if e.nivel == 'error' %}<span class="pill bad">error</span>
                 {% elif e.nivel == 'aviso' %}<span class="pill warn">aviso</span>
                 {% else %}<span class="pill info">info</span>{% endif %}</td>
