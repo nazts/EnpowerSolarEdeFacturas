@@ -206,9 +206,12 @@
             </div>
             <div>
               <label for="eq_enlace">Enlace para compartir</label>
-              <div style="display:flex;gap:8px">
-                <input id="eq_enlace" readonly placeholder="se genera con las coordenadas">
-                <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar</button>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <input id="eq_enlace" readonly placeholder="se genera con las coordenadas" style="flex:1;min-width:150px">
+                <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar link</button>
+                <a class="btn" id="btnAbrirEq" href="#" target="_blank" rel="noopener"
+                   aria-disabled="true" title="Abrir la ubicación en Google Maps"
+                   style="white-space:nowrap"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Abrir</a>
               </div>
             </div>
           </div>
@@ -461,10 +464,27 @@
     return 'https://www.google.com/maps/search/?api=1&query=' +
            normalizarCoord(lat) + ',' + normalizarCoord(lon);
   }
+  function habilitarAbrir(enlace){
+    var a = document.getElementById('btnAbrirEq');
+    if(!a) return;
+    if(enlace){
+      a.href = enlace;
+      a.removeAttribute('aria-disabled');
+      a.style.pointerEvents = '';
+      a.style.opacity = '';
+    } else {
+      a.removeAttribute('href');          // sin coordenadas no navega a ningun lado
+      a.setAttribute('aria-disabled', 'true');
+      a.style.pointerEvents = 'none';
+      a.style.opacity = '.45';
+    }
+  }
   function actualizarEnlaceEq(){
     var lat = document.getElementById('eq_lat').value.trim();
     var lon = document.getElementById('eq_lon').value.trim();
-    document.getElementById('eq_enlace').value = (lat && lon) ? enlaceMapa(lat, lon) : '';
+    var enlace = (lat && lon) ? enlaceMapa(lat, lon) : '';
+    document.getElementById('eq_enlace').value = enlace;
+    habilitarAbrir(enlace);
   }
   function leerCoords(texto){
     var m = String(texto).match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]?\s+(-?\d{1,3}(?:[.,]\d+)?)/)
@@ -500,7 +520,9 @@
       if(!d.ok){ pista.textContent = d.error || 'No se encontró'; return; }
       var campo = document.getElementById('eq_direccion');
       if(!campo.value.trim()) campo.value = d.direccion || d.display_name || '';
-      document.getElementById('eq_enlace').value = d.enlace || enlaceMapa(lat, lon);
+      var enlaceNuevo = d.enlace || enlaceMapa(lat, lon);
+      document.getElementById('eq_enlace').value = enlaceNuevo;
+      habilitarAbrir(enlaceNuevo);
       pista.textContent = d.display_name || d.direccion;
     }catch(e){ pista.textContent = 'No se pudo conectar'; }
   });
