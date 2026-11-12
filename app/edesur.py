@@ -92,6 +92,14 @@ class EdesurClient:
         self.sesion = requests.Session()
         self.sesion.headers.update({"Accept": "application/json"})
 
+    def cerrar(self) -> None:
+        """Suelta el token y cierra la conexion (la API no tiene logout)."""
+        self.token = None
+        try:
+            self.sesion.close()
+        except Exception:  # noqa: BLE001
+            pass
+
     # ------------------------------------------------------------------ login
     def login(self) -> str:
         if self.token and not (self.usuario and self.password):

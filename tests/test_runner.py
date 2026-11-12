@@ -626,3 +626,82 @@ def test_historial_manda_una_sola_por_cliente_aunque_guarde_muchas(contrato, lee
     res2 = runner.sincronizar_historial(date(2026, 9, 21), enviar=True,
                                         portales={"edenorte": p}, chat_id="-100")
     assert res2["enviados"] == 0 and mensajes == []
+
+
+# ------------------------------------------------ cerrar la sesion al terminar
+def test_el_cierre_cierra_lo_que_abrio_aunque_falle():
+    from app import runner
+
+    class Portal:
+        def __init__(self):
+            self.cerrado = False
+
+        def cerrar(self):
+            self.cerrado = True
+
+    uno, dos = Portal(), Portal()
+
+    @runner._con_cierre_de_sesiones
+    def corre():
+        runner._anotar_portales({"a": uno, "b": dos})
+        raise RuntimeError("boom")
+
+    with pytest.raises(RuntimeError):
+        corre()
+
+    assert uno.cerrado and dos.cerrado      # se cerro aunque hubo error
+    assert runner._abiertos == []           # y la lista quedo limpia
+
+
+def test_el_cierre_no_toca_portales_del_llamador():
+    from app import runner
+
+    class Portal:
+        def __init__(self):
+            self.cerrado = False
+
+        def cerrar(self):
+            self.cerrado = True
+
+    ajeno = Portal()
+
+    @runner._con_cierre_de_sesiones
+    def corre():
+        return "ok"
+
+    assert corre() == "ok"
+    assert ajeno.cerrado is False
+
+
+def test_edenorte_cerrar_hace_post_al_logout_con_token():
+    from unittest.mock import MagicMock
+
+    from app.edenorte import EdenorteClient
+
+    cliente = EdenorteClient(email="a@b.c", password="x", base_url="https://ejemplo.test")
+    cliente.http = MagicMock()
+    cliente.http.get.return_value.text = '<meta name="csrf-token" content="TOKEN123">'
+    cliente.logged_in = True
+
+    cliente.cerrar()
+
+    destino = cliente.http.post.call_args[0][0]
+    assert destino.endswith("/user/logout")
+    assert cliente.http.post.call_args[1]["data"] == {"_csrf": "TOKEN123"}
+    assert cliente.http.close.called
+    assert cliente.logged_in is False
+
+
+def test_edesur_cerrar_suelta_el_token():
+    from unittest.mock import MagicMock
+
+    from app.edesur import EdesurClient
+
+    cliente = EdesurClient(usuario="u", password="p")
+    cliente.token = "abc.def"
+    cliente.sesion = MagicMock()
+
+    cliente.cerrar()
+
+    assert cliente.token is None
+    assert cliente.sesion.close.called

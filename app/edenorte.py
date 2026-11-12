@@ -107,6 +107,29 @@ class EdenorteClient:
             raise PortalError("Sesion no confirmada tras el login")
         self.logged_in = True
 
+    def cerrar(self) -> None:
+        """Sale del portal y cierra la conexion.
+
+        El portal usa `data-method="post"` en el enlace "Salir" y exige el token
+        _csrf: un GET devuelve 405 y la sesion queda abierta. Sin cerrarla, cuando
+        el panel y la corrida programada entran a la vez la segunda recibe
+        "credenciales rechazadas".
+        """
+        if self.logged_in:
+            try:
+                pagina = self.http.get(f"{self.base}/contratos", timeout=self.timeout)
+                token = self._csrf(pagina.text)
+                if token:
+                    self.http.post(f"{self.base}/user/logout", data={"_csrf": token},
+                                   timeout=self.timeout, allow_redirects=True)
+            except requests.RequestException:
+                pass
+        self.logged_in = False
+        try:
+            self.http.close()
+        except Exception:  # noqa: BLE001
+            pass
+
     def _ensure(self) -> None:
         if not self.logged_in:
             self.login()

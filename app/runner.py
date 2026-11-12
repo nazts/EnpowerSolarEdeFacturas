@@ -42,6 +42,36 @@ TIPO_CONSUMO = "consumo"
 _local = threading.local()
 
 
+# portales con sesion abierta en la corrida en curso: se cierran al terminar
+_abiertos: list = []
+
+
+def _anotar_portales(portales: dict) -> None:
+    _abiertos.extend(portales.values())
+
+
+def _con_cierre_de_sesiones(fn):
+    """Cierra las sesiones que abrio la llamada, tambien si hubo error."""
+    import functools
+
+    @functools.wraps(fn)
+    def envoltura(*args, **kwargs):
+        antes = len(_abiertos)
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            for portal in _abiertos[antes:]:
+                cerrador = getattr(portal, "cerrar", None)
+                if callable(cerrador):
+                    try:
+                        cerrador()
+                    except Exception:  # noqa: BLE001 - cerrar nunca debe romper
+                        pass
+            del _abiertos[antes:]
+
+    return envoltura
+
+
 @contextmanager
 def _exclusivo():
     """True si nadie mas esta corriendo. Bloquea por proceso y entre procesos.
@@ -191,10 +221,12 @@ def corrida(fecha: date | None = None, enviar: bool = True,
     fecha = fecha or date.today()
     fiso = fecha.isoformat()
     res = Resultado(fecha=fiso)
-    if portales is None:
+    propios = portales is None
+    if propios:
         portales = {"edenorte": cliente or EdenorteClient()}
         if config.EDESUR_TOKEN or (config.EDESUR_USER and config.EDESUR_PASSWORD):
             portales["edesur"] = EdesurPortal()
+        _anotar_portales(portales)
 
     with db.sesion() as conn:
         # 1. sesion en cada distribuidora
@@ -509,6 +541,7 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
         portales = {"edenorte": EdenorteClient()}
         if config.EDESUR_TOKEN or (config.EDESUR_USER and config.EDESUR_PASSWORD):
             portales["edesur"] = EdesurPortal()
+        _anotar_portales(portales)
 
     activos: dict[str, object] = {}
     for nombre_prov, portal in portales.items():
@@ -713,8 +746,9 @@ def _envolver_con_lock(fn):
     return envoltura
 
 
-corrida = _envolver_con_lock(corrida)                       # noqa: F811
-sincronizar_historial = _envolver_con_lock(sincronizar_historial)  # noqa: F811
+corrida = _con_cierre_de_sesiones(_envolver_con_lock(corrida))      # noqa: F811
+sincronizar_historial = _con_cierre_de_sesiones(
+    _envolver_con_lock(sincronizar_historial))                      # noqa: F811
 
 
 if __name__ == "__main__":

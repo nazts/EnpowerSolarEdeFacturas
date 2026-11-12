@@ -48,6 +48,12 @@ class EdesurPortal:
                 raise PortalError(f"SIN_CREDENCIALES: {texto}") from exc
             raise PortalError(texto) from exc
 
+    def cerrar(self) -> None:
+        """Cierra la sesion del cliente de Edesur (si la tiene)."""
+        cerrador = getattr(self.cliente, "cerrar", None)
+        if callable(cerrador):
+            cerrador()
+
     def _traducir(self, fn, *args, **kwargs):
         try:
             return fn(*args, **kwargs)
