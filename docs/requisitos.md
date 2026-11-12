@@ -29,8 +29,8 @@ Formato: `<NOMBRE NORMALIZADO> <NIC>.pdf`
 
 Edenorte imprime el titular como `APELLIDOS, NOMBRES`. Se invierte:
 
-- Factura: `GARCIA CASTRO, FRANCISCO ALBERT`
-- Archivo: `FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf`
+- Factura: `PEREZ GOMEZ, JUAN CARLOS`
+- Archivo: `JUAN CARLOS PEREZ GOMEZ 1234567.pdf`
 
 Reglas:
 
@@ -45,10 +45,10 @@ Reglas:
 ### 3.2 Identificadores
 
 - **NIC / contrato** = número de contrato del suministro.
-  - Factura de muestra: `7533709` (campo CONTRATO, 7 dígitos).
-  - Cuenta actual de la OFV: `6997885`.
+  - Factura de muestra: `1234567` (campo CONTRATO, 7 dígitos).
+  - Cuenta de la OFV: `7654321`.
 - **Ref. Pago** = NIC + 3 dígitos de secuencia; es la clave del PDF en el portal:
-  `7533709` → `7533709022`, `6997885` → `6997885045`. Sirve para armar la URL
+  `1234567` → `1234567022`, `7654321` → `7654321045`. Sirve para armar la URL
   `/factpdf/<ref_pago>`.
 - En el nombre del archivo va **solo el NIC**, nunca la Ref. de Pago.
 - No se usa el No. de factura en el nombre (queda dentro del PDF y en el índice).
@@ -57,8 +57,8 @@ Reglas:
 
 | Razón social en factura | NIC | Archivo |
 |---|---|---|
-| `GARCIA CASTRO, FRANCISCO ALBERT` | 7533709 | `FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf` |
-| `DE LA CRUZ TAVAREZ, JORGE RAMON` | 6997885 | `JORGE RAMON DE LA CRUZ TAVAREZ 6997885.pdf` |
+| `PEREZ GOMEZ, JUAN CARLOS` | 1234567 | `JUAN CARLOS PEREZ GOMEZ 1234567.pdf` |
+| `RAMIREZ DIAZ, PEDRO ANTONIO` | 7654321 | `PEDRO ANTONIO RAMIREZ DIAZ 7654321.pdf` |
 | `ENPOWER SOLAR SRL` (sin coma) | 1234567 | `ENPOWER SOLAR SRL 1234567.pdf` |
 
 ## 4. Filtro: qué factura se descarga (y cuál no)
@@ -113,7 +113,7 @@ volver a pedirlas.
 **Dato necesario:** el portal **no publica** el día de corte del contrato
 (`/datos_contrato` solo trae nombre, dirección y teléfono). Se aprende del propio
 historial: la fecha de corte del último período conocido de ese contrato
-(p. ej. NIC 7533709 corta el día **05** de cada mes). Se guarda por contrato en
+(p. ej. NIC 1234567 corta el día **05** de cada mes). Se guarda por contrato en
 `contratos.json` → `dia_corte`.
 
 **Ciclo de cada corrida:**
@@ -167,10 +167,10 @@ sistema debe:
 
 ## 10. Caso de referencia (factura de muestra entregada por el cliente)
 
-`Downloads/factura.pdf` — Edenorte, contrato NIC **7533709**, Ref. Pago 7533709022,
-No. Factura 202611033807, ENCF E320031847759, Suministro 4237690,
+`Downloads/factura.pdf` — Edenorte, contrato NIC **1234567**, Ref. Pago 1234567022,
+No. Factura 202611033807, ENCF E320031847759, Suministro 1112223,
 Medidor 06042264, Tarifa BTD, Oficina 2144 Guayabal, titular
-`GARCIA CASTRO, FRANCISCO ALBERT`, período **05/09/2026 – 05/10/2026**
+`PEREZ GOMEZ, JUAN CARLOS`, período **05/09/2026 – 05/10/2026**
 (**corte 05/10/2026**, 30 días), 7 980 kWh, importe sin subsidio RD$355,473.04,
 subsidio RD$‑166,797.83, **total RD$188,675.21**, **pagar antes del 07/11/2026**.
 Nota: la emisión (08/10/2026) es posterior al corte, así que la detección por
@@ -185,12 +185,12 @@ quedar como prueba automatizada en el repo.
 
 | Razón social en la factura | NIC | Nombre esperado |
 |---|---|---|
-| `GARCIA CASTRO, FRANCISCO ALBERT` | 7533709 | `FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf` |
-| `DE LA CRUZ TAVAREZ, JORGE RAMON` | 6997885 | `JORGE RAMON DE LA CRUZ TAVAREZ 6997885.pdf` |
+| `PEREZ GOMEZ, JUAN CARLOS` | 1234567 | `JUAN CARLOS PEREZ GOMEZ 1234567.pdf` |
+| `RAMIREZ DIAZ, PEDRO ANTONIO` | 7654321 | `PEDRO ANTONIO RAMIREZ DIAZ 7654321.pdf` |
 | `ENPOWER SOLAR SRL` (sin coma) | 1234567 | `ENPOWER SOLAR SRL 1234567.pdf` |
 | `A/B: SRL` | 1234568 | caracteres `\ / : * ? " < > |` sustituidos, nunca en el nombre |
 
-- Apellidos compuestos (`DE LA CRUZ TAVAREZ`) se mantienen unidos y en orden.
+- Apellidos compuestos (`RAMIREZ DIAZ`) se mantienen unidos y en orden.
 - Se usa el **NIC de 7 dígitos**, nunca la Ref. de Pago (falla típica).
 - Caso con Ñ y tildes (`MUÑOZ PÉREZ, JOSÉ`): resultado pendiente de decisión
   (§12), la prueba debe fijar el comportamiento elegido.
@@ -222,7 +222,7 @@ Secuencia simulada (mock del portal):
 
 ## 12. Pendientes / decisiones del cliente
 
-1. Formato exacto del nombre: ¿`FRANCISCO ALBERT GARCIA CASTRO 7533709.pdf`
+1. Formato exacto del nombre: ¿`JUAN CARLOS PEREZ GOMEZ 1234567.pdf`
    (espacio) o con guion bajo / guion medio?
 2. Si la factura no aparece el día del corte: ¿solo se reintenta en la corrida
    diaria de las 7:00, o quieres intentos extra el mismo día (p. ej. 12:00 y 5:00 p.m.)?
@@ -248,7 +248,7 @@ autenticada con token Bearer. La integración se hace contra esa API.
 
 **Agregar un contrato** (`Contracts/ValidateContractSGC` + `Contracts/SaveContract`):
 se necesita el **NIC** y la **referencia de pago hasta el número antes del guion**
-(ej. factura `2115589310-93` → `2115589310`). El nombre se manda provisional (un
+(ej. factura `7654321310-93` → `7654321310`). El nombre se manda provisional (un
 solo carácter, el campo es corto); el portal responde con el titular real.
 Los **tres dígitos de la referencia suben de uno en uno con cada factura**, así que
 si la referencia que se tiene ya no vale se prueban hasta 50 referencias cercanas
@@ -261,8 +261,8 @@ Se aplican las mismas reglas que en Edenorte: sólo tipo **"Recibos de consumos"
 fecha de corte = fin del período de facturación, el PDF no se modifica (sólo se
 renombra `NOMBRES APELLIDOS NIC.pdf`), y consumo en blanco no se descarga.
 
-Verificado con los NIC `5786394` (corte 13/10/2026, 1,140 kWh, RD$15,051.19) y
-`2115589` (corte 13/08/2026, 0 kWh, RD$42.10).
+Verificado con los NIC `1234567` (corte 13/10/2026, 1,140 kWh, RD$15,051.19) y
+`7654321` (corte 13/08/2026, 0 kWh, RD$42.10).
 
 
 ---
