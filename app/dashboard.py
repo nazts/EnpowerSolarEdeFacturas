@@ -1,6 +1,8 @@
 """Dashboard web: alta de NIC, autocompletado de razón social, alias/asesor y Excel."""
 from __future__ import annotations
 
+import re
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -31,10 +33,44 @@ def _num(valor: str | None) -> float | None:
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.auto_reload = True  # recarga plantillas sin reiniciar el servidor
 
-app = FastAPI(title="Enpower Solar — Facturas Edenorte", docs_url="/api/docs")
+app = FastAPI(title="Enpower Solar — Facturas Edenorte",
+              docs_url=None, redoc_url=None, openapi_url=None)
 
-PUBLICAS = ("/login", "/static", "/favicon.ico", "/openapi.json", "/api/docs")
+PUBLICAS = ("/login", "/static", "/favicon.ico")
 COOKIE = "sesion"
+METODOS_SEGUROS = ("GET", "HEAD", "OPTIONS")
+
+# limite de intentos de login (por IP y por usuario)
+_INTENTOS: dict[str, list[float]] = {}
+MAX_INTENTOS, VENTANA = 5, 15 * 60
+
+
+def _destino_seguro(next_url: str | None) -> str:
+    """Solo rutas internas: evita open redirect con '//evil.com' o '/\\evil.com'."""
+    destino = (next_url or "/").strip()
+    if not destino.startswith("/") or destino.startswith("//") or destino.startswith("/\\"):
+        return "/"
+    return destino
+
+
+def _demasiados_intentos(clave: str) -> bool:
+    ahora = time.time()
+    marcas = [t for t in _INTENTOS.get(clave, []) if ahora - t < VENTANA]
+    _INTENTOS[clave] = marcas
+    return len(marcas) >= MAX_INTENTOS
+
+
+def _anotar_fallo(clave: str) -> None:
+    _INTENTOS.setdefault(clave, []).append(time.time())
+
+
+def requiere_admin(request: Request) -> None:
+    """Para acciones destructivas o de configuracion: solo administradores."""
+    usuario = usuario_actual(request)
+    if not usuario:
+        raise HTTPException(401, "Sesión no iniciada")
+    if not usuario.es_admin:
+        raise HTTPException(403, "Solo un administrador puede hacer esta acción")
 
 
 def usuario_actual(request: Request) -> auth.Usuario | None:
@@ -54,15 +90,36 @@ def usuario_actual(request: Request) -> auth.Usuario | None:
 @app.middleware("http")
 async def exigir_sesion(request: Request, call_next):
     ruta = request.url.path
+
+    # CSRF: en peticiones que cambian datos, el Origin/Referer debe ser el propio
+    if request.method not in METODOS_SEGUROS:
+        origen = request.headers.get("origin") or request.headers.get("referer") or ""
+        if origen:
+            host = request.headers.get("host", "")
+            permitidos = {f"http://{host}", f"https://{host}"}
+            if not any(origen.startswith(p) for p in permitidos):
+                return JSONResponse({"ok": False, "error": "Origen no permitido"},
+                                    status_code=403)
+
     if ruta.startswith(PUBLICAS):
-        return await call_next(request)
+        respuesta = await call_next(request)
+        return _con_cabeceras(respuesta)
     usuario = usuario_actual(request)
     if usuario is None:
         if ruta.startswith("/api/"):
             return JSONResponse({"ok": False, "error": "Sesión no iniciada"}, status_code=401)
         destino = quote(ruta + (("?" + request.url.query) if request.url.query else ""))
         return RedirectResponse(f"/login?next={destino}", status_code=303)
-    return await call_next(request)
+    respuesta = await call_next(request)
+    return _con_cabeceras(respuesta)
+
+
+def _con_cabeceras(respuesta):
+    """Cabeceras basicas de seguridad (clickjacking, sniffing, referer)."""
+    respuesta.headers.setdefault("X-Frame-Options", "DENY")
+    respuesta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    respuesta.headers.setdefault("Referrer-Policy", "same-origin")
+    return respuesta
 
 
 @app.on_event("startup")
@@ -87,6 +144,11 @@ def login_form(request: Request, next: str = "/"):
 @app.post("/login")
 def login(request: Request, usuario: str = Form(...), password: str = Form(...),
           next: str = Form(default="/")):
+    clave = request.client.host if request.client else "?"
+    if _demasiados_intentos(clave) or _demasiados_intentos("u:" + usuario.strip().lower()):
+        with db.sesion() as conn:
+            db.log_evento(conn, "aviso", "Demasiados intentos de acceso", clave)
+        raise HTTPException(429, "Demasiados intentos. Espera unos minutos.")
     with db.sesion() as conn:
         encontrado = auth.autenticar(conn, usuario, password)
         if encontrado:
@@ -94,13 +156,20 @@ def login(request: Request, usuario: str = Form(...), password: str = Form(...),
             db.log_evento(conn, "info", f"Acceso de {encontrado.usuario}")
         else:
             db.log_evento(conn, "aviso", f"Intento de acceso fallido: {usuario[:40]}")
+            _anotar_fallo(clave)
+            _anotar_fallo("u:" + usuario.strip().lower())
     if not encontrado:
         return templates.TemplateResponse(request, "login.html",
                                           {"next": next, "error": "Usuario o contraseña incorrectos",
                                            "usuario_previo": usuario}, status_code=401)
-    respuesta = RedirectResponse(next if next.startswith("/") else "/", status_code=303)
+    respuesta = RedirectResponse(_destino_seguro(next), status_code=303)
+    # secure=True cuando el panel va por HTTPS (tunel/VPN): la cookie no viaja
+    # nunca por http. En red local sin HTTPS se deja en False o no se podria entrar.
+    _INTENTOS.pop(clave, None)
+    _INTENTOS.pop("u:" + usuario.strip().lower(), None)
+    https = config.COOKIE_SECURE or request.url.scheme == "https"
     respuesta.set_cookie(COOKIE, auth.crear_token(encontrado.id), httponly=True,
-                         samesite="lax", max_age=auth.DURACION_SESION)
+                         samesite="lax", secure=https, max_age=auth.DURACION_SESION)
     return respuesta
 
 
@@ -151,8 +220,15 @@ def usuarios_crear(request: Request, usuario_nuevo: str = Form(...),
         raise HTTPException(403, "Solo un administrador puede crear usuarios")
     if len(password) < 8:
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+    if rol not in ("admin", "asesor"):
+        raise HTTPException(400, "Rol no válido (admin o asesor)")
+    nombre_usuario = usuario_nuevo.strip().lower()
+    if not re.fullmatch(r"[a-z0-9._-]{3,32}", nombre_usuario):
+        raise HTTPException(400, "El usuario debe tener 3-32 caracteres: letras, números, . _ -")
     with db.sesion() as conn:
-        auth.crear_usuario(conn, usuario_nuevo, password, nombre, rol)
+        if auth.existe_usuario(conn, nombre_usuario):
+            raise HTTPException(409, "Ese usuario ya existe")
+        auth.crear_usuario(conn, nombre_usuario, password, nombre, rol)
         db.log_evento(conn, "info", f"Usuario {usuario_nuevo} creado por {actual.usuario}")
     return RedirectResponse("/usuarios", status_code=303)
 
@@ -208,7 +284,8 @@ def proyectos_crear(nic: str, nombre: str = Form(default=""),
 
 
 @app.post("/proyectos/{proyecto_id}/eliminar")
-def proyectos_eliminar(proyecto_id: int):
+def proyectos_eliminar(proyecto_id: int, request: Request):
+    requiere_admin(request)
     with db.sesion() as conn:
         fila = conn.execute("SELECT nic FROM proyectos WHERE id = ?",
                             (proyecto_id,)).fetchone()
@@ -352,7 +429,8 @@ def api_estado() -> JSONResponse:
 
 
 @app.post("/api/test-telegram")
-def api_test_telegram() -> JSONResponse:
+def api_test_telegram(request: Request) -> JSONResponse:
+    requiere_admin(request)
     try:
         telegram.enviar_mensaje("✅ Prueba de conexión del bot Enpower Solar.")
         return JSONResponse({"ok": True})
@@ -392,7 +470,8 @@ def telegram_page(request: Request):
 
 
 @app.post("/api/telegram/detectar")
-def api_telegram_detectar() -> JSONResponse:
+def api_telegram_detectar(request: Request) -> JSONResponse:
+    requiere_admin(request)
     """Busca el canal/grupo donde está el bot y guarda su chat_id."""
     try:
         chat_id = telegram.resolver_chat_id(config.TELEGRAM_CHAT_ID or None)
@@ -405,7 +484,8 @@ def api_telegram_detectar() -> JSONResponse:
 
 
 @app.post("/api/telegram/chat")
-def api_telegram_chat(chat_id: str = Form(...)) -> JSONResponse:
+def api_telegram_chat(request: Request, chat_id: str = Form(...)) -> JSONResponse:
+    requiere_admin(request)
     chat_id = chat_id.strip()
     if not chat_id:
         return JSONResponse({"ok": False, "error": "chat_id vacío"}, status_code=400)
@@ -414,7 +494,8 @@ def api_telegram_chat(chat_id: str = Form(...)) -> JSONResponse:
 
 
 @app.post("/api/corrida")
-def api_corrida(fecha: str | None = Form(default=None)) -> JSONResponse:
+def api_corrida(request: Request, fecha: str | None = Form(default=None)) -> JSONResponse:
+    requiere_admin(request)
     from .runner import corrida
     f = datetime.strptime(fecha, "%Y-%m-%d").date() if fecha else None
     try:
@@ -425,8 +506,9 @@ def api_corrida(fecha: str | None = Form(default=None)) -> JSONResponse:
 
 
 @app.post("/api/historial")
-def api_historial(nic: str = Form(default=""),
+def api_historial(request: Request, nic: str = Form(default=""),
                   enviar: str = Form(default="1")) -> JSONResponse:
+    requiere_admin(request)
     """Guarda las ultimas facturas (de todos los clientes o de uno) y envia."""
     from .runner import sincronizar_historial
     try:
@@ -440,7 +522,8 @@ def api_historial(nic: str = Form(default=""),
 
 
 @app.get("/export/excel")
-def exportar_excel():
+def exportar_excel(request: Request):
+    requiere_admin(request)
     ruta = excel.exportar()
     return FileResponse(
         ruta, filename=Path(ruta).name,
@@ -654,7 +737,8 @@ def editar_contrato(nic: str, razon_social: str = Form(default=""),
 
 
 @app.post("/contratos/{nic}/eliminar")
-def borrar_contrato(nic: str):
+def borrar_contrato(nic: str, request: Request):
+    requiere_admin(request)
     with db.sesion() as conn:
         db.eliminar_contrato(conn, nic)
         db.log_evento(conn, "aviso", f"Contrato {nic} eliminado")
@@ -665,7 +749,11 @@ def borrar_contrato(nic: str):
 def ver_pdf(factura_id: int):
     with db.sesion() as conn:
         fila = conn.execute("SELECT pdf_path FROM facturas WHERE id = ?", (factura_id,)).fetchone()
-    if not fila or not fila["pdf_path"] or not Path(fila["pdf_path"]).exists():
+    if not fila or not fila["pdf_path"]:
+        raise HTTPException(404, "PDF no encontrado")
+    ruta = Path(fila["pdf_path"]).resolve()
+    # solo se sirven PDFs de la carpeta del proyecto (nada de rutas de fuera)
+    if not ruta.is_relative_to(config.FACTURAS_DIR.resolve()) or not ruta.exists():
         raise HTTPException(404, "PDF no encontrado")
     return FileResponse(fila["pdf_path"], media_type="application/pdf",
                         filename=Path(fila["pdf_path"]).name)

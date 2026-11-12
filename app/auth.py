@@ -97,6 +97,12 @@ def crear_usuario(conn: sqlite3.Connection, usuario: str, password: str,
     return int(cursor.lastrowid or 0)
 
 
+def existe_usuario(conn: sqlite3.Connection, nombre: str) -> bool:
+    fila = conn.execute("SELECT 1 FROM usuarios WHERE usuario = ?",
+                        (nombre.strip().lower(),)).fetchone()
+    return fila is not None
+
+
 def obtener_usuario(conn: sqlite3.Connection, usuario_id: int) -> Usuario | None:
     fila = conn.execute(
         "SELECT id, usuario, nombre, rol, activo FROM usuarios WHERE id = ?",
@@ -105,12 +111,20 @@ def obtener_usuario(conn: sqlite3.Connection, usuario_id: int) -> Usuario | None
     return Usuario(**dict(fila)) if fila else None
 
 
+# hash de relleno: si el usuario no existe se verifica igual (mismo tiempo de
+# respuesta) para que no se puedan enumerar usuarios midiendo el reloj
+_HASH_FICTICIO = hash_password("relleno-para-tiempo-constante")
+
+
 def autenticar(conn: sqlite3.Connection, usuario: str, password: str) -> Usuario | None:
     fila = conn.execute(
         "SELECT id, usuario, password_hash, nombre, rol, activo FROM usuarios WHERE usuario = ?",
         (usuario.strip().lower(),),
     ).fetchone()
-    if not fila or not fila["activo"]:
+    if not fila:
+        verificar_password(password, _HASH_FICTICIO)
+        return None
+    if not fila["activo"]:
         return None
     if not verificar_password(password, fila["password_hash"]):
         return None

@@ -95,7 +95,7 @@
               <td data-label="Acciones">
                 <div class="acc-fila">
                   <form method="post" action="/usuarios/{{ u.id }}/password"
-                        onsubmit="return confirm('¿Cambiar la contraseña de {{ u.usuario }}?')">
+                        onsubmit='return confirm({{ ("¿Cambiar la contraseña de " ~ u.usuario ~ "?")|tojson }})'>
                     <input name="password" type="password" placeholder="nueva contraseña" required minlength="8"
                            style="min-width:170px;padding:7px 10px;border-radius:8px;border:1px solid var(--line)">
                     <button class="btn" type="submit">Cambiar clave</button>

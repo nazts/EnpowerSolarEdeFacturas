@@ -22,7 +22,8 @@ def _hoja(ws, columnas: list[str], filas: list[list]) -> None:
         celda.fill = FONDO
         celda.alignment = Alignment(horizontal="center")
     for fila in filas:
-        ws.append(fila)
+        # openpyxl interpreta como formula lo que empieza por = + - @: se cita
+        ws.append([f"'{v}" if isinstance(v, str) and v[:1] in "=+-@" else v for v in fila])
     for i, col in enumerate(columnas, start=1):
         ancho = max([len(str(col))] + [len(str(f[i - 1] or "")) for f in filas] or [10])
         ws.column_dimensions[get_column_letter(i)].width = min(max(ancho + 2, 12), 45)

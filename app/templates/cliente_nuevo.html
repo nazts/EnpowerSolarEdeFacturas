@@ -40,6 +40,7 @@
   .rejilla > .c5{grid-column:span 5} .rejilla > .c6{grid-column:span 6}
   .rejilla > .c7{grid-column:span 7} .rejilla > .c8{grid-column:span 8}
   .rejilla > .c9{grid-column:span 9} .rejilla > .c12{grid-column:1 / -1}
+  .rejilla > .campo[hidden]{display:none}
   .rejilla > .campo{display:flex;flex-direction:column;justify-content:flex-end;gap:5px;min-width:0}
   .rejilla > .campo > label{margin:0}
   .rejilla > .campo > input{width:100%}
@@ -193,7 +194,7 @@
 
           <div class="campo c5">
             <label for="dia_corte">Día de corte</label>
-            <input id="dia_corte" name="dia_corte" inputmode="numeric" placeholder="se aprende solo">
+            <input id="dia_corte" name="dia_corte" type="number" min="1" max="31" placeholder="se aprende solo">
           </div>
           <div class="campo c7">
             <label for="notas">Notas</label>
@@ -227,11 +228,11 @@
 
           <div class="campo c3">
             <label for="latitud">Latitud</label>
-            <input id="latitud" name="latitud" inputmode="decimal" placeholder="19.4160666">
+            <input id="latitud" name="latitud" type="number" min="-90" max="90" step="any" inputmode="decimal" placeholder="19.4160666">
           </div>
           <div class="campo c3">
             <label for="longitud">Longitud</label>
-            <input id="longitud" name="longitud" inputmode="decimal" placeholder="-70.7085128">
+            <input id="longitud" name="longitud" type="number" min="-180" max="180" step="any" inputmode="decimal" placeholder="-70.7085128">
           </div>
           <div class="campo c6">
             <label for="enlace">Enlace del mapa (para compartir)</label>
@@ -420,5 +421,5 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 });
-</script></script>
+</script>
 {% endblock %}

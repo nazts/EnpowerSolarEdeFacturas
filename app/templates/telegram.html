@@ -95,34 +95,42 @@ function aviso(t, ok=true){
   const m = document.getElementById('msg');
   m.textContent = t; m.style.color = ok ? 'var(--ok)' : 'var(--bad)';
 }
+async function pedir(url, cuerpo){
+  // devuelve siempre {ok, ...}; nunca deja la promesa rechazada sin manejar
+  try{
+    const r = await fetch(url, {method:'POST', body: cuerpo});
+    const texto = await r.text();
+    let d;
+    try { d = JSON.parse(texto); } catch(e){ d = {ok:false, error:'Respuesta inesperada del servidor'}; }
+    if(!r.ok && d.ok !== false){ d = {ok:false, error:'Error ' + r.status}; }
+    return d;
+  }catch(e){ return {ok:false, error:'No se pudo conectar con el servidor'}; }
+}
 async function detectar(){
   aviso('Buscando el canal…');
-  const r = await fetch('/api/telegram/detectar', {method:'POST'});
-  const d = await r.json();
+  const d = await pedir('/api/telegram/detectar');
   if(!d.ok) return aviso('⚠️ ' + (d.error || 'No se encontró el canal'), false);
   aviso('Canal guardado: ' + d.chat_id);
   setTimeout(()=>location.reload(), 1200);
 }
 async function probar(){
   aviso('Enviando prueba…');
-  const r = await fetch('/api/test-telegram', {method:'POST'});
-  const d = await r.json();
-  aviso(d.ok ? 'Mensaje enviado al canal ✅' : ('⚠️ ' + d.error), d.ok);
+  const d = await pedir('/api/test-telegram');
+  aviso(d.ok ? 'Mensaje enviado al canal ✅' : ('⚠️ ' + (d.error || 'No se pudo enviar')), !!d.ok);
 }
 async function usar(id){
   const fd = new FormData(); fd.append('chat_id', id);
-  const r = await fetch('/api/telegram/chat', {method:'POST', body:fd});
-  const d = await r.json();
-  if(!d.ok) return aviso('⚠️ ' + d.error, false);
+  const d = await pedir('/api/telegram/chat', fd);
+  if(!d.ok) return aviso('⚠️ ' + (d.error || 'No se pudo guardar'), false);
   aviso('Canal guardado: ' + d.chat_id);
   setTimeout(()=>location.reload(), 1200);
 }
 function guardar(form){
   const fd = new FormData(form);
-  fetch('/api/telegram/chat', {method:'POST', body:fd})
-    .then(r=>r.json())
-    .then(d=>{ aviso(d.ok ? 'Canal guardado: ' + d.chat_id : '⚠️ ' + d.error, d.ok);
-               if(d.ok) setTimeout(()=>location.reload(), 1200); });
+  pedir('/api/telegram/chat', fd).then(d=>{
+    aviso(d.ok ? 'Canal guardado: ' + d.chat_id : '⚠️ ' + (d.error || 'No se pudo guardar'), !!d.ok);
+    if(d.ok) setTimeout(()=>location.reload(), 1200);
+  });
   return false;
 }
 </script>

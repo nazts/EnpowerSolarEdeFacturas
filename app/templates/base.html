@@ -207,6 +207,8 @@ function toast(txt, ok){
   window.__toast = setTimeout(function(){ t.className = ''; }, 6000);
 }
 async function accionTelegram(btn){
+  if(btn.disabled) return;
+  btn.disabled = true;
   btn.setAttribute('aria-busy','true');
   toast('Enviando mensaje de prueba…');
   try{
@@ -214,9 +216,11 @@ async function accionTelegram(btn){
     const d = await r.json();
     toast(d.ok ? 'Mensaje enviado al canal ✓' : ('Telegram: ' + d.error), d.ok);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
-  finally{ btn.removeAttribute('aria-busy'); }
+  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
 }
 async function accionHistorial(btn){
+  if(btn.disabled) return;
+  btn.disabled = true;
   btn.setAttribute('aria-busy','true');
   toast('Guardando las últimas facturas de cada cliente…');
   try{
@@ -226,9 +230,11 @@ async function accionHistorial(btn){
     toast('Histórico: ' + d.nuevos + ' factura(s) guardada(s), ' + d.enviados + ' enviada(s)');
     setTimeout(function(){ location.reload(); }, 1800);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
-  finally{ btn.removeAttribute('aria-busy'); }
+  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
 }
 async function accionCorrer(btn){
+  if(btn.disabled) return;
+  btn.disabled = true;
   btn.setAttribute('aria-busy','true');
   toast('Escaneando Edenorte y Edesur…');
   try{
@@ -239,7 +245,7 @@ async function accionCorrer(btn){
     toast('Listo: ' + n + ' factura(s) descargada(s), ' + p + ' pendiente(s)');
     setTimeout(function(){ location.reload(); }, 1500);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
-  finally{ btn.removeAttribute('aria-busy'); }
+  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
 }
 (function(){
   var b = document.body, KEY = 'sidebar-min';

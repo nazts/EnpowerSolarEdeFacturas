@@ -124,10 +124,19 @@ def test_no_descarga_consumo_en_blanco(contrato, leer_pdf, texto, tmp_path):
 
 
 def test_contrato_sin_corte_hoy_no_se_consulta(contrato, leer_pdf):
+    """El escaneo del dia no toca a quien no corta (el historico es aparte)."""
     p = portal()
-    r = runner.corrida(date(2026, 9, 10), enviar=False, cliente=p)
+    r = runner.corrida(date(2026, 9, 10), enviar=False, cliente=p, historico=False)
     p.historial.assert_not_called()
     assert r.descargadas == [] and pend(contrato) == []
+
+
+def test_sin_cortes_igual_corre_el_historico(contrato, leer_pdf):
+    """Sin cortes hoy la corrida igual mantiene el historico de cada cliente."""
+    p = portal(filas=[], pdfs={})
+    r = runner.corrida(date(2026, 9, 10), enviar=False, cliente=p)
+    p.historial.assert_called_once()
+    assert r.historico is not None
 
 
 # ------------------------------------------------------------------ PortalError
@@ -373,3 +382,60 @@ def test_upsert_no_reactiva_un_cliente_desactivado(contrato):
         assert db.obtener_contrato(c, NIC)["activo"] == 0
         db.upsert_contrato(c, NIC, activo=1)
         assert db.obtener_contrato(c, NIC)["activo"] == 1
+
+
+# ------------------------------------------------- arreglos del QA estricto
+def test_guardar_factura_conserva_id_y_enviada(contrato):
+    """Reguardar la misma factura no la devuelve a 'sin enviar' ni le cambia el id."""
+    with db.sesion(db_path=contrato) as c:
+        primero = db.guardar_factura(c, {"nic": NIC, "ref_pago": REF, "tipo": "Recibos de consumos",
+                                         "corte": "2026-09-16", "facturado": 100.0,
+                                         "estado": "descargada"})
+        db.marcar_enviadas(c, [primero], "-100")
+        segundo = db.guardar_factura(c, {"nic": NIC, "ref_pago": REF, "tipo": "Recibos de consumos",
+                                         "corte": "2026-09-16", "facturado": 100.0,
+                                         "estado": "descargada"})
+        fila = c.execute("SELECT id, enviada FROM facturas WHERE ref_pago = ?", (REF,)).fetchone()
+    assert segundo == primero and fila["id"] == primero
+    assert fila["enviada"] == 1
+
+
+def test_caption_escapa_html_y_formatea_monto():
+    texto = runner._caption("2026-09-16", [{
+        "nic": "1234567", "razon_social": "A & B <SRL>", "alias": "", "asesor": "",
+        "corte": "2026-09-16", "vence": "2026-10-05", "facturado": 1234.5,
+    }], [])
+    assert "&amp;" in texto and "&lt;SRL&gt;" in texto     # Telegram HTML
+    assert "Pagar: RD$1,234.50" in texto
+
+
+def test_caption_sin_monto_ni_asesor():
+    texto = runner._caption("2026-09-16", [{
+        "nic": "1234567", "razon_social": "X", "alias": "", "asesor": "",
+        "corte": "2026-09-16", "vence": None, "facturado": None,
+    }], [])
+    assert "s/d" in texto and "Asesor" not in texto and "Vence" not in texto
+
+
+def test_dos_corridas_a_la_vez_no_se_pisan(contrato, leer_pdf):
+    """Mientras otra corrida tiene el lock (otro hilo/proceso), esta no hace nada."""
+    import threading
+    import time
+
+    p = portal(filas=[fila()], pdfs={REF: _texto_factura("16/09/2026").encode("latin-1")})
+    tomado = threading.Event()
+
+    def otra_corrida():
+        with runner._exclusivo() as libre:
+            assert libre is True
+            tomado.set()
+            time.sleep(0.4)
+
+    hilo = threading.Thread(target=otra_corrida)
+    hilo.start()
+    assert tomado.wait(2)
+    r = runner.corrida(D0, enviar=False, cliente=p, historico=False)
+    hilo.join()
+
+    assert r.descargadas == []
+    assert r.historico.get("ocupado") is True
