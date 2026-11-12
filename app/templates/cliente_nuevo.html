@@ -189,7 +189,11 @@
           </div>
           <div class="campo c5">
             <label for="asesor">Asesor</label>
-            <input id="asesor" name="asesor" placeholder="nombre del asesor">
+            <input id="asesor" name="asesor" list="listaAsesores" autocomplete="off"
+                   placeholder="nombre del asesor">
+            <datalist id="listaAsesores">
+              {% for a in asesores|default([]) %}<option value="{{ a.asesor }}" label="{{ a.clientes }} cliente{{ '' if a.clientes == 1 else 's' }}">{{ a.asesor }}</option>{% endfor %}
+            </datalist>
           </div>
 
           <div class="campo c5">

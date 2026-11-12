@@ -647,6 +647,7 @@ def clientes(request: Request, q: str = ""):
 
     with db.sesion() as conn:
         filas = db.resumen_clientes(conn)
+        asesores = db.asesores(conn)
     for f in filas:
         f["proximo_corte"] = proximo_corte(f.get("dia_corte"))
         f["dias_corte"] = dias_para_corte(f.get("dia_corte"))
@@ -658,7 +659,8 @@ def clientes(request: Request, q: str = ""):
 
     return templates.TemplateResponse(request, "clientes.html",
                                       {"clientes": filas, "activo": "clientes",
-                                       "q": q, "total": total})
+                                       "q": q, "total": total,
+                                       "asesores": asesores})
 
 
 @app.get("/clientes/nuevo")
@@ -782,11 +784,13 @@ def cliente_editar(request: Request, nic: str):
     requiere_operador(request)
     with db.sesion() as conn:
         contrato = db.obtener_contrato(conn, nic)
+        asesores = db.asesores(conn) if contrato is not None else []
     if contrato is None:
         raise HTTPException(404, "Ese NIC no está registrado")
     from .proveedores import NOMBRES
     return templates.TemplateResponse(request, "cliente_editar.html", {
         "activo": "clientes", "cliente": dict(contrato), "proveedores": NOMBRES,
+        "asesores": asesores,
     })
 
 

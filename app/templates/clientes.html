@@ -79,6 +79,17 @@
     color:var(--muted);font-size:15px;pointer-events:none}
   .buscador input{padding-left:34px;min-height:40px;width:100%}
   .buscador .conteo{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .asesores-hist{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:11px 18px;
+    border-bottom:1px solid var(--line);background:var(--card)}
+  .asesores-hist .et{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;
+    font-weight:700;margin-right:2px}
+  .chip-asesor{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--line);
+    border-radius:999px;font-size:12.5px;color:var(--txt);text-decoration:none;background:var(--card2)}
+  .chip-asesor b{background:var(--accent);color:var(--on-accent);border-radius:999px;
+    padding:0 6px;font-size:11px;font-weight:700}
+  .chip-asesor:hover{border-color:var(--accent);color:var(--accent)}
+  .chip-asesor.activo{border-color:var(--accent);background:var(--card2);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}
   .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
   .vacio b{display:block;color:var(--txt);margin-bottom:3px;font-size:14px}
   .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;
@@ -153,6 +164,17 @@
       {% if q %}<a class="btn" href="/clientes"><i class="bi bi-x-lg" aria-hidden="true"></i> Limpiar</a>{% endif %}
       {% if q %}<span class="conteo">{{ clientes|length }} resultado{{ '' if clientes|length == 1 else 's' }} de {{ total }}</span>{% endif %}
     </form>
+    {% if asesores %}
+    <div class="asesores-hist">
+      <span class="et">Asesores</span>
+      {% for a in asesores %}
+      <a class="chip-asesor{% if q and q|lower == a.asesor|lower %} activo{% endif %}"
+         href="/clientes?q={{ a.asesor|urlencode }}" title="Ver los clientes de {{ a.asesor }}">
+        <i class="bi bi-person-badge" aria-hidden="true"></i> {{ a.asesor }} <b>{{ a.clientes }}</b>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
     <div class="cuerpo sin-pad">
       {% if clientes %}
       <div class="tabla-wrap"><table class="cards">

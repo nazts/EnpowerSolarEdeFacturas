@@ -408,6 +408,17 @@ def marcar_enviadas(conn: sqlite3.Connection, ids: list[int], chat_id: str,
     conn.commit()
 
 
+def asesores(conn) -> list[dict]:
+    """Asesores que ya se usaron alguna vez, con cuantos clientes tiene cada uno."""
+    filas = conn.execute(
+        """SELECT TRIM(asesor) AS asesor, COUNT(*) AS clientes
+           FROM contratos
+           WHERE TRIM(COALESCE(asesor, '')) <> ''
+           GROUP BY TRIM(asesor)
+           ORDER BY LOWER(TRIM(asesor))""").fetchall()
+    return [dict(f) for f in filas]
+
+
 def factura_ya_enviada(conn: sqlite3.Connection, ref_pago: str) -> bool:
     """True si esa factura ya salio al grupo (por marca o por tener file_id)."""
     fila = conn.execute(
