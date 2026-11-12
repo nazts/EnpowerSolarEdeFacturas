@@ -159,12 +159,7 @@
         <button type="button" id="zout" aria-label="Alejar" title="Alejar"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>
         <button type="button" id="zfit" aria-label="Ver todos" title="Ver todos"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></button>
         <select id="mp-estilo" aria-label="Estilo del mapa" title="Estilo del mapa">
-          <option value="osm">OpenStreetMap</option>
-          <option value="claro">Claro</option>
-          <option value="oscuro">Oscuro</option>
-          <option value="verde">Tinte solar</option>
           <option value="calles">Calles</option>
-          <option value="relieve">Relieve</option>
           <option value="satelite">Satélite</option>
         </select>
       </div>
@@ -213,30 +208,18 @@
   /* ---------- estilos de mapa ---------- */
   /* Capas sin clave de API. Los estilos "claro"/"oscuro" son OpenStreetMap
      con filtros CSS (CARTO ahora exige API key y marca las teselas). */
+  /* Capas por defecto. Se quitaron OpenStreetMap, OpenTopoMap y derivados:
+     sus servidores son de voluntarios y bloquean las apps internas (403
+     "Access blocked - tile usage policy"). Se usa Esri, que es quien las sirve. */
   var ESTILOS = {
-    osm:      {nombre: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-               filtro: ''},
-    claro:    {nombre: 'Claro', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-               filtro: 'grayscale(.6) brightness(1.08) contrast(.92) saturate(.85)'},
-    oscuro:   {nombre: 'Oscuro', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-               filtro: 'invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.55)'},
-    verde:    {nombre: 'Tinte solar', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-               filtro: 'grayscale(.35) sepia(.25) hue-rotate(55deg) saturate(1.25) brightness(1.02)'},
-    relieve:  {nombre: 'Relieve', url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-               attr: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, SRTM · © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)',
+    calles:   {nombre: 'Calles', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+               attr: '© <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> · © OpenStreetMap contributors',
                filtro: ''},
     satelite: {nombre: 'Satélite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                attr: 'Imágenes © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics',
-               filtro: ''},
-    calles:   {nombre: 'Calles (Esri)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-               attr: '© <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> · © OpenStreetMap contributors',
                filtro: ''}
   };
-  var estiloActual = 'osm';
+  var estiloActual = 'calles';
   var selectEstilo = null;
   function urlTile(z, x, y){
     var e = ESTILOS[estiloActual] || ESTILOS.osm;
@@ -484,8 +467,9 @@
 
   iniciar();
   selectEstilo = document.getElementById('mp-estilo');
-  var guardado = 'osm';
-  try { guardado = localStorage.getItem('mapa-estilo') || 'osm'; } catch(e){}
+  var guardado = 'calles';
+  try { guardado = localStorage.getItem('mapa-estilo') || 'calles'; } catch(e){}
+  if(!ESTILOS[guardado]) guardado = 'calles';      // estilos viejos ya no existen
   aplicarEstilo(guardado, true);
   if(selectEstilo){
     selectEstilo.addEventListener('change', function(){

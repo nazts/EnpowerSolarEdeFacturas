@@ -411,12 +411,14 @@
   var x0 = Math.floor((px-w/2)/256), x1 = Math.floor((px+w/2)/256), y0 = Math.floor((py-h/2)/256), y1 = Math.floor((py+h/2)/256), n = Math.pow(2,Z);
   for(var ty=y0; ty<=y1; ty++) for(var tx=x0; tx<=x1; tx++){
     if(ty<0||ty>=n) continue;
-    var im = new Image(); im.alt=''; im.loading='lazy'; im.draggable=false;
-    im.src = 'https://tile.openstreetmap.org/'+Z+'/'+(((tx%n)+n)%n)+'/'+ty+'.png';
+    var im = new Image(); im.alt=''; im.draggable=false;   // sin lazy: son 6 teselas y fuera de vista no cargan
+    // Esri (no los servidores voluntarios de OSM, que bloquean apps internas)
+    im.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/'
+           + Z + '/' + ty + '/' + (((tx%n)+n)%n);
     im.style.left = Math.round(tx*256-(px-w/2))+'px'; im.style.top = Math.round(ty*256-(py-h/2))+'px';
     el.appendChild(im);
   }
-  el.insertAdjacentHTML('beforeend','<svg class="mm-pin" viewBox="0 0 30 30"><path d="M15 29S4 19 4 11a11 11 0 0 1 22 0c0 8-11 18-11 18z" fill="#15803d" stroke="#fff" stroke-width="2"/><circle cx="15" cy="11" r="4" fill="#fde047"/></svg><span class="mm-attr">© OpenStreetMap</span>');
+  el.insertAdjacentHTML('beforeend','<svg class="mm-pin" viewBox="0 0 30 30"><path d="M15 29S4 19 4 11a11 11 0 0 1 22 0c0 8-11 18-11 18z" fill="#15803d" stroke="#fff" stroke-width="2"/><circle cx="15" cy="11" r="4" fill="#fde047"/></svg><span class="mm-attr">© Esri · OpenStreetMap</span>');
 })();
 </script>
 <script>
