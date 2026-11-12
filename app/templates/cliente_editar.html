@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block titulo %}Editar {{ cliente.nic }} · Enpower Solar{% endblock %}
+{% block estilos %}<style>
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
+    padding:16px 26px;border-bottom:1px solid var(--line);background:var(--header-bg)}
+  h1{margin:0;font-size:19px;letter-spacing:.3px}
+  h1 span{color:var(--accent)}
+  .acciones{display:flex;gap:8px;flex-wrap:wrap}
+  a.btn,button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px}
+  a.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}
+  .primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+  .primario:hover{color:var(--on-accent);filter:brightness(1.08)}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+    outline:3px solid var(--focus);outline-offset:2px}
+  .pagina{padding:22px 26px;display:grid;gap:22px;max-width:1200px;margin:0 auto}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  section > h2{margin:0;padding:14px 18px;font-size:14px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .cuerpo{padding:18px}
+  label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:.6px}
+  input,select,textarea{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--input-bd);
+    background:var(--input-bg);color:var(--txt);font:inherit;min-height:38px}
+  textarea{min-height:70px;resize:vertical}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  input::placeholder{color:var(--ph)}
+  input[readonly]{background:var(--hover);color:var(--muted)}
+  .rejilla{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px 16px}
+  .rejilla > .c3{grid-column:span 3} .rejilla > .c4{grid-column:span 4}
+  .rejilla > .c5{grid-column:span 5} .rejilla > .c6{grid-column:span 6}
+  .rejilla > .c7{grid-column:span 7} .rejilla > .c8{grid-column:span 8}
+  .rejilla > .c12{grid-column:1 / -1}
+  .rejilla > .campo{display:flex;flex-direction:column;justify-content:flex-end;gap:5px;min-width:0}
+  .rejilla > .campo > label{margin:0}
+  .nota{font-size:12.5px;color:var(--muted);margin:-4px 0 0}
+  .pie-form{margin-top:16px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+  .check{display:flex;align-items:center;gap:9px;min-height:38px}
+  .check input{width:18px;height:18px;min-height:0;flex:0 0 18px}
+  .check label{margin:0;text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--txt)}
+  @media(max-width:900px){
+    .rejilla{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .rejilla > .c3,.rejilla > .c4,.rejilla > .c5{grid-column:span 3}
+    .rejilla > .c6,.rejilla > .c7,.rejilla > .c8{grid-column:span 6}
+  }
+  @media(max-width:560px){
+    .rejilla{grid-template-columns:1fr}
+    .rejilla > *{grid-column:1 / -1 !important}
+  }
+</style>{% endblock %}
+{% block contenido %}
+<header>
+  <h1>Editar cliente <span>{{ cliente.nic }}</span></h1>
+  <nav class="acciones" aria-label="Navegación">
+    <a class="btn" href="/clientes/{{ cliente.nic }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a la ficha</a>
+    <a class="btn" href="/clientes"><i class="bi bi-people" aria-hidden="true"></i> Clientes</a>
+  </nav>
+</header>
+
+<div class="pagina">
+  <form method="post" action="/clientes/{{ cliente.nic }}/editar">
+    <section>
+      <h2>Datos del contrato</h2>
+      <div class="cuerpo">
+        <div class="rejilla">
+          <div class="campo c4">
+            <label for="nic">NIC (no se puede cambiar)</label>
+            <input id="nic" value="{{ cliente.nic }}" readonly>
+          </div>
+          <div class="campo c8">
+            <label for="proveedor">Distribuidora</label>
+            <select id="proveedor" name="proveedor">
+              {% for clave, nombre in (proveedores or {'edenorte': 'Edenorte', 'edesur': 'Edesur'}).items() %}
+              <option value="{{ clave }}" {% if (cliente.proveedor or 'edenorte') == clave %}selected{% endif %}>{{ nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="campo c12">
+            <label for="razon_social">Razón social (como sale en la factura)</label>
+            <input id="razon_social" name="razon_social" value="{{ cliente.razon_social or '' }}"
+                   placeholder="APELLIDOS, NOMBRES">
+            <p class="nota">El nombre del PDF se arma con esto: <code>NOMBRES APELLIDOS NIC.pdf</code>.</p>
+          </div>
+
+          <div class="campo c6">
+            <label for="alias">Pagador / alias</label>
+            <input id="alias" name="alias" value="{{ cliente.alias or '' }}" placeholder="si paga otra persona o empresa">
+          </div>
+          <div class="campo c3">
+            <label for="asesor">Asesor</label>
+            <input id="asesor" name="asesor" value="{{ cliente.asesor or '' }}">
+          </div>
+          <div class="campo c3">
+            <label for="dia_corte">Día de corte</label>
+            <input id="dia_corte" name="dia_corte" type="number" min="1" max="31"
+                   value="{{ cliente.dia_corte or '' }}" placeholder="1-31">
+          </div>
+
+          <div class="campo c12">
+            <label for="notas">Notas</label>
+            <textarea id="notas" name="notas" placeholder="opcional">{{ cliente.notas or '' }}</textarea>
+          </div>
+
+          <div class="campo c4">
+            <div class="check">
+              <input type="checkbox" id="activo" name="activo" value="1" {% if cliente.activo %}checked{% endif %}>
+              <label for="activo">Cliente activo (se escanea y se envía)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top:18px">
+      <h2>Ubicación y equipo instalado</h2>
+      <div class="cuerpo">
+        <div class="rejilla">
+          <div class="campo c8">
+            <label for="direccion">Dirección</label>
+            <input id="direccion" name="direccion" value="{{ cliente.direccion or '' }}" placeholder="Calle, sector, ciudad">
+          </div>
+          <div class="campo c4">
+            <label for="telefono">Teléfono</label>
+            <input id="telefono" name="telefono" value="{{ cliente.telefono or '' }}" inputmode="tel">
+          </div>
+
+          <div class="campo c3">
+            <label for="latitud">Latitud</label>
+            <input id="latitud" name="latitud" type="number" step="any" min="-90" max="90"
+                   value="{{ cliente.latitud if cliente.latitud is not none else '' }}" placeholder="19.402583">
+          </div>
+          <div class="campo c3">
+            <label for="longitud">Longitud</label>
+            <input id="longitud" name="longitud" type="number" step="any" min="-180" max="180"
+                   value="{{ cliente.longitud if cliente.longitud is not none else '' }}" placeholder="-70.727444">
+          </div>
+          <div class="campo c6">
+            <label for="enlace">Enlace del mapa (se calcula solo)</label>
+            <input id="enlace" readonly placeholder="—">
+          </div>
+
+          <div class="campo c6">
+            <label for="paneles">Paneles</label>
+            <input id="paneles" name="paneles" value="{{ cliente.paneles or '' }}" placeholder="22 JINKO SOLAR 590W">
+          </div>
+          <div class="campo c3">
+            <label for="potencia_paneles">Capacidad instalada (kW)</label>
+            <input id="potencia_paneles" name="potencia_paneles" type="number" step="any" min="0"
+                   value="{{ cliente.potencia_paneles if cliente.potencia_paneles is not none else '' }}">
+          </div>
+          <div class="campo c3">
+            <label for="fecha_instalacion">Fecha de instalación</label>
+            <input id="fecha_instalacion" name="fecha_instalacion" type="date"
+                   value="{{ cliente.fecha_instalacion or '' }}">
+          </div>
+
+          <div class="campo c6">
+            <label for="inversores">Inversores</label>
+            <input id="inversores" name="inversores" value="{{ cliente.inversores or '' }}" placeholder="1 DEYE 12KW">
+          </div>
+          <div class="campo c3">
+            <label for="bateria">Baterías</label>
+            <input id="bateria" name="bateria" value="{{ cliente.bateria or '' }}" placeholder="3 WECO 16kWh">
+          </div>
+          <div class="campo c3">
+            <label for="capacidad_bateria">Capacidad batería (kWh)</label>
+            <input id="capacidad_bateria" name="capacidad_bateria" type="number" step="any" min="0"
+                   value="{{ cliente.capacidad_bateria if cliente.capacidad_bateria is not none else '' }}">
+          </div>
+        </div>
+
+        <div class="pie-form">
+          <button type="submit" class="primario"><i class="bi bi-check-lg" aria-hidden="true"></i> Guardar cambios</button>
+          <a class="btn" href="/clientes/{{ cliente.nic }}">Cancelar</a>
+          <span class="nota">Los campos que dejes vacíos se guardan vacíos.</span>
+        </div>
+      </div>
+    </section>
+  </form>
+</div>
+
+<script>
+  // enlace del mapa en vivo (solo lectura)
+  function actualizarEnlace(){
+    var la = document.getElementById('latitud').value.trim();
+    var lo = document.getElementById('longitud').value.trim();
+    document.getElementById('enlace').value = (la && lo)
+      ? 'https://www.openstreetmap.org/?mlat=' + la + '&mlon=' + lo + '#map=17/' + la + '/' + lo
+      : '';
+  }
+  document.getElementById('latitud').addEventListener('input', actualizarEnlace);
+  document.getElementById('longitud').addEventListener('input', actualizarEnlace);
+  actualizarEnlace();
+</script>
+{% endblock %}

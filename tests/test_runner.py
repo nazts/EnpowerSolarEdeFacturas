@@ -439,3 +439,39 @@ def test_dos_corridas_a_la_vez_no_se_pisan(contrato, leer_pdf):
 
     assert r.descargadas == []
     assert r.historico.get("ocupado") is True
+
+
+# --------------------------------------------- edición de la ficha del cliente
+def test_actualizar_contrato_cambia_y_vacia_campos(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON",
+                           alias="TALLER", asesor="Luis", notas="algo", dia_corte=16,
+                           direccion="Calle 1", paneles="22 JINKO 590W", potencia_paneles=12.98)
+        assert db.actualizar_contrato(c, NIC, {
+            "alias": "OTRO PAGADOR", "asesor": "", "notas": "",
+            "dia_corte": 7, "paneles": "", "potencia_paneles": 9.5,
+            "activo": 0, "proveedor": "edesur",
+        }) is True
+        fila = db.obtener_contrato(c, NIC)
+    assert fila["alias"] == "OTRO PAGADOR"
+    assert fila["asesor"] == "" and fila["notas"] == "" and fila["paneles"] == ""
+    assert fila["dia_corte"] == 7 and fila["activo"] == 0
+    assert fila["proveedor"] == "edesur"
+    assert fila["potencia_paneles"] == 9.5
+    assert fila["direccion"] == "Calle 1"          # lo que no se envía no se toca
+    assert fila["razon_social"] == "DE LA CRUZ TAVAREZ, JORGE RAMON"
+
+
+def test_actualizar_contrato_recalcula_el_nombre_normalizado(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="VIEJO, NOMBRE")
+        db.actualizar_contrato(c, NIC, {"razon_social": "GARCIA CASTRO, FRANCISCO ALBERT"})
+        fila = db.obtener_contrato(c, NIC)
+    assert fila["nombre_normalizado"] == "FRANCISCO ALBERT GARCIA CASTRO"
+
+
+def test_actualizar_contrato_ignora_columnas_desconocidas(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="X")
+        assert db.actualizar_contrato(c, NIC, {"nic": "999", "inventada": "borrame"}) is False
+        assert db.obtener_contrato(c, NIC)["nic"] == NIC

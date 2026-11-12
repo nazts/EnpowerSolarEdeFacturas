@@ -130,6 +130,11 @@
 <header>
   <h1>Histórico del cliente</h1>
   <nav class="acciones" aria-label="Navegación">
+    {% set u = request.state.usuario if request and request.state else None %}
+    {% if u and u.es_admin %}
+    <a class="btn" href="/clientes/{{ cliente.nic }}/editar" title="Editar toda la ficha del cliente">
+      <i class="bi bi-pencil-square" aria-hidden="true"></i> Editar cliente</a>
+    {% endif %}
     <a class="btn" href="/"><i class="bi bi-arrow-left" aria-hidden="true"></i> Dashboard</a>
     <a class="btn" href="/clientes"><i class="bi bi-arrow-left" aria-hidden="true"></i> Clientes</a>
   </nav>

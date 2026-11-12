@@ -161,7 +161,14 @@
             <td class="num" data-label="Última factura">{{ "{:,.2f}".format(c.ultimo_monto) if c.ultimo_monto is not none else "—" }}
               {% if c.ultimo_kwh is not none %}<small>{{ c.ultimo_kwh }} kWh</small>{% endif %}</td>
             <td data-label="Estado">{% if c.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}</td>
-            <td class="num acc"><a class="mini btn" href="/clientes/{{ c.nic }}" aria-label="Ver histórico del cliente {{ c.nic }}">Histórico <i class="bi bi-arrow-right" aria-hidden="true"></i></a></td>
+            <td class="num acc">
+              {% set u = request.state.usuario if request and request.state else None %}
+              {% if u and u.es_admin %}
+              <a class="mini btn" href="/clientes/{{ c.nic }}/editar"
+                 aria-label="Editar los datos del cliente {{ c.nic }}" title="Editar ficha">
+                 <i class="bi bi-pencil-square" aria-hidden="true"></i> Editar</a>
+              {% endif %}
+              <a class="mini btn" href="/clientes/{{ c.nic }}" aria-label="Ver histórico del cliente {{ c.nic }}">Histórico <i class="bi bi-arrow-right" aria-hidden="true"></i></a></td>
           </tr>
         {% endfor %}
         </tbody>

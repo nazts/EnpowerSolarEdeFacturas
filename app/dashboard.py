@@ -656,6 +656,66 @@ def guardar_equipo(nic: str, direccion: str = Form(default=""),
     return RedirectResponse(f"/clientes/{nic}?guardado=1", status_code=303)
 
 
+@app.get("/clientes/{nic}/editar")
+def cliente_editar(request: Request, nic: str):
+    """Ficha completa editable del cliente (solo administradores)."""
+    requiere_admin(request)
+    with db.sesion() as conn:
+        contrato = db.obtener_contrato(conn, nic)
+    if contrato is None:
+        raise HTTPException(404, "Ese NIC no está registrado")
+    from .proveedores import NOMBRES
+    return templates.TemplateResponse(request, "cliente_editar.html", {
+        "activo": "clientes", "cliente": dict(contrato), "proveedores": NOMBRES,
+    })
+
+
+@app.post("/clientes/{nic}/editar")
+def cliente_editar_guardar(request: Request, nic: str,
+                           razon_social: str = Form(default=""),
+                           alias: str = Form(default=""),
+                           asesor: str = Form(default=""),
+                           dia_corte: str = Form(default=""),
+                           notas: str = Form(default=""),
+                           proveedor: str = Form(default="edenorte"),
+                           direccion: str = Form(default=""),
+                           telefono: str = Form(default=""),
+                           latitud: str = Form(default=""),
+                           longitud: str = Form(default=""),
+                           paneles: str = Form(default=""),
+                           potencia_paneles: str = Form(default=""),
+                           inversores: str = Form(default=""),
+                           bateria: str = Form(default=""),
+                           capacidad_bateria: str = Form(default=""),
+                           fecha_instalacion: str = Form(default=""),
+                           activo: str = Form(default="1")):
+    """Guarda la ficha completa: lo que venga vacio se guarda vacio."""
+    requiere_admin(request)
+    proveedor = (proveedor or "edenorte").strip().lower()
+    if proveedor not in ("edenorte", "edesur"):
+        raise HTTPException(400, "Distribuidora no válida")
+    dia = int(dia_corte) if dia_corte.strip().isdigit() else None
+    if dia is not None and not 1 <= dia <= 31:
+        raise HTTPException(400, "El día de corte debe estar entre 1 y 31")
+    with db.sesion() as conn:
+        if db.obtener_contrato(conn, nic) is None:
+            raise HTTPException(404, "Ese NIC no está registrado")
+        db.actualizar_contrato(conn, nic, {
+            "razon_social": razon_social.strip(), "alias": alias.strip(),
+            "asesor": asesor.strip(), "dia_corte": dia, "notas": notas.strip(),
+            "proveedor": proveedor, "direccion": direccion.strip(),
+            "telefono": telefono.strip(), "latitud": _num(latitud),
+            "longitud": _num(longitud), "paneles": paneles.strip(),
+            "potencia_paneles": _num(potencia_paneles), "inversores": inversores.strip(),
+            "bateria": bateria.strip(), "capacidad_bateria": _num(capacidad_bateria),
+            "fecha_instalacion": fecha_instalacion.strip(),
+            "activo": 1 if activo in ("1", "on", "true") else 0,
+        })
+        db.log_evento(conn, "info", f"Ficha del cliente {nic} editada por "
+                                    f"{usuario_actual(request).usuario}")
+    return RedirectResponse(f"/clientes/{nic}", status_code=303)
+
+
 @app.get("/clientes/{nic}")
 def cliente_detalle(request: Request, nic: str):
     from .fechas import dias_para_corte, proximo_corte
@@ -713,7 +773,7 @@ def crear_contrato(nic: str = Form(...), razon_social: str = Form(default=""),
 
 
 @app.post("/contratos/{nic}/editar")
-def editar_contrato(nic: str, razon_social: str = Form(default=""),
+def editar_contrato(request: Request, nic: str, razon_social: str = Form(default=""),
                     alias: str = Form(default=""), asesor: str = Form(default=""),
                     dia_corte: str = Form(default=""), notas: str = Form(default=""),
                     activo: str = Form(default="1"), direccion: str = Form(default=""),
@@ -722,16 +782,20 @@ def editar_contrato(nic: str, razon_social: str = Form(default=""),
                     potencia_paneles: str = Form(default=""), inversores: str = Form(default=""),
                     bateria: str = Form(default=""), capacidad_bateria: str = Form(default=""),
                     fecha_instalacion: str = Form(default="")):
+    requiere_admin(request)
     with db.sesion() as conn:
-        db.upsert_contrato(
-            conn, nic, razon_social=razon_social, alias=alias, asesor=asesor, notas=notas,
-            dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
-            activo=1 if activo == "1" else 0, direccion=direccion, telefono=telefono,
-            latitud=_num(latitud), longitud=_num(longitud), paneles=paneles,
-            potencia_paneles=_num(potencia_paneles), inversores=inversores,
-            bateria=bateria, capacidad_bateria=_num(capacidad_bateria),
-            fecha_instalacion=fecha_instalacion,
-        )
+        db.actualizar_contrato(conn, nic, {
+            "razon_social": razon_social.strip(), "alias": alias.strip(),
+            "asesor": asesor.strip(), "notas": notas.strip(),
+            "dia_corte": int(dia_corte) if dia_corte.strip().isdigit() else None,
+            "activo": 1 if activo == "1" else 0,
+            "direccion": direccion.strip(), "telefono": telefono.strip(),
+            "latitud": _num(latitud), "longitud": _num(longitud),
+            "paneles": paneles.strip(), "potencia_paneles": _num(potencia_paneles),
+            "inversores": inversores.strip(), "bateria": bateria.strip(),
+            "capacidad_bateria": _num(capacidad_bateria),
+            "fecha_instalacion": fecha_instalacion.strip(),
+        })
         db.log_evento(conn, "info", f"Contrato {nic} actualizado")
     return RedirectResponse("/", status_code=303)
 

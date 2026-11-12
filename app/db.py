@@ -252,6 +252,30 @@ def actualizar_equipo(conn: sqlite3.Connection, nic: str, datos: dict) -> None:
     conn.commit()
 
 
+CAMPOS_EDITABLES = ("razon_social", "alias", "asesor", "dia_corte", "activo", "notas",
+                    "proveedor", "direccion", "telefono", "latitud", "longitud",
+                    "paneles", "potencia_paneles", "inversores", "bateria",
+                    "capacidad_bateria", "fecha_instalacion")
+
+
+def actualizar_contrato(conn: sqlite3.Connection, nic: str, datos: dict) -> bool:
+    """Edita la ficha completa del cliente tal cual se envia (permite vaciar campos).
+
+    A diferencia de `upsert_contrato`, aqui un campo vacio SI se guarda vacio:
+    es el formulario de edicion del administrador.
+    """
+    campos = {k: v for k, v in datos.items() if k in CAMPOS_EDITABLES}
+    if not campos:
+        return False
+    if "razon_social" in campos:
+        campos["nombre_normalizado"] = normalizar_razon_social(campos["razon_social"] or "")
+    sets = ", ".join(f"{k} = ?" for k in campos)
+    cur = conn.execute(f"UPDATE contratos SET {sets}, updated_at = ? WHERE nic = ?",
+                       [*campos.values(), ahora(), str(nic)])
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def listar_contratos(conn: sqlite3.Connection, solo_activos: bool = True) -> list[sqlite3.Row]:
     sql = "SELECT * FROM contratos"
     if solo_activos:
