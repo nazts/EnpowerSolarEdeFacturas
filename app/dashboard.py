@@ -91,6 +91,23 @@ def requiere_admin(request: Request) -> None:
         raise HTTPException(403, "Solo un administrador puede hacer esta acción")
 
 
+def _normalizar_busqueda(texto: str | None) -> str:
+    """minusculas y sin tildes, para que 'jose' encuentre 'JOSÉ'."""
+    import unicodedata
+
+    plano = unicodedata.normalize("NFKD", str(texto or "").lower())
+    return "".join(c for c in plano if not unicodedata.combining(c))
+
+
+def _coincide(fila, terminos: list[str]) -> bool:
+    """Todas las palabras tienen que aparecer en algun campo del cliente."""
+    campos = ("nic", "razon_social", "nombre_normalizado", "alias", "asesor",
+              "direccion", "telefono", "proveedor")
+    pajar = " ".join(_normalizar_busqueda(fila.get(c)) for c in campos) \
+        if hasattr(fila, "get") else " ".join(_normalizar_busqueda(fila[c]) for c in campos)
+    return all(t in pajar for t in terminos)
+
+
 def _dia_corte_valido(valor: str | None) -> int | None:
     """Dia de corte 1-31; 0 o basura se guardan como NULL (sin definir)."""
     texto = (valor or "").strip()
@@ -625,7 +642,7 @@ def exportar_excel(request: Request):
 
 # ------------------------------------------------------------------ clientes
 @app.get("/clientes")
-def clientes(request: Request):
+def clientes(request: Request, q: str = ""):
     from .fechas import dias_para_corte, proximo_corte
 
     with db.sesion() as conn:
@@ -633,8 +650,15 @@ def clientes(request: Request):
     for f in filas:
         f["proximo_corte"] = proximo_corte(f.get("dia_corte"))
         f["dias_corte"] = dias_para_corte(f.get("dia_corte"))
+
+    total = len(filas)
+    terminos = [t for t in _normalizar_busqueda(q).split() if t]
+    if terminos:
+        filas = [f for f in filas if _coincide(f, terminos)]
+
     return templates.TemplateResponse(request, "clientes.html",
-                                      {"clientes": filas, "activo": "clientes"})
+                                      {"clientes": filas, "activo": "clientes",
+                                       "q": q, "total": total})
 
 
 @app.get("/clientes/nuevo")

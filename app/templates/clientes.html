@@ -72,6 +72,13 @@
     padding:0;width:min(560px,92vw)}
   dialog::backdrop{background:var(--backdrop)}
   dialog h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:15px}
+  .buscador{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 18px;
+    border-bottom:1px solid var(--line);background:var(--card2)}
+  .buscador .campo{position:relative;flex:1;min-width:200px}
+  .buscador .campo i{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    color:var(--muted);font-size:15px;pointer-events:none}
+  .buscador input{padding-left:34px;min-height:40px;width:100%}
+  .buscador .conteo{color:var(--muted);font-size:12.5px;white-space:nowrap}
   .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
   .vacio b{display:block;color:var(--txt);margin-bottom:3px;font-size:14px}
   .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;
@@ -134,7 +141,18 @@
 </header>
 <div class="pagina">
   <section>
-    <h2>Clientes agregados ({{ clientes|length }})</h2>
+    <h2>Clientes agregados{% if q %} · {{ clientes|length }} de {{ total }}{% else %} ({{ clientes|length }}){% endif %}</h2>
+    <form class="buscador" method="get" action="/clientes" role="search">
+      <div class="campo">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" name="q" value="{{ q }}" id="buscarCliente"
+               placeholder="Buscar por NIC, cliente, alias, asesor, dirección o teléfono…"
+               aria-label="Buscar cliente" autocomplete="off" enterkeyhint="search">
+      </div>
+      <button class="btn primario" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Buscar</button>
+      {% if q %}<a class="btn" href="/clientes"><i class="bi bi-x-lg" aria-hidden="true"></i> Limpiar</a>{% endif %}
+      {% if q %}<span class="conteo">{{ clientes|length }} resultado{{ '' if clientes|length == 1 else 's' }} de {{ total }}</span>{% endif %}
+    </form>
     <div class="cuerpo sin-pad">
       {% if clientes %}
       <div class="tabla-wrap"><table class="cards">
@@ -174,8 +192,15 @@
         </tbody>
       </table></div>
       {% else %}
-      <div class="vacio"><b>Aún no hay clientes</b>Agrega el primero para ver su fecha de corte e histórico.<br><br>
-        <a class="btn primario" href="/clientes/nuevo">+ Agregar nuevo cliente</a></div>
+      <div class="vacio">
+        {% if q %}
+        <b>Sin resultados para «{{ q }}»</b>
+        Probá con el NIC, el nombre o el alias. <a href="/clientes">Ver todos los clientes</a>.
+        {% else %}
+        <b>Aún no hay clientes</b>Agrega el primero para ver su fecha de corte e histórico.<br><br>
+        <a class="btn primario" href="/clientes/nuevo">+ Agregar nuevo cliente</a>
+        {% endif %}
+      </div>
       {% endif %}
     </div>
   </section>

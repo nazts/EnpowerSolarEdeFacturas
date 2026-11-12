@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block titulo %}Enpower Solar{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+<link rel="apple-touch-icon" href="/static/logo.svg">
 <link rel="stylesheet" href="/static/bootstrap-icons/bootstrap-icons.min.css">
 
 <script>(function(){try{var t=localStorage.getItem('tema');if(t!=='claro'&&t!=='oscuro'){t='claro';}document.documentElement.setAttribute('data-tema',t);}catch(e){}})();</script>
@@ -38,8 +40,9 @@
     display:flex;flex-direction:column;background:var(--side-bg);border:1px solid var(--side-line);
     border-radius:22px;padding:16px 12px;overflow:hidden;transition:width .2s ease,transform .25s ease}
   #sidebar .marca{display:flex;align-items:center;gap:12px;padding:4px 6px 16px;border-bottom:1px solid var(--side-line);margin-bottom:8px}
-  #sidebar .logo{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
-    background:var(--accent);color:var(--on-accent);font-weight:800;font-size:15px;letter-spacing:.5px}
+  #sidebar .logo{flex:0 0 42px;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+    overflow:hidden;background:transparent}
+  #sidebar .logo img{width:100%;height:100%;display:block;object-fit:contain}
   #sidebar .marca-txt{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden}
   #sidebar .marca-txt small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
   #sidebar nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0}
@@ -131,7 +134,7 @@
 
 <aside id="sidebar" aria-label="Navegación principal">
   <div class="marca">
-    <div class="logo">ES</div>
+    <div class="logo"><img src="/static/logo.svg" alt="Enpower Solar"></div>
     <div class="marca-txt">Enpower Solar<small>Panel de facturas</small></div>
   </div>
   <nav>
