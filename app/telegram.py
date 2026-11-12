@@ -28,6 +28,26 @@ def _url(method: str) -> str:
     return API.format(token=_token(), method=method)
 
 
+def _pedir(method: str, **kwargs) -> requests.Response:
+    """POST a la Bot API sin arrastrar el token al mensaje de error.
+
+    La URL lleva `bot<TOKEN>`; un ConnectionError de requests la incluiria y ese
+    texto termina en el journal y en logs/runner_*.log.
+    """
+    try:
+        return requests.post(_url(method), **kwargs)
+    except requests.RequestException as exc:
+        raise TelegramError(f"{type(exc).__name__} al hablar con Telegram") from None
+
+
+def _consultar(method: str, **kwargs) -> requests.Response:
+    """Igual que `_pedir` pero GET (getMe / getUpdates)."""
+    try:
+        return requests.get(_url(method), **kwargs)
+    except requests.RequestException as exc:
+        raise TelegramError(f"{type(exc).__name__} al hablar con Telegram") from None
+
+
 def _ok(resp: requests.Response) -> dict:
     try:
         datos = resp.json()
@@ -59,7 +79,7 @@ def enviar_mensaje(texto: str, chat_id: str | None = None, parse_mode: str = "HT
     datos = {"chat_id": chat_id, "text": texto[:4096], "parse_mode": parse_mode,
              "disable_web_page_preview": "true"}
     for intento in (1, 2):
-        resp = requests.post(_url("sendMessage"), data=datos, timeout=60)
+        resp = _pedir("sendMessage", data=datos, timeout=60)
         try:
             return _ok(resp)
         except TelegramError as exc:
@@ -76,7 +96,7 @@ def enviar_documento(path: str | Path, caption: str = "", chat_id: str | None = 
         raise TelegramError("Falta TELEGRAM_CHAT_ID (configura el canal)")
     path = Path(path)
     with path.open("rb") as fh:
-        resp = requests.post(_url("sendDocument"), data={
+        resp = _pedir("sendDocument", data={
             "chat_id": chat_id, "caption": caption[:1024], "parse_mode": "HTML",
         }, files={"document": (path.name, fh, mimetypes.guess_type(path.name)[0] or "application/pdf")},
         timeout=180)
@@ -112,7 +132,7 @@ def enviar_album(paths: list[str | Path], caption: str = "",
                 files[f"file{i}"] = (path.name, handle,
                                      mimetypes.guess_type(path.name)[0] or "application/pdf")
             try:
-                return requests.post(_url("sendMediaGroup"), data={
+                return _pedir("sendMediaGroup", data={
                     "chat_id": chat_id, "media": json.dumps(media),
                 }, files=files, timeout=300)
             finally:
@@ -138,11 +158,11 @@ def enviar_album(paths: list[str | Path], caption: str = "",
 
 
 def info_bot() -> dict:
-    return _ok(requests.get(_url("getMe"), timeout=30))
+    return _ok(_consultar("getMe", timeout=30))
 
 
 def updates(limite: int = 50) -> list[dict]:
-    return _ok(requests.get(_url("getUpdates"), params={"limit": limite}, timeout=30))
+    return _ok(_consultar("getUpdates", params={"limit": limite}, timeout=30))
 
 
 def resolver_chat_id(chat_id: str | None = None) -> str:

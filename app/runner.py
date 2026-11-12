@@ -1,6 +1,8 @@
 """Corrida diaria: revisa contratos, descarga las facturas que cortan hoy y las envia."""
 from __future__ import annotations
 
+import sys
+
 import calendar
 import html as _html
 import shutil
@@ -717,6 +719,10 @@ if __name__ == "__main__":
         salida = sincronizar_historial(fecha=fecha, por_cliente=args.por_cliente,
                                        enviar=not args.sin_envio)
         print(json.dumps(salida, ensure_ascii=False, indent=2))
-    else:
-        r = corrida(fecha=fecha, enviar=not args.sin_envio, reporte=args.reporte)
-        print(json.dumps(r.como_dict(), ensure_ascii=False, indent=2))
+        # para que systemd/tareas vean el fallo del portal
+        sys.exit(1 if salida.get("portal_error") else 0)
+
+    r = corrida(fecha=fecha, enviar=not args.sin_envio, reporte=args.reporte)
+    print(json.dumps(r.como_dict(), ensure_ascii=False, indent=2))
+    # codigo != 0 si el portal fallo: asi el servicio queda en failed y se ve
+    sys.exit(1 if r.portal_error else 0)

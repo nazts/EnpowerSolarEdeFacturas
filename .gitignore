@@ -21,3 +21,9 @@ exports/
 Thumbs.db
 
 .secret_key
+
+logs/
+*.log
+.env.respaldo-*
+# copia local de la config de red de WSL
+.wslconfig

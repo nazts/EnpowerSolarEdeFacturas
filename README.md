@@ -28,6 +28,23 @@ cd "C:\Users\Luis Martinez\Documents\proyectosGithub\EnpowerSolarEdeFacturas"
 
 Luego abre `http://127.0.0.1:8000` e inicia sesión. Para detenerlo: `Ctrl+C`.
 
+### Instalación automática
+
+Windows (crea el venv, el `.env`, la base y las tareas programadas):
+
+```powershell
+.\scripts\instalar_windows.ps1
+```
+
+Linux / WSL (recomendado para el servidor: servicios de systemd y corrida a las 07:00):
+
+```bash
+bash scripts/instalar_wsl.sh
+```
+
+El paso a paso completo —Windows, WSL, red de la oficina y credenciales de
+producción— está en **[docs/produccion.md](docs/produccion.md)**.
+
 Comandos útiles (siempre con el python del venv):
 
 ```bash

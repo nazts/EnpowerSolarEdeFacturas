@@ -8,21 +8,22 @@ el código: se elige con `DATABASE_URL` en el `.env`.
 
 ## 1. Crear el proyecto
 
-1. Entra a <https://supabase.com>, crea el proyecto (región `us-east-1` es la más
-   cercana a RD). Guarda la **contraseña de la base**, la vas a necesitar.
+1. Entra a <https://supabase.com>, crea el proyecto (región `us-east-2` es la que se usó). Guarda la **contraseña de la base**, la vas a necesitar.
 2. En **Project Settings → Database → Connection string** elige
    **Transaction pooler** (puerto **6543**), no la conexión directa: el pooler
    aguanta muchas PC conectadas y evita el límite de conexiones del plan free.
-3. Copia la cadena y reemplaza `[YOUR-PASSWORD]` por la contraseña. Debe quedar así:
+3. Copia la cadena y reemplaza `[YOUR-PASSWORD]` por la contraseña. Si tiene
+   caracteres especiales (`@ : / # % ?`), van codificados en la URL: `@` → `%40`,
+   `#` → `%23`, `%` → `%25`. Debe quedar así:
 
    ```
-   postgresql://postgres.abcdefghij:MIPASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+   postgresql://postgres.fyaggzrvbipgdujavexu:MIPASSWORD@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
    ```
 
 4. Pega esa línea en el `.env` del proyecto:
 
    ```
-   DATABASE_URL=postgresql://postgres.abcdefghij:MIPASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+   DATABASE_URL=postgresql://postgres.fyaggzrvbipgdujavexu:MIPASSWORD@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
    ```
 
    El `.env` está en `.gitignore`: esa contraseña no se sube al repo.
@@ -31,11 +32,15 @@ el código: se elige con `DATABASE_URL` en el `.env`.
 
 Con el `.env` ya configurado:
 
-```bash
+En Windows (PowerShell o cmd):
+
+```powershell
 .venv\Scripts\python.exe -m app.db --init        # crea las 7 tablas en Supabase
 .venv\Scripts\python.exe -m app.db --importar    # copia los datos del SQLite local
 .venv\Scripts\python.exe -m app.db --estado      # motor + conteos
 ```
+
+En Linux / WSL es lo mismo con `.venv/bin/python`.
 
 `--importar` **deja vacías las tablas de destino antes de copiar** (es una copia
 completa, no una fusión). Se puede repetir mientras se prueba.
@@ -69,5 +74,7 @@ el PDF sin almacenarlo.
 - **Pausa por inactividad**: un proyecto free se pausa tras ~7 días sin uso; como el
   worker escribe a diario, en la práctica no pasa. Si se pausa, se reactiva desde el
   panel de Supabase.
+- **Conexion directa**: en el plan free es solo IPv6; para `pg_dump` desde la
+  oficina usa el pooler o pide la IPv4.
 - **Conexiones**: usa siempre el pooler (6543). La conexión directa (5432) tiene un
   límite bajo y con varias PC se agota.

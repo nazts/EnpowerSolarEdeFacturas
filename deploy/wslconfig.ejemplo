@@ -1,0 +1,32 @@
+# Configuracion de WSL2 para la PC que hace de servidor.
+# Copiar a:  C:\Users\<usuario>\.wslconfig   (respalda el que hubiera)
+#
+# Ojo: WSL por defecto usa red NAT. Windows ve el panel en localhost, pero las
+# otras PC de la oficina NO. Con `mirrored` la distro comparte la IP de Windows.
+
+[wsl2]
+# red compartida con Windows (Windows 11 22H2 en adelante)
+networkingMode=mirrored
+# que la distro no se apague sola por inactividad
+vmIdleTimeout=-1
+
+[experimental]
+# permite que el propio Windows entre por loopback a lo que escucha la distro
+hostAddressLoopback=true
+
+# ---------------------------------------------------------------------------
+# Si `mirrored` no funciona en esta build de Windows, plan B (PowerShell admin):
+#
+#   1. comentar networkingMode=mirrored y reiniciar:  wsl --shutdown
+#   2. IP de la distro (cambia en cada arranque, hay que rehacer el portproxy):
+#        wsl hostname -I
+#   3. reenviar el puerto desde Windows:
+#        netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 `
+#              connectport=8000 connectaddress=<IP-DE-WSL>
+#   4. abrir el puerto:
+#        netsh advfirewall firewall add rule name="Enpower 8000" dir=in action=allow `
+#              protocol=TCP localport=8000
+#
+# Con `mirrored` el firewall que manda es el de Hyper-V (no el de Windows):
+#   Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' `
+#        -DefaultInboundAction Allow

@@ -1,0 +1,27 @@
+[Unit]
+Description=Enpower Solar - panel de facturas
+Documentation=file://__RAIZ__/docs/produccion.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USUARIO__
+WorkingDirectory=__RAIZ__
+Environment=PYTHONUNBUFFERED=1
+# se llama por bash: si el repo se clono desde Windows, el .sh no trae bit +x
+ExecStart=/bin/bash __RAIZ__/scripts/correr_panel.sh
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+# el proyecto vive en /home (escribible); el resto del sistema no
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectControlGroups=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

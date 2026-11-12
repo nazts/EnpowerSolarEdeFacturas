@@ -1,0 +1,23 @@
+[Unit]
+Description=Enpower Solar - descarga diaria de facturas (Edenorte + Edesur)
+Documentation=file://__RAIZ__/docs/produccion.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__USUARIO__
+WorkingDirectory=__RAIZ__
+Environment=PYTHONUNBUFFERED=1
+# por bash: el bit +x no viaja cuando el repo se clona desde Windows
+ExecStart=/bin/bash __RAIZ__/scripts/correr_runner.sh
+TimeoutStartSec=3600
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectControlGroups=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+
+# si falla no se reintenta en bucle: la proxima corrida es manana

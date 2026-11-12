@@ -578,7 +578,8 @@ if __name__ == "__main__":
         init_db()
         origen = sqlite3.connect(config.DB_PATH)
         origen.row_factory = sqlite3.Row
-        tablas = ("contratos", "facturas", "pendientes", "usuarios", "proyectos", "eventos")
+        tablas = ("contratos", "facturas", "pendientes", "envios",
+                  "usuarios", "proyectos", "eventos")
         with sesion() as destino:
             for tabla in tablas:
                 filas = origen.execute(f"SELECT * FROM {tabla}").fetchall()
@@ -611,6 +612,7 @@ if __name__ == "__main__":
         init_db(forzar=True)
         print(f"base inicializada ({motor})")
     with sesion() as conn:
-        for tabla in ("contratos", "facturas", "pendientes", "usuarios", "proyectos", "eventos"):
+        for tabla in ("contratos", "facturas", "pendientes", "envios",
+                      "usuarios", "proyectos", "eventos"):
             n = conn.execute(f"SELECT COUNT(*) AS n FROM {tabla}").fetchone()["n"]
             print(f"  {tabla:12} {n}")

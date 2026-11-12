@@ -1,0 +1,13 @@
+[Unit]
+Description=Enpower Solar - corrida diaria a las 07:00 (hora de Republica Dominicana)
+
+[Timer]
+# la zona va explicita: el servidor puede estar en UTC o en otra zona y la
+# factura tiene que salir a las 7 de la manana de RD
+OnCalendar=*-*-* 07:00:00 America/Santo_Domingo
+Persistent=true
+RandomizedDelaySec=120
+Unit=enpower-runner.service
+
+[Install]
+WantedBy=timers.target

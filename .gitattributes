@@ -1,0 +1,14 @@
+# Los .sh y las unidades se ejecutan en Linux: siempre LF.
+*.sh                text eol=lf
+deploy/*            text eol=lf
+*.service           text eol=lf
+*.timer             text eol=lf
+
+# Windows: CRLF para los .bat y .ps1
+*.bat               text eol=crlf
+*.ps1               text eol=crlf
+
+# binarios / generados
+*.pdf               binary
+*.png               binary
+*.woff2             binary
