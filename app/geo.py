@@ -6,7 +6,7 @@ import time
 import urllib.parse
 import urllib.request
 
-UA = "EnpowerSolarFacturas/1.0 (contacto: sometimiento@enpowersolarrd.com)"
+UA = "EnpowerSolarFacturas/1.0 (contacto: soporte@enpowersolarrd.com)"
 URL = "https://nominatim.openstreetmap.org/search"
 URL_REVERSE = "https://nominatim.openstreetmap.org/reverse"
 _ultima = [0.0]

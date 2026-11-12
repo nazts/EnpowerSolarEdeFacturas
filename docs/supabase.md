@@ -8,7 +8,7 @@ el código: se elige con `DATABASE_URL` en el `.env`.
 
 ## 1. Crear el proyecto
 
-1. Entra a <https://supabase.com>, crea el proyecto (región `us-east-2` es la que se usó). Guarda la **contraseña de la base**, la vas a necesitar.
+1. Entra a <https://supabase.com>, crea el proyecto (una región cercana: `us-east-1` o `us-east-2`). Guarda la **contraseña de la base**, la vas a necesitar.
 2. En **Project Settings → Database → Connection string** elige
    **Transaction pooler** (puerto **6543**), no la conexión directa: el pooler
    aguanta muchas PC conectadas y evita el límite de conexiones del plan free.
@@ -17,13 +17,13 @@ el código: se elige con `DATABASE_URL` en el `.env`.
    `#` → `%23`, `%` → `%25`. Debe quedar así:
 
    ```
-   postgresql://postgres.fyaggzrvbipgdujavexu:MIPASSWORD@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
+   postgresql://postgres.<project-ref>:MIPASSWORD@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require
    ```
 
 4. Pega esa línea en el `.env` del proyecto:
 
    ```
-   DATABASE_URL=postgresql://postgres.fyaggzrvbipgdujavexu:MIPASSWORD@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
+   DATABASE_URL=postgresql://postgres.<project-ref>:MIPASSWORD@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require
    ```
 
    El `.env` está en `.gitignore`: esa contraseña no se sube al repo.
@@ -54,7 +54,7 @@ intacta.
 
 - Los datos son los mismos: la capa `app/pg.py` traduce las consultas (`?` → `%s`),
   las filas a diccionarios y las fechas a texto, así que el resto del código no se toca.
-- **Latencia medida** (Supabase `us-east-2`, desde RD): login 0,6 s; páginas del panel
+- **Latencia medida** (Supabase en EE. UU., desde RD): login 0,6 s; páginas del panel
   0,43–0,79 s. En SQLite local eran 5–20 ms. Es el costo de tener la base fuera.
   Se usa un pool de conexiones (psycopg_pool) porque abrir una conexión TLS nueva
   cuesta ~1 s contra el pooler.

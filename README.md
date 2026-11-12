@@ -19,14 +19,54 @@ de las facturas del día a un canal de Telegram en un solo álbum.
 7. Si el portal falla, se emite la alerta **"La plataforma de Edenorte tiene
    problemas"** y no se pierde ningún pendiente.
 
-## Arranque rápido (local)
+## Instalación en una PC nueva
+
+Se instala en **una sola PC**: la que va a quedar encendida administrando el sistema
+(descarga las facturas, las manda a Telegram y sirve el panel). Las demás PC no
+instalan nada, solo abren el navegador en la dirección de esa PC.
+
+### 1. Traer el código
 
 ```bash
-cd "C:\Users\Luis Martinez\Documents\proyectosGithub\EnpowerSolarEdeFacturas"
-.venv\Scripts\python.exe -m uvicorn app.dashboard:app --host 127.0.0.1 --port 8000
+git clone https://github.com/nazts/EnpowerSolarEdeFacturas.git
+cd EnpowerSolarEdeFacturas
 ```
 
-Luego abre `http://127.0.0.1:8000` e inicia sesión. Para detenerlo: `Ctrl+C`.
+El repositorio es privado: GitHub pide usuario y un **token** (o una clave SSH) en
+lugar de la contraseña.
+
+### 2. Instalar
+
+Windows, en PowerShell dentro de la carpeta:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\instalar_windows.ps1
+```
+
+Linux / WSL:
+
+```bash
+bash scripts/instalar_wsl.sh --red
+```
+
+El instalador crea el entorno, las dependencias, el `.env`, la base, las carpetas de
+trabajo y la tarea (o servicio) de las 07:00. Necesita un `.env` con las
+credenciales de la empresa — se copia desde `.env.produccion`, que no está en el
+repositorio: pídelo a quien administra el sistema hoy.
+
+### 3. Arrancar a mano (para probar)
+
+```bash
+# Windows
+iniciar_panel.bat
+
+# Linux / WSL
+./scripts/correr_panel.sh
+```
+
+Abre `http://127.0.0.1:8000` e inicia sesión con el usuario administrador. El
+primer arranque, si la base está vacía, crea un administrador y lo imprime en la
+consola.
 
 ### Roles
 

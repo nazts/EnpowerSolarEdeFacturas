@@ -14,7 +14,7 @@ a entrar desde fuera, **poner HTTPS** — si no, la contraseña viaja en claro.
 En la PC que hace de servidor (tiene que quedar encendida y con el panel abierto):
 
 ```powershell
-cd "C:\Users\Luis Martinez\Documents\proyectosGithub\EnpowerSolarEdeFacturas"
+cd EnpowerSolarEdeFacturas        # la carpeta donde quedó el proyecto
 $env:HOST = "0.0.0.0"
 .venv\Scripts\python.exe run.py
 ```
@@ -70,7 +70,7 @@ y sirve el panel con `COOKIE_SECURE=1` detrás de un proxy.
 
    ```yaml
    tunnel: enpower
-   credentials-file: C:\Users\Luis Martinez\.cloudflared\<id>.json
+   credentials-file: C:\Users\<usuario>\.cloudflared\<id>.json
    ingress:
      - hostname: panel.tudominio.com
        service: http://127.0.0.1:8000

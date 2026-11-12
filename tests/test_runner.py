@@ -445,7 +445,7 @@ def test_dos_corridas_a_la_vez_no_se_pisan(contrato, leer_pdf):
 def test_actualizar_contrato_cambia_y_vacia_campos(contrato):
     with db.sesion(db_path=contrato) as c:
         db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON",
-                           alias="TALLER", asesor="Luis", notas="algo", dia_corte=16,
+                           alias="TALLER", asesor="Asesor Uno", notas="algo", dia_corte=16,
                            direccion="Calle 1", paneles="22 JINKO 590W", potencia_paneles=12.98)
         assert db.actualizar_contrato(c, NIC, {
             "alias": "OTRO PAGADOR", "asesor": "", "notas": "",

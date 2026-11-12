@@ -27,7 +27,7 @@ No viaja por el repositorio. Tres maneras:
 scp ".env.produccion" usuario@192.168.1.50:~/enpower/.env
 
 # B. dentro de WSL, si el proyecto se copió desde el disco de Windows
-cp "/mnt/c/Users/Luis Martinez/Documents/proyectosGithub/EnpowerSolarEdeFacturas/.env.produccion" ~/enpower/.env
+cp "/mnt/c/Users/<usuario>/Documents/EnpowerSolarEdeFacturas/.env.produccion" ~/enpower/.env
 
 # C. por la ruta de red de WSL, desde PowerShell
 Copy-Item .env.produccion "\\wsl$\Ubuntu\home\<usuario>\enpower\.env"
@@ -158,7 +158,7 @@ git clone git@github.com:nazts/EnpowerSolarEdeFacturas.git ~/enpower
 
 ```bash
 rsync -a --exclude .venv --exclude __pycache__ --exclude .git \
-      "/mnt/c/Users/Luis Martinez/Documents/proyectosGithub/EnpowerSolarEdeFacturas/" ~/enpower/
+      "/mnt/c/Users/<usuario>/Documents/EnpowerSolarEdeFacturas/" ~/enpower/
 ```
 
 `rsync` se salta `.venv` (es de Windows y no sirve en Linux). Después copia el
