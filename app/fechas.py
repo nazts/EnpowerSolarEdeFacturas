@@ -6,9 +6,14 @@ from datetime import date
 
 
 def dia_efectivo(dia: int | None, anio: int, mes: int) -> int | None:
-    if not dia:
+    """Dia real del mes (28/29/30/31 segun corresponda). Nunca lanza."""
+    try:
+        valor = int(dia) if dia else 0
+    except (TypeError, ValueError):
         return None
-    return min(int(dia), calendar.monthrange(anio, mes)[1])
+    if valor < 1:
+        return None
+    return min(valor, calendar.monthrange(anio, mes)[1])
 
 
 def proximo_corte(dia_corte: int | None, desde: date | None = None) -> date | None:

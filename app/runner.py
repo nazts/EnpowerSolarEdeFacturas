@@ -444,10 +444,15 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     "pdf_path": str(destino),
                     "estado": "descargada",
                 })
-                if datos.corte:
+                if datos.corte and not contrato_dia_corte(conn, nic):
+
+                    # el dia de corte se aprende una vez; no se pisa el del panel
+
                     db.upsert_contrato(conn, nic,
-                                       razon_social=razon_social or (datos.titular or ""),
-                                       dia_corte=int(datos.corte[-2:]))
+
+                                   razon_social=razon_social or (datos.titular or ""),
+
+                                   dia_corte=int(datos.corte[-2:]))
                 db.cerrar_pendiente(conn, nic, datos.corte)
                 encontrado_por_corte.add(datos.corte)
                 res.descargadas.append({
@@ -619,6 +624,14 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                     })
                     continue
 
+                if not datos.corte:
+                    # sin corte la factura no sirve para el panel: se avisa
+                    res["errores"].append({"nic": nic, "ref": fila.ref_pago,
+                                           "error": "el PDF no trae fecha de corte"})
+                    db.log_evento(conn, "aviso",
+                                  f"NIC {nic}: factura sin fecha de corte",
+                                  f"ref {fila.ref_pago} (revisar con app.reparar)")
+
                 destino = _candidato_archivo(nic, datos, contrato["razon_social"] or "",
                                              config.FACTURAS_DIR)
                 _guardar_pdf(contenido, destino)
@@ -652,7 +665,12 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                  AND f.corte IS NOT NULL AND f.estado = 'descargada'
                GROUP BY f.nic""").fetchall()
         for fila in sin_dia:
-            db.upsert_contrato(conn, fila["nic"], dia_corte=int(fila["corte"][-2:]))
+            cortes = [r["corte"] for r in conn.execute(
+                "SELECT corte FROM facturas WHERE nic = ? AND corte IS NOT NULL "
+                "AND estado = 'descargada' ORDER BY corte DESC LIMIT 6",
+                (fila["nic"],)).fetchall()]
+            dia = _dia_mas_comun(cortes) or int(fila["corte"][-2:])
+            db.upsert_contrato(conn, fila["nic"], dia_corte=dia)
             res.setdefault("dias_corte", []).append({"nic": fila["nic"], "dia": int(fila["corte"][-2:])})
 
         # envio al grupo: SOLO la ultima factura de cada cliente (una), y solo
@@ -698,6 +716,22 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                               f"Enviada la ultima factura de {res['enviados']} cliente(s)")
 
     return res
+
+
+def contrato_dia_corte(conn, nic: str) -> int | None:
+    """Dia de corte que ya tiene el contrato (None si no se sabe todavia)."""
+    fila = conn.execute("SELECT dia_corte FROM contratos WHERE nic = ?", (str(nic),)).fetchone()
+    return (fila["dia_corte"] if fila and fila["dia_corte"] else None) if fila else None
+
+
+def _dia_mas_comun(cortes: list[str]) -> int | None:
+    """Dia de corte mas repetido (el corte real varia +-1 dia entre meses)."""
+    from collections import Counter
+
+    dias = [int(c[-2:]) for c in cortes if c and len(c) >= 10 and c[-2:].isdigit()]
+    if not dias:
+        return None
+    return Counter(dias).most_common(1)[0][0]
 
 
 def _campo(conn, nic: str, columna: str) -> str:

@@ -404,7 +404,8 @@ def marcar_enviadas(conn: sqlite3.Connection, ids: list[int], chat_id: str) -> N
 
 def ultima_factura(conn: sqlite3.Connection, nic: str) -> sqlite3.Row | None:
     return conn.execute(
-        "SELECT * FROM facturas WHERE nic = ? ORDER BY emision DESC LIMIT 1", (str(nic),)
+        "SELECT * FROM facturas WHERE nic = ? ORDER BY corte DESC, emision DESC LIMIT 1",
+        (str(nic),)
     ).fetchone()
 
 
@@ -465,7 +466,7 @@ def resumen_dashboard(conn: sqlite3.Connection) -> dict:
     clientes = conn.execute(
         """SELECT COUNT(*) AS total,
                   SUM(CASE WHEN activo = 1 THEN 1 ELSE 0 END) AS activos,
-                  SUM(CASE WHEN dia_corte IS NULL THEN 1 ELSE 0 END) AS sin_corte
+                  SUM(CASE WHEN dia_corte IS NULL OR dia_corte = 0 THEN 1 ELSE 0 END) AS sin_corte
            FROM contratos"""
     ).fetchone()
     facturas = conn.execute(

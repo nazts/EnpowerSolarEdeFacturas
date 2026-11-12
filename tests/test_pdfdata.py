@@ -76,13 +76,14 @@ def test_el_corte_sale_aunque_el_texto_llegue_mal_codificado():
         assert d.dias == 30
 
 
-def test_sin_etiqueta_de_periodo_el_corte_es_el_fin_del_periodo():
+def test_sin_periodo_no_inventa_una_fecha_de_corte():
+    """Sin la linea del periodo no hay corte: mejor vacio que uno equivocado."""
     from app.pdfdata import parsear
 
     texto = FACTURA_CON_PERIODO.format(acento="í").replace(
         "No. De Días Facturados : 20/09/2026 - 20/10/2026 = 30 dias", "")
     d = parsear(texto)
-    assert d.corte is None or d.corte == d.periodo_fin
+    assert d.corte is None and d.periodo_fin is None
 
 
 def test_periodo_con_formato_alternativo():
@@ -93,3 +94,60 @@ def test_periodo_con_formato_alternativo():
         "PERIODO DE FACTURACION: 20/09/2026 al 20/10/2026")
     d = parsear(texto)
     assert d.corte == "2026-10-20"
+
+
+def test_variantes_del_periodo():
+    """Formatos que aparecen en los PDFs reales (y en los de Edesur)."""
+    from app.pdfdata import _periodo
+
+    casos = {
+        "No. De Días Facturados : 20/09/2026 - 20/10/2026 = 30 dias": ("2026-09-20", "2026-10-20", 30),
+        "No. De DÃ­as Facturados : 20/09/2026 - 20/10/2026 = 30 dias": ("2026-09-20", "2026-10-20", 30),
+        "No. De Días Facturados : 2/9/2026 - 5/10/2026 = 33 dias": ("2026-09-02", "2026-10-05", 33),
+        "No. De Días Facturados : 02-09-2026 - 05-10-2026 = 33 dias": ("2026-09-02", "2026-10-05", 33),
+        "No. De Días Facturados : 02/09/26 - 05/10/26 = 33 dias": ("2026-09-02", "2026-10-05", 33),
+        "No. De Días Facturados : 20/09/2026 – 20/10/2026 = 30 dias": ("2026-09-20", "2026-10-20", 30),
+        "NO. DE DIAS FACTURADOS : 20/09/2026 - 20/10/2026 = 30 dias": ("2026-09-20", "2026-10-20", 30),
+        "PERIODO DE FACTURACIÓN 20/09/2026 al 20/10/2026": ("2026-09-20", "2026-10-20", None),
+        # Edesur: la etiqueta arriba y las fechas abajo, con el NIS en medio
+        " PERIODO DE FACTURACIÓN\n\n NIS: 2115589 2.121 kW 15/07/2026 - 13/08/2026 = 29 días":
+            ("2026-07-15", "2026-08-13", 29),
+        # sin etiqueta, pero con "= N dias" (formato de Edesur)
+        " NIS: 2115589 15/07/2026 - 16/09/2026 = 29 días": ("2026-07-15", "2026-09-16", 29),
+    }
+    for texto, esperado in casos.items():
+        assert _periodo(texto) == esperado, texto
+
+
+def test_dos_periodos_se_queda_con_el_mas_nuevo():
+    from app.pdfdata import _periodo
+
+    texto = ("No. De Días Facturados : 20/08/2026 - 20/09/2026 = 31 dias\n"
+             "No. De Días Facturados : 20/09/2026 - 20/10/2026 = 30 dias")
+    assert _periodo(texto)[:2] == ("2026-09-20", "2026-10-20")
+
+
+def test_no_confunde_el_periodo_con_la_fecha_de_emision():
+    """Dos fechas sueltas despues de la etiqueta no son el periodo."""
+    from app.pdfdata import _periodo
+
+    texto = "Días Facturados\nFECHA EMISION: 20/10/2026 - 30/10/2026"
+    assert _periodo(texto) == (None, None, None)
+
+
+def test_texto_pdf_decodifica_utf8(monkeypatch):
+    """El bug de origen: pdftotext en Linux emite UTF-8 y se leia como latin-1."""
+    import subprocess
+
+    from app import pdfdata
+
+    class Salida:
+        stdout = "No. De Días Facturados : 20/09/2026 - 20/10/2026 = 30 dias".encode("utf-8")
+
+    monkeypatch.setattr(pdfdata, "_binario", lambda: "pdftotext")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: Salida())
+
+    texto = pdfdata.texto_pdf("cualquier.pdf")
+
+    assert "Días" in texto                      # sin mojibake
+    assert pdfdata.parsear(texto).corte == "2026-10-20"

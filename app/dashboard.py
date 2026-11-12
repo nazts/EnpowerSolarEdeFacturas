@@ -91,6 +91,15 @@ def requiere_admin(request: Request) -> None:
         raise HTTPException(403, "Solo un administrador puede hacer esta acción")
 
 
+def _dia_corte_valido(valor: str | None) -> int | None:
+    """Dia de corte 1-31; 0 o basura se guardan como NULL (sin definir)."""
+    texto = (valor or "").strip()
+    if not texto.isdigit():
+        return None
+    dia = int(texto)
+    return dia if 1 <= dia <= 31 else None
+
+
 def es_admin_principal(nombre_usuario: str) -> bool:
     """El admin del .env (ADMIN_USER) manda: nadie mas lo puede tocar."""
     principal = (config.ADMIN_USER or "").strip().lower()
@@ -698,7 +707,7 @@ def crear_cliente(request: Request, nic: str = Form(...), razon_social: str = Fo
             potencia_paneles=_num(potencia_paneles), inversores=inversores,
             bateria=bateria, capacidad_bateria=_num(capacidad_bateria),
             fecha_instalacion=fecha_instalacion,
-            dia_corte=int(dia_corte) if dia_corte.strip().isdigit() else None,
+            dia_corte=_dia_corte_valido(dia_corte),
         )
         db.log_evento(conn, "info",
                       f"Cliente {nic} agregado desde el módulo de clientes ({proveedor})",

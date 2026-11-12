@@ -40,16 +40,56 @@ def texto_pdf(path: str | Path) -> str:
     Decodificar siempre como latin-1 rompia los acentos ("Días" -> "DÃ­as") y con
     eso se perdian la fecha de corte y el periodo facturado.
     """
-    salida = subprocess.run(
-        [_binario(), "-layout", "-enc", "UTF-8", str(path), "-"],
-        capture_output=True, check=True,
-    )
+    binario = _binario()
+    try:
+        salida = subprocess.run([binario, "-layout", "-enc", "UTF-8", str(path), "-"],
+                                capture_output=True, check=True)
+    except subprocess.CalledProcessError:
+        # poppler viejo sin -enc: se pide sin la opcion y se adivina el codec
+        salida = subprocess.run([binario, "-layout", str(path), "-"],
+                                capture_output=True, check=True)
     for codec in ("utf-8", "cp1252", "latin-1"):
         try:
             return salida.stdout.decode(codec)
         except UnicodeDecodeError:
             continue
     return salida.stdout.decode("utf-8", errors="replace")
+
+
+# una fecha suelta: 5/10/2026, 05-10-26, 05.10.2026
+_FECHA = r"\d{1,2}[/\-. ]\d{1,2}[/\-. ]\d{2,4}"
+_PAREO = rf"({_FECHA})\s*(?:-|–|—|\bal\b|\ba\b)\s*({_FECHA})"
+
+
+def _periodo(plano: str) -> tuple[str | None, str | None, int | None]:
+    """(inicio, fin, dias) del periodo facturado; el fin es la fecha de corte.
+
+    Tolera: tildes o su mojibake, mayusculas, '-', '–', '—', 'al', fechas de uno o
+    dos digitos, año de dos digitos y varios periodos en el mismo PDF (se queda con
+    el mas nuevo).
+    """
+    limpio = _sin_acentos(plano)
+    patrones = (
+        # Edenorte: "No. De Dias Facturados : 20/09/2026 - 20/10/2026 = 30 dias"
+        rf"D\S{{0,4}}as\s+FACTURADOS[\s:.\-]{{0,20}}{_PAREO}(?:\s*=?\s*(\d+)\s*d)?",
+        # Edesur: "PERIODO DE FACTURACION" y las fechas mas abajo, a veces con
+        # "NIS: 2115589 2.121 kW 15/07/2026 - 13/08/2026 = 29 dias" en el medio
+        rf"PERIODO\s+(?:DE\s+)?FACTURAC\w*[\s\S]{{0,200}}?{_PAREO}(?:\s*=?\s*(\d+)\s*d)?",
+        # ultimo recurso (Edesur sin la etiqueta): "15/07/2026 - 16/09/2026 = 29 dias"
+        rf"{_PAREO}\s*=\s*(\d+)\s*d",
+    )
+    mejor: tuple[str | None, str | None, int | None] = (None, None, None)
+    for patron in patrones:
+        for m in re.finditer(patron, limpio, re.I):
+            ini, fin = _fecha(m.group(1)), _fecha(m.group(2))
+            if not ini or not fin:
+                continue
+            dias = int(m.group(3)) if m.lastindex and m.lastindex >= 3 and m.group(3) else None
+            if mejor[1] is None or fin > mejor[1]:
+                mejor = (ini, fin, dias)
+        if mejor[1]:
+            break
+    return mejor
 
 
 def _sin_acentos(texto: str) -> str:
@@ -71,12 +111,16 @@ def _num(valor: str | None) -> float | None:
 
 
 def _fecha(valor: str | None) -> str | None:
+    """'5/10/2026', '05-10-26' y '05/10/2026' -> '2026-10-05'."""
     if not valor:
         return None
-    try:
-        return datetime.strptime(valor.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
-    except ValueError:
-        return None
+    limpio = valor.strip().replace("-", "/").replace(".", "/")
+    for formato in ("%d/%m/%Y", "%d/%m/%y"):
+        try:
+            return datetime.strptime(limpio, formato).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
 
 
 @dataclass
@@ -116,34 +160,22 @@ def parsear(texto: str) -> DatosFactura:
         d.titular = re.sub(r"\s+", " ", m.group(1)).strip()
 
     # Periodo facturado: "No. De Dias Facturados : 20/09/2026 - 20/10/2026 = 30 dias"
-    # El fin del periodo ES la fecha de corte. Se busca sobre una copia sin tildes
-    # porque segun la plataforma el texto llega como "Días" o como "DÃ­as".
-    plano_n = _sin_acentos(plano)
-    pareja = r"(\d{1,2}/\d{1,2}/\d{4})\s*(?:-|–|—|al?)\s*(\d{1,2}/\d{1,2}/\d{4})"
-    m = re.search(r"D.{0,4}as\s+Facturados[^\d]{0,20}" + pareja + r"(?:\s*=?\s*(\d+)\s*d)?",
-                  plano_n)
-    if not m:
-        # otras variantes: "PERIODO FACTURADO 20/09/2026 al 20/10/2026"
-        m = re.search(r"PERIODO\s+(?:DE\s+)?FACTURACION[^\d]{0,20}" + pareja, plano_n)
-    if m:
-        d.periodo_ini = _fecha(m.group(1))
-        d.periodo_fin = _fecha(m.group(2))
-        d.corte = _fecha(m.group(2))
-        if m.lastindex and m.lastindex >= 3 and m.group(3):
-            d.dias = int(m.group(3))
+    # El fin del periodo ES la fecha de corte.
+    d.periodo_ini, d.periodo_fin, d.dias = _periodo(plano)
+    d.corte = d.periodo_fin
 
-    m = re.search(r"FECHA EMISION\.*:?\s*(\d{2}/\d{2}/\d{4})", plano)
+    m = re.search(r"FECHA EMISION\.*:?\s*(\d{1,2}/\d{1,2}/\d{2,4})", plano)
     if m:
         d.emision = _fecha(m.group(1))
 
     # Vencimiento: la fecha que sigue al rotulo PAGUE ANTES DE
     pos = plano.find("PAGUE ANTES DE")
     if pos >= 0:
-        m = re.search(r"(\d{2}/\d{2}/\d{4})", plano[pos:pos + 400])
+        m = re.search(r"(\d{1,2}/\d{1,2}/\d{2,4})", plano[pos:pos + 400])
         if m:
             d.vence = _fecha(m.group(1))
     if not d.vence:
-        m = re.search(r"(\d{2}/\d{2}/\d{4})\s*$", plano.strip())
+        m = re.search(r"(\d{1,2}/\d{1,2}/\d{2,4})\s*$", plano.strip())
         if m:
             d.vence = _fecha(m.group(1))
 
@@ -220,14 +252,10 @@ def parsear_edesur(texto: str) -> DatosFactura:
         d.referencia = m.group(1)
 
     # Periodo de facturacion: "12/09/2026 - 13/10/2026 = 31 dias" (fin = corte)
-    m = re.search(r"(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}/\d{2}/\d{4})\s*=\s*(\d+)\s*d[ií]as", plano)
-    if m:
-        d.periodo_ini = _fecha(m.group(1))
-        d.periodo_fin = _fecha(m.group(2))
-        d.corte = _fecha(m.group(2))
-        d.dias = int(m.group(3))
+    d.periodo_ini, d.periodo_fin, d.dias = _periodo(plano)
+    d.corte = d.periodo_fin
 
-    m = re.search(r"FECHADE EMISI[ÓO]N:\s*(\d{2}/\d{2}/\d{4})", plano)
+    m = re.search(r"FECHADE EMISI[ÓO]N:\s*(\d{1,2}/\d{1,2}/\d{2,4})", plano)
     if m:
         d.emision = _fecha(m.group(1))
     m = re.search(r"FECHAL[ÍI]MITE DE PAGO:\s*(\d{2}/\d{2}/\d{4})", plano)
