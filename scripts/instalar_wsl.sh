@@ -119,6 +119,23 @@ fi
     || fail "fallo la instalacion de dependencias"
 ok "dependencias al dia"
 
+cyan "Verificando las dependencias que usa el proyecto"
+if ! .venv/bin/python - <<'PY'
+import importlib.util
+import sys
+
+necesarios = ("fastapi", "uvicorn", "jinja2", "openpyxl", "multipart",
+              "requests", "psycopg", "psycopg_pool")
+faltan = [m for m in necesarios if importlib.util.find_spec(m) is None]
+if faltan:
+    print("   faltan:", ", ".join(faltan))
+    sys.exit(1)
+PY
+then
+    fail "faltan dependencias: corre otra vez  .venv/bin/python -m pip install -r requirements.txt"
+fi
+ok "todas las dependencias importan"
+
 chmod +x scripts/*.sh 2>/dev/null || true
 
 # ------------------------------------------------------------------ 3. .env

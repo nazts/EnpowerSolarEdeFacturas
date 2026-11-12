@@ -100,7 +100,13 @@ def _obtener_pool(url: str):
         with _lock:
             if _pool is None:
                 from psycopg.rows import dict_row
-                from psycopg_pool import ConnectionPool
+                try:
+                    from psycopg_pool import ConnectionPool
+                except ModuleNotFoundError as exc:      # entorno a medio instalar
+                    raise RuntimeError(
+                        "Falta psycopg_pool (pool de conexiones a Supabase). "
+                        "Instala las dependencias: pip install -r requirements.txt"
+                    ) from exc
 
                 _pool = ConnectionPool(
                     url, min_size=1, max_size=4, timeout=20, open=True,

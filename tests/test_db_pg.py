@@ -29,3 +29,13 @@ def test_detecta_url_de_postgres():
 def test_limpia_comillas_y_esquema():
     assert limpiar_url('"postgres://u:p@h/db"') == "postgresql://u:p@h/db"
     assert limpiar_url(" postgresql://u:p@h/db ") == "postgresql://u:p@h/db"
+
+
+def test_requirements_trae_el_driver_y_el_pool():
+    """Sin psycopg_pool una instalacion limpia falla al conectar a Supabase."""
+    from pathlib import Path
+
+    requisitos = (Path(__file__).resolve().parent.parent / "requirements.txt").read_text(
+        encoding="utf-8").lower()
+    assert "psycopg" in requisitos
+    assert "psycopg_pool" in requisitos, "falta psycopg_pool en requirements.txt"

@@ -116,6 +116,13 @@ if ($LASTEXITCODE -ne 0) { Aviso "no se pudo actualizar pip (sigo con el que hay
 if ($LASTEXITCODE -ne 0) { throw "Fallo la instalacion de dependencias (revisa la conexion)" }
 Bien "dependencias al dia"
 
+Paso "Verificando las dependencias que usa el proyecto"
+& $vpy -c "import importlib.util as u, sys; faltan=[m for m in ('fastapi','uvicorn','jinja2','openpyxl','multipart','requests','psycopg','psycopg_pool') if u.find_spec(m) is None]; print('   faltan:', ', '.join(faltan)) if faltan else None; sys.exit(1 if faltan else 0)"
+if ($LASTEXITCODE -ne 0) {
+    throw "Faltan dependencias: corre  .venv\Scripts\python.exe -m pip install -r requirements.txt"
+}
+Bien "todas las dependencias importan"
+
 # --------------------------------------------------------------- 3. .env
 Paso "Preparando el archivo .env"
 
