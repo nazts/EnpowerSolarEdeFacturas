@@ -182,6 +182,22 @@
           <div class="dato"><span class="k">Capacidad batería</span><span class="v">{% if cliente.capacidad_bateria is not none and cliente.capacidad_bateria != "" %}{{ cliente.capacidad_bateria }} kWh{% else %}—{% endif %}</span></div>
           <div class="dato"><span class="k">Instalación</span><span class="v">{{ cliente.fecha_instalacion or "—" }}</span></div>
         </div>
+        {% set lat_enlace = cliente.latitud if cliente.latitud not in (none, '') else '' %}
+        {% set lon_enlace = cliente.longitud if cliente.longitud not in (none, '') else '' %}
+        {% set enlace_maps = ('https://www.google.com/maps/search/?api=1&query=' ~ lat_enlace ~ ',' ~ lon_enlace) if (lat_enlace != '' and lon_enlace != '') else '' %}
+        <div style="margin-top:16px">
+          <label for="eq_enlace">Enlace para compartir (Google Maps)</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="eq_enlace" readonly value="{{ enlace_maps }}"
+                   placeholder="se genera con las coordenadas" style="flex:1;min-width:180px">
+            <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar link</button>
+            <a class="btn" id="btnAbrirEq" href="{{ enlace_maps if enlace_maps else '#' }}"
+               target="_blank" rel="noopener" title="Abrir la ubicación en Google Maps"
+               style="white-space:nowrap{% if not enlace_maps %};pointer-events:none;opacity:.45{% endif %}"
+               {% if not enlace_maps %}aria-disabled="true"{% endif %}><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Abrir</a>
+          </div>
+        </div>
+
         <p style="margin:16px 0 0;display:flex;gap:10px;flex-wrap:wrap">
           <a class="btn primario" href="/mapa?nic={{ cliente.nic }}"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Abrir en el mapa</a>
           <button class="btn" type="button" id="btnEquipo" aria-expanded="false" aria-controls="formEquipo"><i class="bi bi-pencil-square" aria-hidden="true"></i> Cambiar equipo</button>
@@ -203,16 +219,6 @@
             <div>
               <label for="eq_coords">Coordenadas (pega «lat, lon»)</label>
               <input id="eq_coords" placeholder="19.402583, -70.727444" inputmode="decimal" autocomplete="off">
-            </div>
-            <div>
-              <label for="eq_enlace">Enlace para compartir</label>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <input id="eq_enlace" readonly placeholder="se genera con las coordenadas" style="flex:1;min-width:150px">
-                <button class="btn" type="button" id="btnCopiarEq" style="white-space:nowrap"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar link</button>
-                <a class="btn" id="btnAbrirEq" href="#" target="_blank" rel="noopener"
-                   aria-disabled="true" title="Abrir la ubicación en Google Maps"
-                   style="white-space:nowrap"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Abrir</a>
-              </div>
             </div>
           </div>
           <div class="ubic-grid" style="margin-top:12px">
