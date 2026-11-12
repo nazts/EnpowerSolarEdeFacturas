@@ -30,6 +30,24 @@ def _num(valor: str | None) -> float | None:
         return float(texto)
     except ValueError:
         return None
+
+
+def _coordenadas(texto: str | None) -> tuple[float | None, float | None]:
+    """'19.402583, -70.727444' -> (lat, lon). Acepta coma, punto y coma o espacio."""
+    if not texto:
+        return None, None
+    limpio = str(texto).replace("(", " ").replace(")", " ").strip()
+    m = (re.search(r"(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)", limpio)
+         or re.search(r"(-?\d{1,3}(?:[.,]\d+)?)\s+(-?\d{1,3}(?:[.,]\d+)?)", limpio))
+    if not m:
+        return None, None
+    lat = _num(m.group(1))
+    lon = _num(m.group(2))
+    if lat is None or lon is None or abs(lat) > 90 or abs(lon) > 180:
+        return None, None
+    return lat, lon
+
+
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.auto_reload = True  # recarga plantillas sin reiniciar el servidor
 
@@ -680,6 +698,7 @@ def cliente_editar_guardar(request: Request, nic: str,
                            proveedor: str = Form(default="edenorte"),
                            direccion: str = Form(default=""),
                            telefono: str = Form(default=""),
+                           coordenadas: str = Form(default=""),
                            latitud: str = Form(default=""),
                            longitud: str = Form(default=""),
                            paneles: str = Form(default=""),
@@ -697,6 +716,13 @@ def cliente_editar_guardar(request: Request, nic: str,
     dia = int(dia_corte) if dia_corte.strip().isdigit() else None
     if dia is not None and not 1 <= dia <= 31:
         raise HTTPException(400, "El día de corte debe estar entre 1 y 31")
+    lat, lon = _coordenadas(coordenadas) if coordenadas.strip() else (None, None)
+    if coordenadas.strip() and lat is None:
+        raise HTTPException(400, "Coordenadas inválidas: pega \"latitud, longitud\" "
+                                 "(ej. 19.402583, -70.727444)")
+    if lat is None:                       # sin el campo unico se usan los ocultos
+        lat, lon = _num(latitud), _num(longitud)
+
     with db.sesion() as conn:
         if db.obtener_contrato(conn, nic) is None:
             raise HTTPException(404, "Ese NIC no está registrado")
@@ -704,8 +730,8 @@ def cliente_editar_guardar(request: Request, nic: str,
             "razon_social": razon_social.strip(), "alias": alias.strip(),
             "asesor": asesor.strip(), "dia_corte": dia, "notas": notas.strip(),
             "proveedor": proveedor, "direccion": direccion.strip(),
-            "telefono": telefono.strip(), "latitud": _num(latitud),
-            "longitud": _num(longitud), "paneles": paneles.strip(),
+            "telefono": telefono.strip(), "latitud": lat,
+            "longitud": lon, "paneles": paneles.strip(),
             "potencia_paneles": _num(potencia_paneles), "inversores": inversores.strip(),
             "bateria": bateria.strip(), "capacidad_bateria": _num(capacidad_bateria),
             "fecha_instalacion": fecha_instalacion.strip(),
