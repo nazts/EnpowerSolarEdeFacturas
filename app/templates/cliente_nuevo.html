@@ -359,8 +359,12 @@ async function buscar(){
 cambiarProveedor();
 
 // ---------- coordenadas: pegar "lat, lon", geocodificar y compartir ----------
+function normalizarCoord(valor){
+  return String(valor).trim().replace(/\s+/g, '').replace(',', '.');
+}
 function enlaceMapa(lat, lon){
-  return 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lon + '#map=17/' + lat + '/' + lon;
+  return 'https://www.google.com/maps/search/?api=1&query=' +
+         normalizarCoord(lat) + ',' + normalizarCoord(lon);
 }
 function actualizarEnlace(){
   const lat = document.getElementById('latitud').value.trim();

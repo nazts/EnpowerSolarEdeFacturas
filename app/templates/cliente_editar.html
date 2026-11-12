@@ -194,11 +194,15 @@
     if(isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
     return {lat: lat, lon: lon};
   }
+  function normalizarCoord(valor){
+    return String(valor).trim().replace(/\s+/g, '').replace(',', '.');
+  }
   function actualizarEnlace(){
     var la = document.getElementById('latitud').value.trim();
     var lo = document.getElementById('longitud').value.trim();
     document.getElementById('enlace').value = (la && lo)
-      ? 'https://www.openstreetmap.org/?mlat=' + la + '&mlon=' + lo + '#map=17/' + la + '/' + lo
+      ? 'https://www.google.com/maps/search/?api=1&query=' +
+        normalizarCoord(la) + ',' + normalizarCoord(lo)
       : '';
   }
   function procesarCoordenadas(){

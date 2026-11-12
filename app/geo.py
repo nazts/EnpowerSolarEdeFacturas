@@ -76,6 +76,5 @@ def reverso(lat: float, lon: float) -> dict:
 
 
 def enlace_mapa(lat: float, lon: float, zoom: int = 17) -> str:
-    """URL publica para compartir la ubicacion (OpenStreetMap)."""
-    return (f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}"
-            f"#map={zoom}/{lat}/{lon}")
+    """URL publica para compartir la ubicacion (Google Maps)."""
+    return f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
