@@ -53,6 +53,8 @@ def sin_credenciales(monkeypatch):
     monkeypatch.setattr(config, "EDESUR_USER", "")
     monkeypatch.setattr(config, "EDESUR_PASSWORD", "")
     monkeypatch.setattr(config, "EDESUR_TOKEN", "")
+    # las pruebas usan SQLite temporal, nunca la base de Supabase
+    monkeypatch.setattr(config, "DATABASE_URL", "")
 
 
 @pytest.fixture

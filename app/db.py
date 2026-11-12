@@ -126,8 +126,6 @@ COLUMNAS_NUEVAS = {
     "bateria": "TEXT NOT NULL DEFAULT ''",
     "capacidad_bateria": "REAL",
     "fecha_instalacion": "TEXT NOT NULL DEFAULT ''",
-    "tg_file_id": "TEXT",
-    "tg_message_id": "TEXT",
 }
 
 
@@ -136,9 +134,13 @@ def migrar(conn: sqlite3.Connection) -> None:
     if getattr(conn, "driver", "sqlite") == "postgres":
         # el esquema de Postgres ya trae los ALTER ... IF NOT EXISTS
         for columna, tipo in COLUMNAS_NUEVAS.items():
-            tabla = "facturas" if columna.startswith("tg_") else "contratos"
             try:
-                conn.execute(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS {columna} {tipo}")
+                conn.execute(f"ALTER TABLE contratos ADD COLUMN IF NOT EXISTS {columna} {tipo}")
+            except Exception:  # noqa: BLE001
+                pass
+        for columna in ("tg_file_id", "tg_message_id"):
+            try:
+                conn.execute(f"ALTER TABLE facturas ADD COLUMN IF NOT EXISTS {columna} TEXT")
             except Exception:  # noqa: BLE001
                 pass
         conn.commit()
@@ -172,7 +174,15 @@ def conectar(db_path: Path | str | None = None) -> sqlite3.Connection:
     return conn
 
 
-def init_db(conn: sqlite3.Connection | None = None) -> None:
+_INICIALIZADA = False
+
+
+def init_db(conn: sqlite3.Connection | None = None, forzar: bool = False) -> None:
+    """Crea las tablas si faltan. En Postgres se hace una sola vez por proceso."""
+    global _INICIALIZADA
+    es_pg = getattr(conn, "driver", "") == "postgres" if conn is not None else False
+    if _INICIALIZADA and not forzar and (conn is None or es_pg):
+        return
     cerrar = conn is None
     conn = conn or conectar()
     try:
@@ -185,6 +195,7 @@ def init_db(conn: sqlite3.Connection | None = None) -> None:
             conn.executescript(SCHEMA)
             conn.commit()
             migrar(conn)
+        _INICIALIZADA = True
     finally:
         if cerrar:
             conn.close()
@@ -574,19 +585,30 @@ if __name__ == "__main__":
                 if not filas:
                     continue
                 destino.execute(f"DELETE FROM {tabla}")     # destino limpio
-                cols = list(filas[0].keys())
+                # solo las columnas que existen en el destino (evita restos locales)
+                sql_cols = destino.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = ?", (tabla,)).fetchall()
+                en_destino = {f["column_name"] for f in sql_cols}
+                cols = [c for c in filas[0].keys() if c in en_destino]
                 sql = (f"INSERT INTO {tabla} ({','.join(cols)}) "
                        f"VALUES ({','.join('?' for _ in cols)})")
                 for fila in filas:
                     destino.execute(sql, [fila[c] for c in cols])
                 print(f"  {tabla:12} {len(filas)} filas copiadas")
+            # al copiar ids explicitos la secuencia queda atrasada: se recoloca
+            for tabla in ("facturas", "pendientes", "envios", "usuarios",
+                          "proyectos", "eventos"):
+                destino.execute(
+                    f"SELECT setval(pg_get_serial_sequence('{tabla}', 'id'), "
+                    f"COALESCE((SELECT MAX(id) FROM {tabla}), 1))")
             destino.commit()
         origen.close()
         print("importacion terminada")
         raise SystemExit(0)
 
     if args.init or not args.estado:
-        init_db()
+        init_db(forzar=True)
         print(f"base inicializada ({motor})")
     with sesion() as conn:
         for tabla in ("contratos", "facturas", "pendientes", "usuarios", "proyectos", "eventos"):

@@ -11,8 +11,34 @@ consultas, aqui se envuelve la conexion de Postgres y se traduce:
 """
 from __future__ import annotations
 
-import re
+import atexit
+import datetime as _dt
+import threading
 from typing import Any, Iterable, Sequence
+
+_pool = None
+_lock = threading.Lock()
+
+
+def _normalizar(valor: Any) -> Any:
+    """datetime/date -> texto, como devolvia SQLite (`2026-11-12 15:04:05`)."""
+    if isinstance(valor, _dt.datetime):
+        return valor.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(valor, _dt.date):
+        return valor.isoformat()
+    if isinstance(valor, _dt.timedelta):
+        return str(valor)
+    return valor
+
+
+def _fila(valor):
+    if valor is None:
+        return None
+    if isinstance(valor, dict):
+        return {k: _normalizar(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return tuple(_normalizar(v) for v in valor)
+    return _normalizar(valor)
 
 
 def _a_postgres(sql: str) -> str:
@@ -43,13 +69,14 @@ class CursorPG:
         self._c = cursor
 
     def fetchone(self):
-        return self._c.fetchone()
+        return _fila(self._c.fetchone())
 
     def fetchall(self):
-        return self._c.fetchall()
+        return [_fila(f) for f in self._c.fetchall()]
 
     def __iter__(self):
-        return iter(self._c)
+        for fila in self._c:
+            yield _fila(fila)
 
     @property
     def rowcount(self) -> int:
@@ -66,18 +93,31 @@ class CursorPG:
             return 0
 
 
+def _obtener_pool(url: str):
+    """Un pool por proceso (abrir conexiones TLS es caro)."""
+    global _pool
+    if _pool is None:
+        with _lock:
+            if _pool is None:
+                from psycopg.rows import dict_row
+                from psycopg_pool import ConnectionPool
+
+                _pool = ConnectionPool(
+                    url, min_size=1, max_size=4, timeout=20, open=True,
+                    kwargs={"row_factory": dict_row, "prepare_threshold": None},
+                )
+    return _pool
+
+
 class ConexionPG:
     """Conexion a Postgres que se comporta como sqlite3.Connection."""
 
-    def __init__(self, url: str, timeout: int = 15):
-        import psycopg
-        from psycopg.rows import dict_row
+    driver = "postgres"
 
-        # prepare_threshold=None: el pooler de Supabase trabaja en modo
-        # transaccion y no admite sentencias preparadas con nombre.
-        self.raw = psycopg.connect(url, row_factory=dict_row, connect_timeout=timeout,
-                                   autocommit=False, prepare_threshold=None)
-        self.driver = "postgres"
+    def __init__(self, url: str, timeout: int = 15):
+        self._pool = _obtener_pool(url)
+        self.raw = self._pool.getconn(timeout=timeout)
+        self._devuelta = False
 
     # ------------------------------------------------------------- ejecucion
     def execute(self, sql: str, params: Sequence[Any] | None = None) -> CursorPG:
@@ -107,8 +147,17 @@ class ConexionPG:
         self.raw.rollback()
 
     def close(self) -> None:
+        """No cierra: devuelve la conexion al pool (con rollback si quedo sucia)."""
+        if self._devuelta:
+            return
+        self._devuelta = True
         try:
-            self.raw.close()
+            if not self.raw.closed:
+                self.raw.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            self._pool.putconn(self.raw)
         except Exception:  # noqa: BLE001
             pass
 
@@ -133,3 +182,18 @@ def limpiar_url(url: str) -> str:
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://"):]
     return url
+
+
+def cerrar_pool() -> None:
+    """Cierra el pool al salir (evita el aviso de hilos al apagar el proceso)."""
+    global _pool
+    if _pool is not None:
+        try:
+            _pool.close(timeout=2)
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            _pool = None
+
+
+atexit.register(cerrar_pool)

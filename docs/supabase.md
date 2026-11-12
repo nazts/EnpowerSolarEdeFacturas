@@ -47,9 +47,12 @@ intacta.
 
 ## 4. Lo que cambia en el panel
 
-- Los datos son los mismos: la capa `app/pg.py` traduce las consultas (`?` → `%s`)
-  y las filas a diccionarios, así que el resto del código no se toca.
-- Cada consulta viaja a Supabase: una página tarda ~200-400 ms más que en local.
+- Los datos son los mismos: la capa `app/pg.py` traduce las consultas (`?` → `%s`),
+  las filas a diccionarios y las fechas a texto, así que el resto del código no se toca.
+- **Latencia medida** (Supabase `us-east-2`, desde RD): login 0,6 s; páginas del panel
+  0,43–0,79 s. En SQLite local eran 5–20 ms. Es el costo de tener la base fuera.
+  Se usa un pool de conexiones (psycopg_pool) porque abrir una conexión TLS nueva
+  cuesta ~1 s contra el pooler.
 - Los PDFs **no se guardan en la base** (ver `docs/qa.md`): la factura que corta se
   manda a Telegram y el panel la sirve desde ahí.
 

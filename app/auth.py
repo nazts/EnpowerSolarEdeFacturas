@@ -147,9 +147,9 @@ def cambiar_password(conn: sqlite3.Connection, usuario_id: int, password: str) -
 
 def marcar_acceso(conn: sqlite3.Connection, usuario_id: int) -> None:
     from datetime import datetime as _dt
+
     conn.execute("UPDATE usuarios SET ultimo_acceso = ? WHERE id = ?",
-                 (_dt.now().strftime("%Y-%m-%d %H:%M:%S"),
-                 (usuario_id,))
+                 (_dt.now().strftime("%Y-%m-%d %H:%M:%S"), usuario_id))
     conn.commit()
 
 
