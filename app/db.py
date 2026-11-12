@@ -7,7 +7,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Iterator
 
-from . import config
+from . import config, pg
 from .naming import normalizar_razon_social
 
 SCHEMA = """
@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS facturas (
     facturado     REAL,
     balance       REAL,
     pdf_path      TEXT,
+    tg_file_id    TEXT,
+    tg_message_id TEXT,
     estado        TEXT NOT NULL DEFAULT 'descargada',
     enviada       INTEGER NOT NULL DEFAULT 0,
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -124,11 +126,23 @@ COLUMNAS_NUEVAS = {
     "bateria": "TEXT NOT NULL DEFAULT ''",
     "capacidad_bateria": "REAL",
     "fecha_instalacion": "TEXT NOT NULL DEFAULT ''",
+    "tg_file_id": "TEXT",
+    "tg_message_id": "TEXT",
 }
 
 
 def migrar(conn: sqlite3.Connection) -> None:
     """Agrega columnas que falten en bases ya creadas."""
+    if getattr(conn, "driver", "sqlite") == "postgres":
+        # el esquema de Postgres ya trae los ALTER ... IF NOT EXISTS
+        for columna, tipo in COLUMNAS_NUEVAS.items():
+            tabla = "facturas" if columna.startswith("tg_") else "contratos"
+            try:
+                conn.execute(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS {columna} {tipo}")
+            except Exception:  # noqa: BLE001
+                pass
+        conn.commit()
+        return
     existentes = {r[1] for r in conn.execute("PRAGMA table_info(contratos)")}
     for nombre, tipo in COLUMNAS_NUEVAS.items():
         if nombre not in existentes:
@@ -145,6 +159,10 @@ def ahora() -> str:
 
 
 def conectar(db_path: Path | str | None = None) -> sqlite3.Connection:
+    """Devuelve la conexion segun `DATABASE_URL` (Postgres) o SQLite (defecto)."""
+    url = pg.limpiar_url(config.DATABASE_URL)
+    if pg.es_postgres(url) and db_path is None:
+        return pg.ConexionPG(url)
     ruta = Path(db_path or config.DB_PATH)
     ruta.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(ruta)
@@ -158,9 +176,15 @@ def init_db(conn: sqlite3.Connection | None = None) -> None:
     cerrar = conn is None
     conn = conn or conectar()
     try:
-        conn.executescript(SCHEMA)
-        conn.commit()
-        migrar(conn)
+        if getattr(conn, "driver", "sqlite") == "postgres":
+            esquema = (Path(__file__).with_name("schema_postgres.sql")).read_text(encoding="utf-8")
+            conn.executescript(esquema)
+            conn.commit()
+            migrar(conn)
+        else:
+            conn.executescript(SCHEMA)
+            conn.commit()
+            migrar(conn)
     finally:
         if cerrar:
             conn.close()
@@ -520,3 +544,51 @@ def ultimos_eventos(conn: sqlite3.Connection, limite: int = 50) -> list[sqlite3.
     return conn.execute(
         "SELECT * FROM eventos ORDER BY id DESC LIMIT ?", (limite,)
     ).fetchall()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Inicializa la base de datos del proyecto")
+    ap.add_argument("--init", action="store_true", help="crea las tablas (SQLite o Postgres)")
+    ap.add_argument("--estado", action="store_true", help="muestra el motor y los conteos")
+    ap.add_argument("--importar", action="store_true",
+                    help="copia los datos del SQLite local a la base configurada")
+    args = ap.parse_args()
+
+    motor = "postgres" if pg.es_postgres(pg.limpiar_url(config.DATABASE_URL)) else "sqlite"
+    if args.estado:
+        print(f"motor: {motor}")
+        if motor == "sqlite":
+            print(f"archivo: {config.DB_PATH}")
+    if args.importar:
+        if motor != "postgres":
+            raise SystemExit("Para importar hay que configurar DATABASE_URL (Postgres)")
+        init_db()
+        origen = sqlite3.connect(config.DB_PATH)
+        origen.row_factory = sqlite3.Row
+        tablas = ("contratos", "facturas", "pendientes", "usuarios", "proyectos", "eventos")
+        with sesion() as destino:
+            for tabla in tablas:
+                filas = origen.execute(f"SELECT * FROM {tabla}").fetchall()
+                if not filas:
+                    continue
+                destino.execute(f"DELETE FROM {tabla}")     # destino limpio
+                cols = list(filas[0].keys())
+                sql = (f"INSERT INTO {tabla} ({','.join(cols)}) "
+                       f"VALUES ({','.join('?' for _ in cols)})")
+                for fila in filas:
+                    destino.execute(sql, [fila[c] for c in cols])
+                print(f"  {tabla:12} {len(filas)} filas copiadas")
+            destino.commit()
+        origen.close()
+        print("importacion terminada")
+        raise SystemExit(0)
+
+    if args.init or not args.estado:
+        init_db()
+        print(f"base inicializada ({motor})")
+    with sesion() as conn:
+        for tabla in ("contratos", "facturas", "pendientes", "usuarios", "proyectos", "eventos"):
+            n = conn.execute(f"SELECT COUNT(*) AS n FROM {tabla}").fetchone()["n"]
+            print(f"  {tabla:12} {n}")

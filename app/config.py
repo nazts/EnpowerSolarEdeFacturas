@@ -36,6 +36,9 @@ EDESUR_TOKEN = os.environ.get("EDESUR_TOKEN", "")   # solo para pruebas puntuale
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
+# Base de datos: si DATABASE_URL apunta a Postgres (Supabase) se usa esa;
+# si no, el SQLite local de siempre.
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 DB_PATH = BASE_DIR / os.environ.get("DB_PATH", "data/enpower.db")
 FACTURAS_DIR = BASE_DIR / os.environ.get("FACTURAS_DIR", "facturas")
 EXPORT_DIR = BASE_DIR / os.environ.get("EXPORT_DIR", "exports")
