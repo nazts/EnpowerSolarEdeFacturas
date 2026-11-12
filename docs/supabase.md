@@ -78,3 +78,18 @@ el PDF sin almacenarlo.
   oficina usa el pooler o pide la IPv4.
 - **Conexiones**: usa siempre el pooler (6543). La conexión directa (5432) tiene un
   límite bajo y con varias PC se agota.
+
+## Errores típicos al pasar de SQLite a Postgres
+
+Dos cosas que funcionan en SQLite y **rompen la corrida en Supabase sin avisar**
+(el error queda solo en el detalle del histórico y no se envía nada):
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| `KeyError: 0` | `fila[0]` sobre una fila de Postgres (es un `dict`, no un `Row`) | leer por nombre (`fila["valor"]`) o usar `_valor()` |
+| `syntax error at or near "$2"` | `corte IS ?` — en Postgres `IS` solo acepta `NULL`/`TRUE`/`FALSE` | comparar con `=` y armar aparte la variante `corte IS NULL` |
+| `could not determine data type of parameter $3` | `? IS NULL` con el parámetro en `NULL` | no comparar el parámetro contra `NULL`; usar dos consultas |
+
+Regla: la capa de compatibilidad (`app/pg.py`) traduce placeholders y tipos,
+pero **no reescribe el SQL**. Todo lo que se escriba en `db.py` o `runner.py`
+tiene que ser válido en los dos motores.

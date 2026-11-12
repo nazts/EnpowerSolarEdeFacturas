@@ -10,7 +10,7 @@ import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 # Bloqueo de archivo para que dos corridas no se pisen.
 # Ojo: en Linux `msvcrt` no existe; si se consulta con hasattr() se cae con
@@ -499,9 +499,19 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 mensajes = telegram.enviar_album([d["path"] for d in enviables],
                                                  caption=texto, chat_id=chat_id)
                 res.mensaje_enviado = True
+                # file_id de cada documento del album (mismo orden que las facturas)
+                detalles = {}
+                for d, msg in zip(enviables, mensajes or []):
+                    archivo = (msg or {}).get("document") or {}
+                    if d.get("id"):
+                        detalles[d["id"]] = {"file_id": archivo.get("file_id", ""),
+                                             "message_id": (msg or {}).get("message_id")}
                 # solo las que de verdad fueron en el album (no todo el dia)
                 db.marcar_enviadas(conn, [d["id"] for d in enviables if d.get("id")],
-                                   chat_id or config.TELEGRAM_CHAT_ID)
+                                   chat_id or config.TELEGRAM_CHAT_ID, detalles=detalles)
+                # los PDFs ya estan en Telegram: se borran del servidor
+                for d in enviables:
+                    _borrar_pdf(Path(d["path"]))
                 db.log_evento(conn, "info", f"Enviadas {len(enviables)} facturas a Telegram",
                               f"{len(mensajes)} mensaje(s)")
             except telegram.TelegramError as exc:
@@ -676,10 +686,11 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
         # envio al grupo: SOLO la ultima factura de cada cliente (una), y solo
         # si esa no se ha mandado antes
         todas = [dict(r) for r in conn.execute(
-            """SELECT id, nic, corte, enviada, pdf_path FROM facturas
-               WHERE estado = 'descargada' AND pdf_path IS NOT NULL
-                 AND corte IS NOT NULL AND corte <= ?
-               ORDER BY corte""", (fecha.isoformat(),))]
+            """SELECT f.id, f.nic, f.corte, f.enviada, f.pdf_path, f.ref_pago,
+                      f.tg_file_id, COALESCE(c.proveedor, 'edenorte') AS proveedor
+               FROM facturas f LEFT JOIN contratos c ON c.nic = f.nic
+               WHERE f.estado = 'descargada' AND f.corte IS NOT NULL AND f.corte <= ?
+               ORDER BY f.corte""", (fecha.isoformat(),))]
         ultima_por_cliente: dict[str, dict] = {}
         for fila in todas:
             actual = ultima_por_cliente.get(fila["nic"])
@@ -692,9 +703,22 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
         if enviar and a_enviar:
             # un mensaje por cliente: su ultima factura, con su propio pie
             for p in a_enviar:
-                ruta = Path(p["pdf_path"])
-                if not ruta.exists():
+                # ya salio al grupo (marca o file_id): no se repite
+                if db.factura_ya_enviada(conn, p["ref_pago"]):
+                    db.log_evento(conn, "info",
+                                  f"NIC {p['nic']}: la factura de {p['corte']} ya estaba enviada")
                     continue
+
+                portal = activos.get(p.get("proveedor") or "edenorte")
+                ruta = _pdf_para_enviar(conn, p, portal)
+                if ruta is None:
+                    db.log_evento(conn, "error",
+                                  f"NIC {p['nic']}: no se encontro el PDF de la factura",
+                                  f"corte {p['corte']} ref {p['ref_pago']}")
+                    res["errores"].append({"nic": p["nic"],
+                                           "envio": "el PDF no esta en el servidor"})
+                    continue
+
                 texto = _caption(fecha.isoformat(), [
                     {"nic": p["nic"], "razon_social": _razon_social(conn, p["nic"]),
                      "alias": _campo(conn, p["nic"], "alias"),
@@ -702,11 +726,20 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                      "corte": p["corte"], "vence": _vence(conn, p["nic"], p["corte"]),
                      "facturado": _monto(conn, p["nic"], p["corte"])}], [])
                 try:
-                    telegram.enviar_documento(ruta, caption=texto, chat_id=chat_id)
+                    respuesta = telegram.enviar_documento(ruta, caption=texto, chat_id=chat_id)
+                    archivo = (respuesta or {}).get("document") or {}
                     db.marcar_enviadas(conn, [p["id"]],
-                                       chat_id or config.TELEGRAM_CHAT_ID)
+                                       chat_id or config.TELEGRAM_CHAT_ID,
+                                       detalles={p["id"]: {
+                                           "file_id": archivo.get("file_id", ""),
+                                           "message_id": (respuesta or {}).get("message_id")}})
                     res["enviados"] += 1
                     res["albumes"] += 1
+                    db.log_evento(conn, "info",
+                                  f"NIC {p['nic']}: factura de {p['corte']} enviada",
+                                  f"ref {p['ref_pago']}")
+                    # se borra el archivo del servidor: queda el file_id de Telegram
+                    _borrar_pdf(ruta)
                 except telegram.TelegramError as exc:
                     db.log_evento(conn, "error", f"No se pudo enviar la factura de {p['nic']}",
                                   str(exc)[:300])
@@ -734,27 +767,112 @@ def _dia_mas_comun(cortes: list[str]) -> int | None:
     return Counter(dias).most_common(1)[0][0]
 
 
+def _nombre_pdf(guardada: str | None) -> str:
+    """Nombre del archivo aunque la ruta guardada sea de otra plataforma."""
+    texto = str(guardada or "")
+    if not texto:
+        return ""
+    return PureWindowsPath(texto).name if "\\" in texto else PurePosixPath(texto).name
+
+
+def _fijar_pdf_path(conn, factura_id: int, ruta: Path) -> None:
+    conn.execute("UPDATE facturas SET pdf_path = ? WHERE id = ?", (str(ruta), factura_id))
+    conn.commit()
+
+
+def _pdf_para_enviar(conn, fila, portal=None) -> Path | None:
+    """PDF listo para mandar: en su ruta, en facturas/ o bajandolo de nuevo.
+
+    La base es compartida entre Windows y WSL: una ruta `C:\\...` no existe en el
+    servidor (y al reves), y antes eso hacia que la factura se saltara en silencio.
+    """
+    guardada = str(fila["pdf_path"] or "")
+    if guardada and Path(guardada).exists():
+        return Path(guardada)
+
+    nombre = _nombre_pdf(guardada)
+    if nombre:
+        candidata = Path(config.FACTURAS_DIR) / nombre
+        if candidata.exists():
+            _fijar_pdf_path(conn, fila["id"], candidata)
+            return candidata
+
+    if portal is not None:
+        try:
+            contenido = portal.descargar_pdf(fila["ref_pago"])
+        except Exception as exc:  # noqa: BLE001 - sin PDF no se puede mandar
+            db.log_evento(conn, "aviso",
+                          f"NIC {fila['nic']}: no se pudo bajar el PDF para enviar",
+                          f"ref {fila['ref_pago']}: {str(exc)[:120]}")
+            return None
+        destino = Path(config.FACTURAS_DIR) / (nombre or f"{fila['nic']} {fila['ref_pago']}.pdf")
+        _guardar_pdf(contenido, destino)
+        _fijar_pdf_path(conn, fila["id"], destino)
+        db.log_evento(conn, "info",
+                      f"NIC {fila['nic']}: PDF descargado en el servidor para enviarlo",
+                      f"ref {fila['ref_pago']}")
+        return destino
+    return None
+
+
+def _borrar_pdf(ruta: Path) -> None:
+    """Borra el archivo despues de enviarlo (queda el file_id de Telegram)."""
+    try:
+        Path(ruta).unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def _valor(fila):
+    """Primer valor de una fila sin importar el motor (dict o sqlite3.Row)."""
+    if not fila:
+        return None
+    try:
+        return fila["valor"]
+    except (KeyError, IndexError, TypeError):
+        pass
+    try:
+        return fila[0]          # sqlite3.Row por posicion
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
 def _campo(conn, nic: str, columna: str) -> str:
-    fila = conn.execute(f"SELECT {columna} FROM contratos WHERE nic = ?", (nic,)).fetchone()
-    return (fila[0] if fila and fila[0] else "") if fila else ""
+    fila = conn.execute(f"SELECT {columna} AS valor FROM contratos WHERE nic = ?",
+                        (str(nic),)).fetchone()
+    valor = _valor(fila)
+    return str(valor) if valor not in (None, "") else ""
 
 
 def _razon_social(conn, nic: str) -> str:
     return _campo(conn, nic, "razon_social")
 
 
+def _fila_factura(conn, nic: str, corte: str | None, columna: str):
+    """Una columna de la factura de ese corte (o la ultima si el corte es NULL).
+
+    Se evita `corte IS ?`: Postgres no puede deducir el tipo del parametro NULL.
+    """
+    sql = (f"SELECT {columna} AS valor FROM facturas WHERE nic = ? AND "
+           "{cond} AND estado = 'descargada' ORDER BY id DESC")
+    if corte is None:
+        fila = conn.execute(sql.format(cond="corte IS NULL"), (str(nic),)).fetchone()
+    else:
+        fila = conn.execute(sql.format(cond="corte = ?"), (str(nic), str(corte))).fetchone()
+    return _valor(fila)
+
+
 def _monto(conn, nic: str, corte: str | None) -> float | None:
-    fila = conn.execute(
-        "SELECT facturado FROM facturas WHERE nic = ? AND corte IS ? AND estado = 'descargada'"
-        " ORDER BY id DESC", (nic, corte)).fetchone()
-    return fila[0] if fila else None
+    valor = _fila_factura(conn, nic, corte, "facturado")
+    try:
+        return float(valor) if valor is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _vence(conn, nic: str, corte: str | None) -> str | None:
-    fila = conn.execute(
-        "SELECT vence FROM facturas WHERE nic = ? AND corte IS ? AND estado = 'descargada'"
-        " ORDER BY id DESC", (nic, corte)).fetchone()
-    return fila[0] if fila else None
+    valor = _fila_factura(conn, nic, corte, "vence")
+    return str(valor) if valor not in (None, "") else None
 
 
 

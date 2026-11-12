@@ -157,6 +157,23 @@ def enviar_album(paths: list[str | Path], caption: str = "",
     return resultados
 
 
+def descargar_archivo(file_id: str) -> bytes:
+    """Baja un archivo que ya esta en Telegram (para verlo sin tenerlo en disco)."""
+    if not file_id:
+        raise TelegramError("Falta el file_id del documento")
+    info = _ok(_consultar("getFile", params={"file_id": file_id}))
+    ruta = info.get("file_path")
+    if not ruta:
+        raise TelegramError("Telegram no devolvio la ruta del archivo")
+    try:
+        resp = requests.get(f"https://api.telegram.org/file/bot{_token()}/{ruta}", timeout=120)
+    except requests.RequestException as exc:
+        raise TelegramError(f"{type(exc).__name__} al bajar el archivo") from None
+    if resp.status_code != 200:
+        raise TelegramError(f"Telegram respondio {resp.status_code} al bajar el archivo")
+    return resp.content
+
+
 def info_bot() -> dict:
     return _ok(_consultar("getMe", timeout=30))
 

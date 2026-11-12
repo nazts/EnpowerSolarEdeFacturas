@@ -940,13 +940,28 @@ def borrar_contrato(nic: str, request: Request):
 
 @app.get("/facturas/{factura_id}/pdf")
 def ver_pdf(factura_id: int):
+    """Sirve el PDF: desde disco o, si ya se borro tras enviarlo, desde Telegram."""
     with db.sesion() as conn:
-        fila = conn.execute("SELECT pdf_path FROM facturas WHERE id = ?", (factura_id,)).fetchone()
-    if not fila or not fila["pdf_path"]:
+        fila = conn.execute(
+            "SELECT pdf_path, tg_file_id, nic, ref_pago FROM facturas WHERE id = ?",
+            (factura_id,)).fetchone()
+    if not fila:
         raise HTTPException(404, "PDF no encontrado")
-    ruta = Path(fila["pdf_path"]).resolve()
-    # solo se sirven PDFs de la carpeta del proyecto (nada de rutas de fuera)
-    if not ruta.is_relative_to(config.FACTURAS_DIR.resolve()) or not ruta.exists():
-        raise HTTPException(404, "PDF no encontrado")
-    return FileResponse(fila["pdf_path"], media_type="application/pdf",
-                        filename=Path(fila["pdf_path"]).name)
+
+    guardada = fila["pdf_path"] or ""
+    if guardada:
+        ruta = Path(guardada).resolve()
+        # solo se sirven PDFs de la carpeta del proyecto (nada de rutas de fuera)
+        if ruta.is_relative_to(config.FACTURAS_DIR.resolve()) and ruta.exists():
+            return FileResponse(str(ruta), media_type="application/pdf", filename=ruta.name)
+
+    if fila["tg_file_id"]:
+        try:
+            contenido = telegram.descargar_archivo(fila["tg_file_id"])
+        except telegram.TelegramError as exc:
+            raise HTTPException(502, f"No se pudo recuperar el PDF de Telegram: {exc}") from None
+        nombre = Path(guardada).name if guardada else f"{fila['nic']} {fila['ref_pago']}.pdf"
+        return Response(contenido, media_type="application/pdf",
+                        headers={"Content-Disposition": f'inline; filename="{nombre}"'})
+
+    raise HTTPException(404, "PDF no encontrado")

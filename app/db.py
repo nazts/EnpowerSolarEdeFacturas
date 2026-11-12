@@ -374,13 +374,6 @@ def factura_existe(conn: sqlite3.Connection, ref_pago: str) -> bool:
                         (str(ref_pago),)).fetchone() is not None
 
 
-def factura_ya_enviada(conn: sqlite3.Connection, ref_pago: str) -> bool:
-    """True si esa factura ya se publico en el canal (no se vuelve a mandar)."""
-    fila = conn.execute("SELECT enviada FROM facturas WHERE ref_pago = ?",
-                        (str(ref_pago),)).fetchone()
-    return bool(fila and fila["enviada"])
-
-
 def facturas_del_dia(conn: sqlite3.Connection, fecha: str | None = None) -> list[sqlite3.Row]:
     fecha = fecha or hoy()
     return conn.execute(
@@ -394,12 +387,35 @@ def facturas_sin_enviar(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-def marcar_enviadas(conn: sqlite3.Connection, ids: list[int], chat_id: str) -> None:
+def marcar_enviadas(conn: sqlite3.Connection, ids: list[int], chat_id: str,
+                    detalles: dict[int, dict] | None = None) -> None:
+    """Marca como enviadas y guarda el file_id/message_id de Telegram.
+
+    Con el file_id el panel puede volver a mostrar el PDF aunque el archivo ya no
+    este en disco (se borra despues de enviarlo).
+    """
     if not ids:
         return
     marcas = ",".join("?" for _ in ids)
     conn.execute(f"UPDATE facturas SET enviada = 1 WHERE id IN ({marcas})", ids)
+    for factura_id, datos in (detalles or {}).items():
+        file_id = (datos or {}).get("file_id") or ""
+        message_id = (datos or {}).get("message_id")
+        if file_id:
+            conn.execute(
+                "UPDATE facturas SET tg_file_id = ?, tg_message_id = ? WHERE id = ?",
+                (file_id, str(message_id) if message_id else "", factura_id))
     conn.commit()
+
+
+def factura_ya_enviada(conn: sqlite3.Connection, ref_pago: str) -> bool:
+    """True si esa factura ya salio al grupo (por marca o por tener file_id)."""
+    fila = conn.execute(
+        "SELECT enviada, tg_file_id FROM facturas WHERE ref_pago = ?", (str(ref_pago),)
+    ).fetchone()
+    if not fila:
+        return False
+    return bool(fila["enviada"]) or bool(fila["tg_file_id"] or "")
 
 
 def ultima_factura(conn: sqlite3.Connection, nic: str) -> sqlite3.Row | None:
