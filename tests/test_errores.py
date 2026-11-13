@@ -96,3 +96,48 @@ def test_sin_pdf_ni_file_id_no_esta_disponible(tmp_path, monkeypatch):
     assert not dashboard._pdf_disponible({"tg_file_id": "", "pdf_path": ""})
     assert not dashboard._pdf_disponible(
         {"tg_file_id": "", "pdf_path": r"C:\Users\otro\facturas\NO EXISTE.pdf"})
+
+
+# ------------------------------------------- actividad en vivo (/api/eventos)
+def test_api_eventos_devuelve_los_ultimos_y_su_id(db_path):
+    from app import db
+
+    with db.sesion(db_path=db_path) as c:
+        for i in range(5):
+            db.log_evento(c, "info", f"evento {i}", f"detalle {i}")
+
+    datos = dashboard.api_eventos().body
+    import json
+    carga = json.loads(datos)
+    assert len(carga["eventos"]) == 5
+    assert [e["mensaje"] for e in carga["eventos"]][0] == "evento 4"     # mas nuevo primero
+    assert carga["ultimo_id"] == carga["eventos"][0]["id"]
+    assert {"id", "fecha", "usuario", "nivel", "mensaje", "detalle"} <= set(carga["eventos"][0])
+
+
+def test_api_eventos_solo_devuelve_lo_nuevo(db_path):
+    import json
+
+    from app import db
+
+    with db.sesion(db_path=db_path) as c:
+        db.log_evento(c, "info", "viejo", "")
+        primero = c.execute("SELECT MAX(id) AS i FROM eventos").fetchone()["i"]
+        db.log_evento(c, "aviso", "nuevo", "")
+
+    carga = json.loads(dashboard.api_eventos(desde=int(primero)).body)
+    assert [e["mensaje"] for e in carga["eventos"]] == ["nuevo"]
+    assert carga["ultimo_id"] > primero
+
+
+def test_api_eventos_respeta_el_limite(db_path):
+    import json
+
+    from app import db
+
+    with db.sesion(db_path=db_path) as c:
+        for i in range(9):
+            db.log_evento(c, "info", f"e{i}", "")
+
+    carga = json.loads(dashboard.api_eventos(limite=3).body)
+    assert len(carga["eventos"]) == 3

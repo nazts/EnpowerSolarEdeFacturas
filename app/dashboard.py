@@ -566,6 +566,27 @@ def api_reverse(lat: str = Form(...), lon: str = Form(...)) -> JSONResponse:
     return JSONResponse(resultado, status_code=200 if resultado.get("ok") else 400)
 
 
+@app.get("/api/eventos")
+def api_eventos(desde: int = 0, limite: int = 40) -> JSONResponse:
+    """Actividad reciente para el panel en vivo (sin recargar la pagina).
+
+    `desde` = ultimo id que ya tiene el navegador: solo devuelve los mas nuevos.
+    """
+    limite = max(1, min(int(limite or 40), 200))
+    desde = int(desde or 0)
+    with db.sesion() as conn:
+        if desde:
+            filas = conn.execute(
+                "SELECT * FROM eventos WHERE id > ? ORDER BY id DESC LIMIT ?",
+                (desde, limite)).fetchall()
+        else:
+            filas = conn.execute(
+                "SELECT * FROM eventos ORDER BY id DESC LIMIT ?", (limite,)).fetchall()
+    eventos = [dict(f) for f in filas]
+    ultimo = max([int(e["id"]) for e in eventos], default=desde)
+    return JSONResponse({"eventos": eventos, "ultimo_id": ultimo})
+
+
 @app.get("/api/estado")
 def api_estado() -> JSONResponse:
     with db.sesion() as conn:
