@@ -369,6 +369,30 @@ def guardar_factura(conn: sqlite3.Connection, datos: dict) -> int:
     return int(fila["id"]) if fila else 0
 
 
+def necesita_pdf(conn, ref_pago: str) -> bool:
+    """True si esa factura esta en la base pero sin archivo (hay que bajarlo)."""
+    fila = conn.execute("SELECT estado, COALESCE(pdf_path, '') AS pdf FROM facturas"
+                        " WHERE ref_pago = ?", (str(ref_pago),)).fetchone()
+    if fila is None:
+        return True
+    return fila["estado"] in (None, "", "sin_pdf") or not fila["pdf"]
+
+
+def estado_factura(conn, ref_pago: str) -> str | None:
+    """Estado guardado de esa referencia (None si no esta en la base)."""
+    fila = conn.execute("SELECT estado FROM facturas WHERE ref_pago = ?",
+                        (str(ref_pago),)).fetchone()
+    return fila["estado"] if fila else None
+
+
+def facturas_sin_pdf(conn, nic: str) -> list:
+    """Facturas que el portal lista pero cuyo PDF ya no entrega."""
+    return conn.execute(
+        """SELECT * FROM facturas
+           WHERE nic = ? AND estado = 'sin_pdf'
+           ORDER BY emision DESC, id DESC""", (str(nic),)).fetchall()
+
+
 def factura_existe(conn: sqlite3.Connection, ref_pago: str) -> bool:
     return conn.execute("SELECT 1 FROM facturas WHERE ref_pago = ?",
                         (str(ref_pago),)).fetchone() is not None
@@ -438,9 +462,11 @@ def ultima_factura(conn: sqlite3.Connection, nic: str) -> sqlite3.Row | None:
 
 def historico_facturas(conn: sqlite3.Connection, nic: str) -> list[sqlite3.Row]:
     """Todas las facturas descargadas de un contrato, la mas reciente primero."""
+    # descartada / sin_consumo tambien son facturas reales del cliente: si tienen
+    # PDF se muestran (antes se escondian y el historial quedaba incompleto)
     return conn.execute(
         """SELECT * FROM facturas
-           WHERE nic = ? AND estado = 'descargada'
+           WHERE nic = ? AND estado IN ('descargada', 'descartada')
            ORDER BY corte DESC, id DESC""",
         (str(nic),),
     ).fetchall()

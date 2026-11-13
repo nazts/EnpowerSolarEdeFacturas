@@ -902,6 +902,7 @@ def cliente_detalle(request: Request, nic: str):
         historico = [dict(f) for f in db.historico_facturas(conn, nic)]
         for f in historico:
             f["pdf_disponible"] = _pdf_disponible(f)
+        sin_pdf = [dict(f) for f in db.facturas_sin_pdf(conn, nic)]
         pendientes = [dict(p) for p in db.pendientes_abiertos(conn) if str(p["nic"]) == nic]
         proyectos = [dict(p) for p in db.listar_proyectos(conn, nic)]
     datos = dict(contrato)
@@ -911,6 +912,7 @@ def cliente_detalle(request: Request, nic: str):
     return templates.TemplateResponse(request, "cliente_detalle.html", {
         "cliente": datos, "historico": historico, "pendientes": pendientes,
         "total_facturado": total, "activo": "clientes", "proyectos": proyectos,
+        "sin_pdf": sin_pdf,
     })
 
 

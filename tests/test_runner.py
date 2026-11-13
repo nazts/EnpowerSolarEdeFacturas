@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from app import db, runner, telegram
-from app.edenorte import FacturaRef, Historial, PortalError
+from app.edenorte import FacturaRef, Historial, PdfNoDisponible, PortalError
 
 NIC = "6997885"
 REF = "6997885044"
@@ -110,6 +110,26 @@ def test_no_descarga_si_corte_distinto(contrato, leer_pdf, texto):
     r = runner.corrida(date(2026, 10, 16), enviar=False, cliente=p)
     assert r.descargadas == []
     assert r.descartadas[0]["motivo"] == "corte distinto"
+
+
+def test_la_factura_descartada_conserva_su_pdf(contrato, leer_pdf, tmp_path):
+    """Una factura con corte distinto no se envia, pero el archivo se guarda.
+
+    Antes se descargaba, se descartaba y el PDF se perdia: la ficha mostraba la
+    factura sin archivo y ya no habia forma de verla.
+    """
+    with db.sesion(db_path=contrato) as c:                   # el cliente corta el 17
+        db.upsert_contrato(c, NIC, razon_social="X", dia_corte=17)
+    p = portal(filas=[fila()], pdfs={REF: _texto_factura("16/09/2026").encode("latin-1")})
+
+    r = runner.corrida(D1, enviar=False, cliente=p)           # hoy 17, la factura es 16
+
+    assert r.descartadas and r.descartadas[0]["motivo"] == "corte distinto"
+    with db.sesion(db_path=contrato) as c:
+        f = c.execute("SELECT estado, pdf_path FROM facturas WHERE ref_pago = ?",
+                      (REF,)).fetchone()
+    assert f["estado"] == "descartada"
+    assert f["pdf_path"] and Path(f["pdf_path"]).exists()
 
 
 def test_no_descarga_consumo_en_blanco(contrato, leer_pdf, texto, tmp_path):
@@ -306,8 +326,8 @@ def test_historial_guarda_las_anteriores_y_las_envia_una_vez(contrato, leer_pdf,
     res = runner.sincronizar_historial(date(2026, 9, 20), enviar=True,
                                        portales={"edenorte": p}, chat_id="-100")
 
-    # guarda las dos anteriores...
-    assert {n["corte"] for n in res["nuevos"]} == {"2026-08-16", "2026-07-16"}
+    # guarda las dos anteriores y completa la que estaba sin archivo
+    assert {n["corte"] for n in res["nuevos"]} == {"2026-09-16", "2026-08-16", "2026-07-16"}
     # ...pero a Telegram solo va una: la ultima que no se habia enviado
     assert res["enviados"] == 1 and res["albumes"] == 1
     assert len(mensajes) == 1                        # un mensaje, una factura
@@ -397,8 +417,12 @@ def test_factura_nueva_sin_pdf_no_tapa_las_anteriores(contrato, leer_pdf):
     assert p.descargar_pdf.call_count == 3                     # incluida la sin PDF
     assert res["errores"] == []
     with db.sesion(db_path=contrato) as c:
-        n = c.execute("SELECT COUNT(*) AS n FROM facturas WHERE nic = ?", (NIC,)).fetchone()["n"]
-    assert n == 2          # quedaron guardadas en la base del panel
+        filas = [dict(f) for f in c.execute(
+            "SELECT ref_pago, estado FROM facturas WHERE nic = ? ORDER BY ref_pago DESC",
+            (NIC,)).fetchall()]
+    # las dos con PDF quedan descargadas; la que el portal no entrega queda listada
+    assert [(f["ref_pago"], f["estado"]) for f in filas] == [
+        ("900", "sin_pdf"), ("899", "descargada"), ("898", "descargada")]
 
 
 def test_upsert_no_reactiva_un_cliente_desactivado(contrato):
@@ -806,3 +830,73 @@ def test_sql_sin_is_parameter_que_postgres_no_entiende():
     assert "corte = ?" in conn.sql and "IS ?" not in conn.sql
     runner._monto(conn, "6997885", None)
     assert "corte IS NULL" in conn.sql
+
+
+# ------------------------------------- facturas que el portal lista pero sin PDF
+def portal_con_faltantes(filas, pdfs):
+    """Portal real: las facturas viejas devuelven "Factura no disponible"."""
+    p = portal(filas=filas, pdfs=pdfs)
+
+    def _descargar(ref):
+        if ref in pdfs:
+            return pdfs[ref]
+        raise PdfNoDisponible(f"PDF no disponible para {ref}")
+
+    p.descargar_pdf.side_effect = _descargar
+    return p
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("16 Oct 2026", "2026-10-16"),
+    ("28 Aug 2026", "2026-08-28"),
+    ("16/09/2026", "2026-09-16"),
+    ("2026-09-16", "2026-09-16"),
+    ("", None),
+    ("sin fecha", None),
+])
+def test_fecha_portal_entiende_los_formatos_del_portal(texto, esperado):
+    assert runner.fecha_portal(texto) == esperado
+
+
+def test_la_factura_sin_pdf_queda_listada(contrato, leer_pdf):
+    """El portal la muestra en el historial aunque ya no entregue el archivo."""
+    con_pdf, sin_pdf = "6997885045", "6997885039"
+    p = portal_con_faltantes(
+        [FacturaRef(nic=NIC, ref_pago=con_pdf, cliente="X", tipo="Recibos de consumos",
+                    emision="16 Oct 2026"),
+         FacturaRef(nic=NIC, ref_pago=sin_pdf, cliente="X", tipo="Recibos de consumos",
+                    emision="16 Jun 2026")],
+        {con_pdf: _texto_factura("16/10/2026").encode("latin-1")})
+
+    res = runner.sincronizar_historial(date(2026, 10, 20), enviar=False,
+                                       portales={"edenorte": p})
+
+    assert [n["corte"] for n in res["nuevos"]] == ["2026-10-16"]
+    with db.sesion(db_path=contrato) as c:
+        listadas = [dict(f) for f in db.facturas_sin_pdf(c, NIC)]
+    assert [f["ref_pago"] for f in listadas] == [sin_pdf]
+    assert listadas[0]["estado"] == "sin_pdf"
+    assert listadas[0]["emision"] == "2026-06-16"      # fecha del listado del portal
+
+
+def test_la_factura_sin_pdf_se_reintenta_y_se_completa(contrato, leer_pdf):
+    """Si el portal vuelve a publicar el archivo, la fila pasa a descargada."""
+    ref = "6997885040"
+    with db.sesion(db_path=contrato) as c:
+        db.guardar_factura(c, {"nic": NIC, "ref_pago": ref, "tipo": "Recibos de consumos",
+                               "emision": "2026-07-21", "estado": "sin_pdf"})
+
+    p = portal_con_faltantes(
+        [FacturaRef(nic=NIC, ref_pago=ref, cliente="X", tipo="Recibos de consumos",
+                    emision="21 Jul 2026")],
+        {ref: _texto_factura("21/07/2026").encode("latin-1")})
+
+    res = runner.sincronizar_historial(date(2026, 10, 20), enviar=False,
+                                       portales={"edenorte": p})
+
+    assert len(res["nuevos"]) == 1
+    with db.sesion(db_path=contrato) as c:
+        fila = c.execute("SELECT estado, corte FROM facturas WHERE ref_pago = ?",
+                         (ref,)).fetchone()
+        assert db.facturas_sin_pdf(c, NIC) == []
+    assert fila["estado"] == "descargada" and fila["corte"] == "2026-07-21"

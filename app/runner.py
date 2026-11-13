@@ -116,6 +116,32 @@ def corta_hoy(dia_corte: int | None, fecha: date) -> bool:
     return fecha.day == esperado
 
 
+_MESES = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6, "jul": 7,
+          "aug": 8, "sep": 9, "set": 9, "oct": 10, "nov": 11, "dec": 12, "dic": 12,
+          "ene": 1, "abr": 4, "ago": 8}
+
+
+def fecha_portal(texto: str | None) -> str | None:
+    """Fecha del listado del portal -> AAAA-MM-DD (o None si no se entiende)."""
+    import re as _re
+
+    t = (texto or "").strip()
+    if not t:
+        return None
+    m = _re.match(r"^(\d{4})-(\d{2})-(\d{2})$", t)
+    if m:
+        return t
+    m = _re.match(r"^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$", t)
+    if m:
+        return f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    m = _re.match(r"^(\d{1,2})\s+([A-Za-zÁÉÍÓÚáéíóú]{3,})\.?\s+(\d{4})$", t)
+    if m:
+        mes = _MESES.get(m.group(2).lower()[:3])
+        if mes:
+            return f"{m.group(3)}-{mes:02d}-{int(m.group(1)):02d}"
+    return None
+
+
 def es_consumo(tipo: str) -> bool:
     return TIPO_CONSUMO in (tipo or "").lower()
 
@@ -401,13 +427,17 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 if datos.corte not in cortes:
                     res.descartadas.append({"nic": nic, "ref_pago": fila.ref_pago,
                                             "corte": datos.corte, "motivo": "corte distinto"})
+                    # el archivo se guarda igual: es una factura real del cliente
+                    destino = _candidato_archivo(nic, datos, contrato["razon_social"] or "",
+                                                 config.FACTURAS_DIR)
+                    _guardar_pdf(contenido, destino)
                     db.guardar_factura(conn, {
                         "nic": nic, "ref_pago": fila.ref_pago, "tipo": fila.tipo,
                         "cliente": datos.titular or fila.cliente,
                         "periodo_ini": datos.periodo_ini, "periodo_fin": datos.periodo_fin,
                         "corte": datos.corte, "emision": datos.emision, "vence": datos.vence,
                         "kwh": datos.kwh, "facturado": datos.facturado,
-                        "estado": "descartada",
+                        "pdf_path": str(destino), "estado": "descartada",
                     })
                     continue
                 if datos.kwh is None:
@@ -584,8 +614,10 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                 res["errores"].append({"nic": nic, "error": str(exc)[:200]})
                 continue
 
+            # se descargan las que faltan y se reintentan las que quedaron sin PDF:
+            # el portal a veces publica el archivo unos dias despues
             faltan = [f for f in hist.filas
-                      if es_consumo(f.tipo) and not db.factura_existe(conn, f.ref_pago)]
+                      if es_consumo(f.tipo) and db.necesita_pdf(conn, f.ref_pago)]
             sin_pdf = 0
             tope = len(faltan) if not por_cliente else min(int(por_cliente), len(faltan))
             for fila in faltan[:tope]:
@@ -598,16 +630,18 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                     contenido = portal.descargar_pdf(fila.ref_pago)
                     sin_pdf = 0
                 except PdfNoDisponible:
-                    # La factura mas nueva suele estar publicada SIN PDF todavia.
-                    # Antes se cortaba aca y por eso un cliente recien agregado
-                    # quedaba con el historico vacio aunque las anteriores si
-                    # tuvieran PDF. Ahora se salta esa y se sigue con las otras.
-                    sin_pdf += 1
+                    # El portal LISTA la factura pero no entrega el archivo (Edenorte
+                    # solo conserva los PDFs de las mas recientes). Se guarda igual,
+                    # marcada 'sin_pdf', para que la ficha muestre todo el historico
+                    # del portal; en cada corrida se reintenta por si aparece.
+                    db.guardar_factura(conn, {
+                        "nic": nic, "ref_pago": fila.ref_pago, "tipo": fila.tipo,
+                        "cliente": fila.cliente, "emision": fecha_portal(fila.emision),
+                        "estado": "sin_pdf",
+                    })
                     db.log_evento(conn, "info",
-                                  f"NIC {nic}: factura sin PDF publicado",
-                                  f"ref {fila.ref_pago} (se sigue con las anteriores)")
-                    if sin_pdf >= 3:
-                        break
+                                  f"NIC {nic}: factura del portal sin PDF",
+                                  f"ref {fila.ref_pago} ({fila.emision}) - queda listada")
                     continue
                 except PortalError as exc:
                     sin_pdf += 1

@@ -395,6 +395,32 @@
       Pulsa <b>Buscar facturas</b> para intentarlo ahora mismo (si el portal no las tiene publicadas,
       se reintenta en la corrida de las 7:00 a.m.).</div>
     {% endif %}
+
+    {% if sin_pdf %}
+    <div class="cuerpo" style="border-top:1px solid var(--line)">
+      <h3 style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">
+        Publicadas en el portal sin PDF ({{ sin_pdf|length }})</h3>
+      <p class="muted" style="margin:0;font-size:12.5px">Edenorte las sigue listando en el historial,
+        pero ya no entrega el archivo: solo conserva los PDFs de las facturas más recientes.
+        En cada corrida se reintentan por si vuelven a estar disponibles.</p>
+    </div>
+    <div class="cuerpo sin-pad">
+      <div class="tabla-wrap"><table class="cards">
+        <thead><tr><th>Emisión</th><th>Tipo</th><th>Ref. de pago</th><th></th></tr></thead>
+        <tbody>
+        {% for f in sin_pdf %}
+          <tr>
+            <td data-label="Emisión">{{ f.emision or "—" }}</td>
+            <td data-label="Tipo">{{ f.tipo or "—" }}</td>
+            <td data-label="Ref. de pago"><span class="muted">{{ f.ref_pago }}</span></td>
+            <td class="num acc"><span class="mini" style="color:var(--muted);font-size:12px;cursor:help"
+                  title="El portal ya no entrega este PDF">sin PDF</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    {% endif %}
   </section>
 </div>
 
