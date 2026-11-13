@@ -381,8 +381,9 @@
               {% if f.pdf_disponible %}
               <a class="mini btn" href="/facturas/{{ f.id }}/pdf" target="_blank" rel="noopener" aria-label="Abrir PDF de la factura del corte {{ f.corte }}">PDF</a>
               {% else %}
-              <span class="mini" style="color:var(--muted);font-size:12px;cursor:help"
-                    title="No hay copia del PDF en el servidor ni en Telegram">sin PDF</span>
+              <a class="mini btn" href="/facturas/{{ f.id }}/pdf" target="_blank" rel="noopener"
+                 title="No hay copia guardada: se pide al portal al abrirla y no se conserva"
+                 aria-label="Probar la descarga del PDF del corte {{ f.corte }}">PDF</a>
               {% endif %}
             </td>
           </tr>
@@ -413,8 +414,8 @@
             <td data-label="Emisión">{{ f.emision or "—" }}</td>
             <td data-label="Tipo">{{ f.tipo or "—" }}</td>
             <td data-label="Ref. de pago"><span class="muted">{{ f.ref_pago }}</span></td>
-            <td class="num acc"><span class="mini" style="color:var(--muted);font-size:12px;cursor:help"
-                  title="El portal ya no entrega este PDF">sin PDF</span></td>
+            <td class="num acc"><a class="mini btn" href="/facturas/{{ f.id }}/pdf" target="_blank"
+                  rel="noopener" title="Probar si el portal ya la entrega (no se guarda en disco)">PDF</a></td>
           </tr>
         {% endfor %}
         </tbody>

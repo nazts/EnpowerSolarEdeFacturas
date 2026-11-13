@@ -141,3 +141,68 @@ def test_api_eventos_respeta_el_limite(db_path):
 
     carga = json.loads(dashboard.api_eventos(limite=3).body)
     assert len(carga["eventos"]) == 3
+
+
+# ------------------- ver una factura sin copia: se pide al portal y no se guarda
+class _PortalFalso:
+    def __init__(self, contenido=b"%PDF-1.4 factura de prueba", falla=None):
+        self.contenido = contenido
+        self.falla = falla
+        self.cerrado = False
+
+    def login(self):
+        return None
+
+    def descargar_pdf(self, ref):
+        if self.falla:
+            raise self.falla
+        return self.contenido
+
+    def cerrar(self):
+        self.cerrado = True
+
+
+def _factura_sin_copia(db_path, nic="6997885", ref="6997885041", estado="sin_pdf"):
+    from app import db
+
+    with db.sesion(db_path=db_path) as c:
+        db.upsert_contrato(c, nic, razon_social="X", dia_corte=16)
+        return db.guardar_factura(c, {"nic": nic, "ref_pago": ref, "tipo": "Recibos de consumos",
+                                      "estado": estado})
+
+
+def test_el_pdf_se_baja_del_portal_sin_guardarlo(db_path, monkeypatch, tmp_path):
+    """Sin copia en disco ni en Telegram: se pide al portal y se sirve, sin escribir nada."""
+    from app import proveedores
+
+    id_factura = _factura_sin_copia(db_path)
+    portal = _PortalFalso()
+    monkeypatch.setattr(proveedores, "portal_de", lambda prov: portal)
+    monkeypatch.setattr(config, "FACTURAS_DIR", tmp_path)
+
+    resp = dashboard.ver_pdf(id_factura)
+
+    assert resp.media_type == "application/pdf"
+    assert resp.body.startswith(b"%PDF")
+    assert portal.cerrado is True                     # la sesion del portal se cierra
+    assert list(tmp_path.glob("*.pdf")) == []         # no ocupa espacio
+
+
+def test_si_el_portal_no_entrega_el_pdf_da_error_explicado(db_path, monkeypatch, tmp_path):
+    from fastapi import HTTPException
+
+    from app import proveedores
+
+    id_factura = _factura_sin_copia(db_path)
+    portal = _PortalFalso(falla=RuntimeError("Factura no disponible actualmente"))
+    monkeypatch.setattr(proveedores, "portal_de", lambda prov: portal)
+    monkeypatch.setattr(config, "FACTURAS_DIR", tmp_path)
+
+    try:
+        dashboard.ver_pdf(id_factura)
+    except HTTPException as exc:
+        assert exc.status_code == 502
+        assert "6997885041" in exc.detail and "no disponible" in exc.detail
+    else:
+        raise AssertionError("deberia haber lanzado HTTPException")
+    assert portal.cerrado is True

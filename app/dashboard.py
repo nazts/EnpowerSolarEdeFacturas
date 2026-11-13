@@ -1036,6 +1036,34 @@ def ver_pdf(factura_id: int):
         return Response(contenido, media_type="application/pdf",
                         headers={"Content-Disposition": f'inline; filename="{nombre}"'})
 
+    # 3) no quedo copia: se intenta bajar del portal en este momento y se sirve
+    #    directo al navegador SIN guardarlo (no ocupa espacio en el servidor)
+    if fila["ref_pago"]:
+        try:
+            from .proveedores import portal_de
+
+            with db.sesion() as conn:
+                contrato = conn.execute("SELECT proveedor FROM contratos WHERE nic = ?",
+                                        (fila["nic"],)).fetchone()
+            prov = (contrato["proveedor"] if contrato and contrato["proveedor"] else "edenorte")
+            portal = portal_de(prov)
+            portal.login()
+            try:
+                contenido = portal.descargar_pdf(fila["ref_pago"])
+            finally:
+                try:
+                    portal.cerrar()
+                except Exception:  # noqa: BLE001 - cerrar nunca debe tapar el error real
+                    pass
+        except Exception as exc:  # noqa: BLE001 - portal caido, factura sin archivo, etc.
+            raise HTTPException(
+                502, f"El portal no entregó el PDF de la factura {fila['ref_pago']} "
+                     f"(NIC {fila['nic']}): {str(exc)[:160]}") from None
+        nombre = Path(guardada).name if guardada else f"{fila['nic']} {fila['ref_pago']}.pdf"
+        return Response(contenido, media_type="application/pdf",
+                        headers={"Content-Disposition": f'inline; filename="{nombre}"',
+                                 "Cache-Control": "no-store"})
+
     raise HTTPException(
         404, f"El PDF de la factura {fila['ref_pago']} (NIC {fila['nic']}) no está "
              "disponible: no quedó copia en el servidor ni en Telegram.")
