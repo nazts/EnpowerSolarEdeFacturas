@@ -449,6 +449,22 @@ app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 
 # ------------------------------------------------------------------ API datos
+# NICs que se asociaron en el portal mientras se buscaba el contrato en el alta.
+# Si el usuario cancela, se desasocian (el portal no deberia quedarse con ellos).
+_ASOCIADOS_POR_BUSQUEDA: dict[str, float] = {}
+_MINUTOS_BUSQUEDA = 30
+
+
+def _asociado_por_busqueda(nic: str) -> bool:
+    cuando = _ASOCIADOS_POR_BUSQUEDA.get(str(nic))
+    if cuando is None:
+        return False
+    if time.time() - cuando > _MINUTOS_BUSQUEDA * 60:
+        _ASOCIADOS_POR_BUSQUEDA.pop(str(nic), None)
+        return False
+    return True
+
+
 @app.get("/api/contrato/{nic}")
 def api_contrato(nic: str, proveedor: str = "edenorte",
                  referencia: str | None = None) -> JSONResponse:
@@ -471,22 +487,14 @@ def api_contrato(nic: str, proveedor: str = "edenorte",
             else:
                 contrato = cliente.asociar_contrato(nic)
             asociado = True
-        with db.sesion() as conn:
-            db.upsert_contrato(conn, contrato.nic, razon_social=contrato.titular,
-                               direccion=contrato.direccion, telefono=contrato.telefono,
-                               proveedor=proveedor)
-            if asociado:
-                db.log_evento(conn, "info", f"Contrato {nic} asociado a la cuenta",
-                              contrato.titular)
+        # OJO: aca NO se guarda el cliente. Asociar en el portal es necesario para
+        # leer los datos, pero el alta en el panel se hace recien cuando el usuario
+        # confirma el formulario (POST /clientes). Si cancela, se deshace.
         if asociado:
-            try:
-                import threading
-                from .runner import sincronizar_historial
-                threading.Thread(target=sincronizar_historial,
-                                 kwargs={"enviar": False, "nic": contrato.nic},
-                                 daemon=True).start()
-            except Exception:  # noqa: BLE001
-                pass
+            _ASOCIADOS_POR_BUSQUEDA[contrato.nic] = time.time()
+            with db.sesion() as conn:
+                db.log_evento(conn, "info", f"Contrato {nic} asociado a la cuenta (sin guardar)",
+                              "a la espera de confirmacion en el alta")
         return JSONResponse({
             "ok": True, "nic": contrato.nic, "razon_social": contrato.titular,
             "nombre_normalizado": naming.normalizar_razon_social(contrato.titular),
@@ -498,6 +506,36 @@ def api_contrato(nic: str, proveedor: str = "edenorte",
     except Exception as exc:  # noqa: BLE001 - red, timeouts, lo que sea
         return JSONResponse({"ok": False, "error": f"Fallo la consulta: {exc}"[:300]},
                             status_code=502)
+
+
+@app.post("/api/contrato/{nic}/cancelar")
+def api_contrato_cancelar(nic: str, request: Request) -> JSONResponse:
+    """El usuario cancelo el alta: si lo asociamos nosotros, se quita del portal."""
+    nic = str(nic).strip()
+    if not _asociado_por_busqueda(nic):
+        return JSONResponse({"ok": True, "quitado": False,
+                             "detalle": "ese NIC no lo asocio esta busqueda"})
+    try:
+        from .proveedores import portal_de
+
+        portal = portal_de("edenorte")
+        portal.login()
+        try:
+            portal.quitar_contrato(nic)
+        finally:
+            try:
+                portal.cerrar()
+            except Exception:  # noqa: BLE001
+                pass
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse({"ok": False, "quitado": False, "error": str(exc)[:200]},
+                            status_code=502)
+    _ASOCIADOS_POR_BUSQUEDA.pop(nic, None)
+    with db.sesion() as conn:
+        # por si alguna version anterior lo dejo guardado
+        db.eliminar_contrato(conn, nic, motivo="se cancelo el alta")
+        db.log_evento(conn, "aviso", f"Alta cancelada: contrato {nic} quitado de Edenorte")
+    return JSONResponse({"ok": True, "quitado": True})
 
 
 @app.get("/api/resumen")
@@ -1003,10 +1041,42 @@ def editar_contrato(request: Request, nic: str, razon_social: str = Form(default
 
 @app.post("/contratos/{nic}/eliminar")
 def borrar_contrato(nic: str, request: Request):
+    """Elimina el cliente: lo quita de la cuenta del portal y lo marca 'borrado'."""
     requiere_admin(request)
+    nic = str(nic).strip()
     with db.sesion() as conn:
-        db.eliminar_contrato(conn, nic)
-        db.log_evento(conn, "aviso", f"Contrato {nic} eliminado")
+        fila = conn.execute("SELECT COALESCE(proveedor, 'edenorte') AS p FROM contratos"
+                            " WHERE nic = ?", (nic,)).fetchone()
+    proveedor = (fila["p"] if fila else "edenorte") or "edenorte"
+
+    quitado, detalle = False, ""
+    if proveedor == "edenorte":
+        try:
+            from .proveedores import portal_de
+
+            portal = portal_de("edenorte")
+            portal.login()
+            try:
+                quitado = portal.quitar_contrato(nic)
+            finally:
+                try:
+                    portal.cerrar()
+                except Exception:  # noqa: BLE001
+                    pass
+        except Exception as exc:  # noqa: BLE001 - el panel igual lo borra
+            detalle = str(exc)[:200]
+
+    with db.sesion() as conn:
+        db.eliminar_contrato(conn, nic, motivo="eliminado desde el panel")
+        _ASOCIADOS_POR_BUSQUEDA.pop(nic, None)
+        if quitado:
+            db.log_evento(conn, "aviso", f"Contrato {nic} eliminado del panel y de Edenorte")
+        elif proveedor != "edenorte":
+            db.log_evento(conn, "aviso", f"Contrato {nic} marcado como borrado",
+                          f"{proveedor} no permite quitarlo desde el panel")
+        else:
+            db.log_evento(conn, "error", f"Contrato {nic} marcado como borrado, "
+                                         "pero Edenorte no confirmo la eliminacion", detalle)
     return RedirectResponse("/", status_code=303)
 
 

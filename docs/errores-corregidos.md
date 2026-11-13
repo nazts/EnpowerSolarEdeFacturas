@@ -151,6 +151,25 @@ teoría.
 | **Qué hace el panel** | Muestra esas facturas como `sin_pdf` (con su fecha de emisión, en una sección aparte), las reintenta en cada corrida y permite pedir el PDF al portal en el momento (`/facturas/{id}/pdf`) sin guardarlo en disco. |
 | **Regla** | Antes de "arreglar" una descarga, comprobar si el portal entrega el archivo a **otro** contrato en la misma sesión: si el patrón se repite (solo las N más nuevas), es retención del proveedor y el trabajo es capturarlas a tiempo, no cambiar la petición. |
 
+## 17. «Edenorte no deja eliminar contratos» — falso
+
+| | |
+|---|---|
+| **Error** | Se concluyó que la Oficina Virtual no permitía quitar un contrato porque se buscaron `href`/`<form>` con «eliminar». |
+| **Realidad** | El botón existe y es JS: `<button onclick="MainModule.borrarContrato('NIC')">`, que hace `POST /delnic` con `{nic}` y responde JSON con `codigo == 'MSG0001'`. |
+| **Arreglo** | `EdenorteClient.quitar_contrato(nic)`: pide `/contratos` para el `_csrf`, hace el POST y valida el código. Probado en vivo: el NIC desaparece de la cuenta. |
+| **Regla** | Buscar también `onclick`, `MainModule.` y los `.js` del sitio antes de afirmar que una acción no existe. |
+
+## 18. Buscar el NIC en el alta guardaba el cliente antes de confirmar
+
+| | |
+|---|---|
+| **Síntoma** | Se buscaba un NIC, se pulsaba «Cancelar» y el cliente quedaba creado —en el panel y asociado en Edenorte—; además generaba pendientes que luego aparecían como «atrasado». |
+| **Causa** | `/api/contrato/{nic}` hacía `upsert_contrato` (y lanzaba el histórico) solo para poder leer los datos del titular. |
+| **Arreglo** | La búsqueda ya no escribe en la base: solo asocia en el portal (necesario para leer) y recuerda el NIC 30 min. `POST /api/contrato/{nic}/cancelar` deshace la asociación (`quitar_contrato`) si la hizo esa búsqueda. El alta real ocurre en `POST /clientes`. |
+| **Extra** | Eliminar un cliente ya no hace `DELETE`: deja la fila con `estado='borrado'` (columna nueva, migrada sola) y lo quita también de la cuenta del portal. |
+| **Regla** | Una acción de lectura no debe mutar la base. Si el proveedor obliga a asociar para consultar, hay que poder deshacerlo. |
+
 ---
 
 ## Comprobación antes de cerrar un cambio

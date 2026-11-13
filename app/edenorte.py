@@ -218,6 +218,37 @@ class EdenorteClient:
         raise PortalError(f"Edenorte no confirmo la asociacion del NIC {nic} "
                           f"en {espera_max}s; vuelve a intentarlo")
 
+    def quitar_contrato(self, nic: str) -> bool:
+        """Desasocia el NIC de la cuenta: el boton «Eliminar» de Mis Contratos.
+
+        El portal lo hace con `$.post('delnic', {nic})` y responde un JSON con
+        `codigo == 'MSG0001'` cuando lo elimino.
+        """
+        nic = str(nic).strip()
+        self._ensure()
+        try:
+            page = self.http.get(f"{self.base}/contratos", timeout=self.timeout)
+        except requests.RequestException as exc:
+            raise PortalError(f"No se pudo abrir Mis Contratos: {exc}") from exc
+        token = self._csrf(page.text) or ""
+        headers = {"X-CSRF-Token": token, "X-Requested-With": "XMLHttpRequest",
+                   "Referer": f"{self.base}/contratos"}
+        try:
+            resp = self.http.post(f"{self.base}/delnic",
+                                  data={"nic": nic, "_csrf": token},
+                                  headers=headers, timeout=max(self.timeout, 60))
+        except requests.RequestException as exc:
+            raise PortalError(f"No se pudo quitar el contrato {nic}: {exc}") from exc
+        if resp.status_code >= 400:
+            raise PortalError(f"El portal respondio {resp.status_code} al quitar {nic}")
+        try:
+            datos = resp.json()
+        except ValueError:
+            raise PortalError(f"El portal no devolvio JSON al quitar {nic}") from None
+        if str(datos.get("codigo")) != "MSG0001":
+            raise PortalError(f"No se pudo quitar el contrato {nic}: {str(datos)[:140]}")
+        return True
+
     def titular(self, nic: str) -> str:
         for c in self.contratos():
             if c.nic == str(nic):

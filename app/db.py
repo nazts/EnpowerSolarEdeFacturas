@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS contratos (
     dia_corte          INTEGER,
     activo             INTEGER NOT NULL DEFAULT 1,
     notas              TEXT NOT NULL DEFAULT '',
+    estado             TEXT NOT NULL DEFAULT 'agregado',
     created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -131,6 +132,8 @@ COLUMNAS_NUEVAS = {
     "bateria": "TEXT NOT NULL DEFAULT ''",
     "capacidad_bateria": "REAL",
     "fecha_instalacion": "TEXT NOT NULL DEFAULT ''",
+    # 'agregado' mientras el cliente este en el panel, 'borrado' si se elimino
+    "estado": "TEXT NOT NULL DEFAULT 'agregado'",
 }
 
 
@@ -260,6 +263,12 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                 poner(col, val)
         if activo is not None:                    # solo si se pide explicitamente
             poner("activo", int(activo))
+        # si estaba borrado y se vuelve a agregar, queda como agregado
+        estado_actual = conn.execute("SELECT COALESCE(estado, 'agregado') AS e FROM contratos"
+                                    " WHERE nic = ?", (nic,)).fetchone()
+        if estado_actual and estado_actual["e"] == "borrado":
+            poner("estado", "agregado")
+            poner("activo", 1)
         poner("updated_at", ahora())
         valores.append(nic)
         conn.execute(f"UPDATE contratos SET {', '.join(campos)} WHERE nic = ?", valores)
@@ -268,8 +277,8 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
             """INSERT INTO contratos
                (nic, razon_social, nombre_normalizado, alias, asesor, dia_corte, activo, notas,
                 direccion, telefono, latitud, longitud, paneles, potencia_paneles, inversores,
-                bateria, capacidad_bateria, fecha_instalacion, proveedor)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                bateria, capacidad_bateria, fecha_instalacion, proveedor, estado)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'agregado')""",
             (nic, razon_social.strip(), norm, alias.strip(), asesor.strip(),
              int(dia_corte) if dia_corte is not None else None,
              1 if activo is None else int(activo), notas,
@@ -321,9 +330,9 @@ def actualizar_contrato(conn: sqlite3.Connection, nic: str, datos: dict) -> bool
 
 
 def listar_contratos(conn: sqlite3.Connection, solo_activos: bool = True) -> list[sqlite3.Row]:
-    sql = "SELECT * FROM contratos"
+    sql = "SELECT * FROM contratos WHERE COALESCE(estado, 'agregado') <> 'borrado'"
     if solo_activos:
-        sql += " WHERE activo = 1"
+        sql += " AND activo = 1"
     sql += " ORDER BY nic"
     return conn.execute(sql).fetchall()
 
@@ -332,10 +341,21 @@ def obtener_contrato(conn: sqlite3.Connection, nic: str) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM contratos WHERE nic = ?", (str(nic),)).fetchone()
 
 
-def eliminar_contrato(conn: sqlite3.Connection, nic: str) -> None:
-    conn.execute("DELETE FROM contratos WHERE nic = ?", (str(nic),))
+def eliminar_contrato(conn, nic: str, motivo: str = "") -> None:
+    """Marca el cliente como 'borrado' sin perder su historial de facturas.
+
+    Antes se hacia DELETE: se perdia el rastro de que ese NIC existio y por que
+    desaparecio. Ahora queda la fila con estado='borrado' (y activo=0) para que
+    no se liste ni se procese.
+    """
+    nic = str(nic).strip()
+    nota = (f"eliminado {ahora()}" + (f": {motivo}" if motivo else ""))[:200]
+    conn.execute(
+        "UPDATE contratos SET estado = 'borrado', activo = 0, updated_at = ?, "
+        "notas = CASE WHEN COALESCE(notas, '') = '' THEN ? ELSE notas END "
+        "WHERE nic = ?", (ahora(), nota, nic))
     # sin contrato no tiene sentido seguir reintentando sus pendientes
-    conn.execute("DELETE FROM pendientes WHERE nic = ?", (str(nic),))
+    conn.execute("DELETE FROM pendientes WHERE nic = ?", (nic,))
     conn.commit()
 
 

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS contratos (
     asesor              TEXT NOT NULL DEFAULT '',
     dia_corte           INTEGER,
     activo              INTEGER NOT NULL DEFAULT 1,
+    estado              TEXT NOT NULL DEFAULT 'agregado',
     notas               TEXT NOT NULL DEFAULT '',
     proveedor           TEXT NOT NULL DEFAULT 'edenorte',
     direccion           TEXT NOT NULL DEFAULT '',

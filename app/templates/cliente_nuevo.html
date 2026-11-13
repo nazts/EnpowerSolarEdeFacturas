@@ -277,7 +277,7 @@
 
         <div class="pie-form">
           <button class="primario" type="submit">Guardar cliente</button>
-          <a class="btn" href="/clientes">Cancelar</a>
+          <a class="btn" href="/clientes" id="btnCancelar">Cancelar</a>
         </div>
       </form>
     </div>
@@ -330,6 +330,8 @@ function cambiarProveedor(){
     ? 'Edesur: la referencia de pago es obligatoria (los números antes del guion). Con el NIC y la referencia, Edesur devuelve el nombre del titular.'
     : 'Edenorte: escribe el NIC y pulsa Buscar. Si el contrato no está en la cuenta, se agrega automáticamente (tarda unos segundos).';
 }
+var nicAsociado = null;        // NIC que se agrego a Edenorte al buscarlo
+
 async function buscar(){
   const nic = document.getElementById('nic').value.trim();
   const proveedor = document.getElementById('proveedor').value;
@@ -353,14 +355,32 @@ async function buscar(){
     document.getElementById('razon_social').value = d.razon_social || '';
     document.getElementById('pista').textContent =
       'Titular: ' + (d.razon_social || '—') + (d.direccion ? ' · ' + d.direccion : '') + (d.telefono ? ' · Tel. ' + d.telefono : '');
+    nicAsociado = d.asociado ? nic : null;
     aviso(d.asociado
-      ? 'Contrato ' + nic + ' agregado a la Oficina Virtual. Titular: ' + d.razon_social
+      ? 'Contrato ' + nic + ' se agregó a la Oficina Virtual para leer los datos. Se guarda en el panel cuando pulses "Guardar cliente"; si cancelas, se quita.'
       : 'Razón social encontrada: ' + d.razon_social, 'ok');
   }catch(e){ aviso('No se pudo conectar con el servidor', 'err'); }
   finally{ clearTimeout(lento); clearTimeout(muyLento); ocupado('btnBuscar', false); }
 }
 
 cambiarProveedor();
+
+// Al guardar, el contrato queda en el panel: ya no se deshace nada.
+var formNuevo = document.getElementById('formNuevo');
+if(formNuevo) formNuevo.addEventListener('submit', function(){ nicAsociado = null; });
+
+// Cancelar: si la búsqueda agregó el contrato a Edenorte, se quita antes de salir.
+var btnCancelar = document.getElementById('btnCancelar');
+if(btnCancelar) btnCancelar.addEventListener('click', async function(e){
+  if(!nicAsociado) return;                      // nunca se buscó: sale normal
+  e.preventDefault();
+  var destino = this.getAttribute('href');
+  this.textContent = 'Cancelando…';
+  try{
+    await fetch('/api/contrato/' + encodeURIComponent(nicAsociado) + '/cancelar', {method: 'POST'});
+  }catch(err){ /* si falla, igual se sale: queda el aviso en Actividad */ }
+  window.location.href = destino;
+});
 
 // ---------- coordenadas: pegar "lat, lon", geocodificar y compartir ----------
 function normalizarCoord(valor){
