@@ -211,6 +211,9 @@ def _preparar() -> None:
             usuario, password = creado
             db.log_evento(conn, "info", "Usuario administrador creado", usuario)
             print(f"[usuarios] admin inicial -> usuario: {usuario} / contraseña: {password}")
+        purgados = db.purgar_papelera(conn)
+        if purgados:
+            print(f"[papelera] eliminados definitivamente: {', '.join(purgados)}")
 
 
 @app.get("/login")
@@ -1039,6 +1042,50 @@ def editar_contrato(request: Request, nic: str, razon_social: str = Form(default
     return RedirectResponse("/", status_code=303)
 
 
+@app.get("/papelera")
+def papelera(request: Request):
+    """Clientes eliminados: se guardan 30 dias y despues se borran del todo."""
+    requiere_admin(request)
+    with db.sesion() as conn:
+        db.purgar_papelera(conn)
+        filas = db.contratos_papelera(conn)
+    return templates.TemplateResponse(request, "papelera.html", {
+        "activo": "papelera", "clientes": filas, "dias": db.DIAS_PAPELERA,
+        "mensaje": request.query_params.get("mensaje", ""),
+    })
+
+
+@app.post("/clientes/{nic}/restaurar")
+def restaurar_cliente(nic: str, request: Request):
+    """Saca al cliente de la papelera y lo deja como agregado."""
+    requiere_admin(request)
+    with db.sesion() as conn:
+        fila = conn.execute("SELECT razon_social FROM contratos WHERE nic = ?",
+                            (str(nic),)).fetchone()
+        if fila is None:
+            raise HTTPException(404, "Ese NIC no está en el panel")
+        conn.execute("UPDATE contratos SET estado = 'agregado', activo = 1, borrado_at = NULL,"
+                     " updated_at = ? WHERE nic = ?", (db.ahora(), str(nic)))
+        conn.commit()
+        db.log_evento(conn, "info", f"Cliente {nic} restaurado desde la papelera",
+                      fila["razon_social"])
+    return RedirectResponse("/clientes?restaurado=1", status_code=303)
+
+
+@app.post("/clientes/{nic}/purgar")
+def purgar_cliente(nic: str, request: Request):
+    """Borra el cliente para siempre (sin esperar los 30 dias)."""
+    requiere_admin(request)
+    nic = str(nic).strip()
+    with db.sesion() as conn:
+        for tabla in ("facturas", "pendientes", "proyectos"):
+            conn.execute(f"DELETE FROM {tabla} WHERE nic = ?", (nic,))
+        conn.execute("DELETE FROM contratos WHERE nic = ? AND estado = 'borrado'", (nic,))
+        conn.commit()
+        db.log_evento(conn, "aviso", f"Cliente {nic} eliminado definitivamente (papelera)")
+    return RedirectResponse("/papelera?mensaje=eliminado", status_code=303)
+
+
 @app.post("/contratos/{nic}/eliminar")
 def borrar_contrato(nic: str, request: Request):
     """Elimina el cliente: lo quita de la cuenta del portal y lo marca 'borrado'."""
@@ -1077,7 +1124,8 @@ def borrar_contrato(nic: str, request: Request):
         else:
             db.log_evento(conn, "error", f"Contrato {nic} marcado como borrado, "
                                          "pero Edenorte no confirmo la eliminacion", detalle)
-    return RedirectResponse("/", status_code=303)
+    volver = "/clientes" if (request and request.query_params.get("volver") == "clientes") else "/"
+    return RedirectResponse(volver, status_code=303)
 
 
 @app.get("/facturas/{factura_id}/pdf")

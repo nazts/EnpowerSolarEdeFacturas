@@ -90,6 +90,9 @@
   .chip-asesor:hover{border-color:var(--accent);color:var(--accent)}
   .chip-asesor.activo{border-color:var(--accent);background:var(--card2);
     box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}
+  form.en-linea{display:inline}
+  .mini.peligro{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+  .mini.peligro:hover{background:var(--bad-bg);border-color:var(--bad)}
   .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
   .vacio b{display:block;color:var(--txt);margin-bottom:3px;font-size:14px}
   .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;
@@ -207,6 +210,14 @@
               <a class="mini btn" href="/clientes/{{ c.nic }}/editar"
                  aria-label="Editar los datos del cliente {{ c.nic }}" title="Editar ficha">
                  <i class="bi bi-pencil-square" aria-hidden="true"></i> Editar</a>
+              <form method="post" action="/contratos/{{ c.nic }}/eliminar?volver=clientes"
+                    class="en-linea"
+                    onsubmit="return confirm('¿Eliminar a {{ (c.nombre_normalizado or c.razon_social or c.nic)|replace("'", " ") }}? Se quita de Edenorte y queda {{ 30 }} días en la papelera.')">
+                <button class="mini peligro" type="submit"
+                        aria-label="Eliminar el cliente {{ c.nic }}"
+                        title="Eliminar (va a la papelera 30 días)">
+                  <i class="bi bi-trash" aria-hidden="true"></i></button>
+              </form>
               {% endif %}
               <a class="mini btn" href="/clientes/{{ c.nic }}" aria-label="Ver histórico del cliente {{ c.nic }}">Histórico <i class="bi bi-arrow-right" aria-hidden="true"></i></a></td>
           </tr>

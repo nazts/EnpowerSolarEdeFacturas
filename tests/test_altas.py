@@ -165,3 +165,100 @@ def test_si_el_portal_falla_el_cliente_igual_queda_borrado(db_path, portal, monk
         # queda registrado el fallo, no se oculta
         mensajes = [e["mensaje"] for e in c.execute("SELECT mensaje FROM eventos").fetchall()]
     assert any("no confirmo la eliminacion" in m for m in mensajes)
+
+
+# ------------------------------------------------------------- papelera (30 dias)
+def test_la_papelera_lista_los_borrados_con_sus_dias(db_path):
+    _guardar_contrato()
+    with db.sesion() as c:
+        db.eliminar_contrato(c, "6997885")
+        papelera = db.contratos_papelera(c)
+
+    assert [f["nic"] for f in papelera] == ["6997885"]
+    assert papelera[0]["dias_restantes"] == db.DIAS_PAPELERA
+    assert papelera[0]["borrado_at"]
+
+
+def test_purgar_borra_lo_que_paso_los_30_dias(db_path):
+    _guardar_contrato()
+    with db.sesion() as c:
+        db.guardar_factura(c, {"nic": "6997885", "ref_pago": "R1", "estado": "descargada"})
+        db.eliminar_contrato(c, "6997885")
+        c.execute("UPDATE contratos SET borrado_at = '2026-01-01 00:00:00' WHERE nic='6997885'")
+        c.commit()
+
+        purgados = db.purgar_papelera(c)
+
+        assert purgados == ["6997885"]
+        assert c.execute("SELECT COUNT(*) AS n FROM contratos WHERE nic='6997885'"
+                         ).fetchone()["n"] == 0
+        assert c.execute("SELECT COUNT(*) AS n FROM facturas WHERE nic='6997885'"
+                         ).fetchone()["n"] == 0
+
+
+def test_purgar_no_toca_lo_reciente(db_path):
+    _guardar_contrato()
+    with db.sesion() as c:
+        db.eliminar_contrato(c, "6997885")
+        assert db.purgar_papelera(c) == []                       # recien borrado
+        assert c.execute("SELECT COUNT(*) AS n FROM contratos").fetchone()["n"] == 1
+
+
+def test_restaurar_lo_devuelve_al_panel(db_path, monkeypatch):
+    monkeypatch.setattr(dashboard, "requiere_admin", lambda request: None)
+    _guardar_contrato()
+    with db.sesion() as c:
+        db.eliminar_contrato(c, "6997885")
+
+    dashboard.restaurar_cliente("6997885", None)
+
+    with db.sesion() as c:
+        fila = c.execute("SELECT estado, activo, borrado_at FROM contratos WHERE nic='6997885'"
+                         ).fetchone()
+        assert [r["nic"] for r in db.listar_contratos(c)] == ["6997885"]
+    assert fila["estado"] == "agregado" and fila["activo"] == 1 and fila["borrado_at"] is None
+
+
+def test_volver_a_agregarlo_lo_saca_de_la_papelera(db_path):
+    _guardar_contrato()
+    with db.sesion() as c:
+        db.eliminar_contrato(c, "6997885")
+        assert len(db.contratos_papelera(c)) == 1
+
+    _guardar_contrato()                                          # se agrega de nuevo
+
+    with db.sesion() as c:
+        assert db.contratos_papelera(c) == []
+        fila = c.execute("SELECT estado, borrado_at FROM contratos WHERE nic='6997885'").fetchone()
+    assert fila["estado"] == "agregado" and fila["borrado_at"] is None
+
+
+def test_purgar_el_cliente_borra_tambien_sus_proyectos(db_path):
+    _guardar_contrato()
+    with db.sesion() as c:
+        c.execute("INSERT INTO proyectos (nic, nombre) VALUES ('6997885', 'Techo')")
+        c.commit()
+        db.eliminar_contrato(c, "6997885")
+        c.execute("UPDATE contratos SET borrado_at = '2026-01-01 00:00:00' WHERE nic='6997885'")
+        c.commit()
+        db.purgar_papelera(c)
+        assert c.execute("SELECT COUNT(*) AS n FROM proyectos WHERE nic='6997885'"
+                         ).fetchone()["n"] == 0
+
+
+def test_una_fila_borrada_sin_fecha_no_se_purga_por_error(db_path):
+    """Regresion: borrado_at NULL se tomaba como 'viejo' y se borraba de inmediato.
+
+    Paso en real: un cliente eliminado en el panel (con una version que aun no
+    escribia borrado_at) desaparecio para siempre en la primera purga.
+    """
+    _guardar_contrato()
+    with db.sesion() as c:
+        db.eliminar_contrato(c, "6997885")
+        c.execute("UPDATE contratos SET borrado_at = NULL WHERE nic='6997885'")
+        c.commit()
+
+        assert db.purgar_papelera(c) == []                 # no se borra
+        fila = c.execute("SELECT borrado_at FROM contratos WHERE nic='6997885'").fetchone()
+        assert fila is not None and fila["borrado_at"]      # se sella la fecha
+        assert c.execute("SELECT COUNT(*) AS n FROM facturas").fetchone()["n"] >= 0

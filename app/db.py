@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS contratos (
     activo             INTEGER NOT NULL DEFAULT 1,
     notas              TEXT NOT NULL DEFAULT '',
     estado             TEXT NOT NULL DEFAULT 'agregado',
+    borrado_at         TEXT,
     created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -134,6 +135,8 @@ COLUMNAS_NUEVAS = {
     "fecha_instalacion": "TEXT NOT NULL DEFAULT ''",
     # 'agregado' mientras el cliente este en el panel, 'borrado' si se elimino
     "estado": "TEXT NOT NULL DEFAULT 'agregado'",
+    # cuando se mando a la papelera (para purgarla a los 30 dias)
+    "borrado_at": "TEXT",
 }
 
 
@@ -268,6 +271,7 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                                     " WHERE nic = ?", (nic,)).fetchone()
         if estado_actual and estado_actual["e"] == "borrado":
             poner("estado", "agregado")
+            poner("borrado_at", None)
             poner("activo", 1)
         poner("updated_at", ahora())
         valores.append(nic)
@@ -329,6 +333,69 @@ def actualizar_contrato(conn: sqlite3.Connection, nic: str, datos: dict) -> bool
     return cur.rowcount > 0
 
 
+DIAS_PAPELERA = 30
+
+
+def contratos_papelera(conn) -> list[dict]:
+    """Clientes en la papelera, con cuantos dias les quedan."""
+    filas = conn.execute(
+        """SELECT nic, razon_social, proveedor, borrado_at, notas
+           FROM contratos WHERE estado = 'borrado' ORDER BY borrado_at DESC""").fetchall()
+    from datetime import datetime as _dt
+
+    salida = []
+    for f in filas:
+        fila = dict(f)
+        dias = None
+        if fila.get("borrado_at"):
+            try:
+                cuando = _dt.fromisoformat(str(fila["borrado_at"])[:19])
+                dias = max(0, DIAS_PAPELERA - (_dt.now() - cuando).days)
+            except ValueError:
+                dias = DIAS_PAPELERA
+        fila["dias_restantes"] = dias
+        salida.append(fila)
+    return salida
+
+
+def purgar_papelera(conn, dias: int = DIAS_PAPELERA) -> list[str]:
+    """Borra DEFINITIVAMENTE lo que lleva mas de `dias` en la papelera.
+
+    Se lleva todo lo del cliente: contrato, facturas, pendientes y proyectos.
+    Devuelve los NIC purgados.
+    """
+    from datetime import datetime as _dt
+
+    limite = _dt.now().timestamp() - dias * 86400
+    purgados = []
+    for fila in conn.execute(
+            "SELECT nic, borrado_at FROM contratos WHERE estado = 'borrado'").fetchall():
+        nic = str(fila["nic"])
+        cuando = fila["borrado_at"]
+        if not cuando:
+            # sin fecha no se puede saber la antiguedad: se sella ahora y se espera.
+            # (antes se purgaba de inmediato: se perdieron clientes recien eliminados)
+            conn.execute("UPDATE contratos SET borrado_at = ? WHERE nic = ?", (ahora(), nic))
+            continue
+        try:
+            viejo = _dt.fromisoformat(str(cuando)[:19]).timestamp() <= limite
+        except ValueError:
+            conn.execute("UPDATE contratos SET borrado_at = ? WHERE nic = ?", (ahora(), nic))
+            continue
+        if not viejo:
+            continue
+        for tabla in ("facturas", "pendientes", "proyectos"):
+            conn.execute(f"DELETE FROM {tabla} WHERE nic = ?", (nic,))
+        conn.execute("DELETE FROM contratos WHERE nic = ?", (nic,))
+        purgados.append(nic)
+    if purgados:
+        log_evento(conn, "aviso",
+                   f"Papelera: {len(purgados)} cliente(s) eliminados definitivamente",
+                   ", ".join(purgados)[:200])
+    conn.commit()
+    return purgados
+
+
 def listar_contratos(conn: sqlite3.Connection, solo_activos: bool = True) -> list[sqlite3.Row]:
     sql = "SELECT * FROM contratos WHERE COALESCE(estado, 'agregado') <> 'borrado'"
     if solo_activos:
@@ -351,9 +418,9 @@ def eliminar_contrato(conn, nic: str, motivo: str = "") -> None:
     nic = str(nic).strip()
     nota = (f"eliminado {ahora()}" + (f": {motivo}" if motivo else ""))[:200]
     conn.execute(
-        "UPDATE contratos SET estado = 'borrado', activo = 0, updated_at = ?, "
+        "UPDATE contratos SET estado = 'borrado', activo = 0, borrado_at = ?, updated_at = ?, "
         "notas = CASE WHEN COALESCE(notas, '') = '' THEN ? ELSE notas END "
-        "WHERE nic = ?", (ahora(), nota, nic))
+        "WHERE nic = ?", (ahora(), ahora(), nota, nic))
     # sin contrato no tiene sentido seguir reintentando sus pendientes
     conn.execute("DELETE FROM pendientes WHERE nic = ?", (nic,))
     conn.commit()

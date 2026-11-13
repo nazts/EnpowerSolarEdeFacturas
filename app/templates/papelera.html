@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block titulo %}Papelera · Enpower Solar{% endblock %}
+
+{% block estilos %}
+<style>
+  .aviso-top{margin:0 0 18px;padding:12px 16px;border-radius:12px;background:var(--card2);
+    border:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.55}
+  .aviso-top b{color:var(--txt)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  section h2{margin:0;padding:15px 26px;font-size:12.5px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .tabla-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.6px;white-space:nowrap}
+  td b{display:block}
+  small{display:block;color:var(--muted);font-size:11.5px}
+  .acciones{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;padding:7px 12px;
+    background:var(--card2);color:var(--txt);text-decoration:none;font-size:12.5px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+  .btn.peligro{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+  .btn.peligro:hover{background:var(--bad-bg);border-color:var(--bad)}
+  form{display:inline}
+  .vacio{padding:26px 18px;text-align:center;color:var(--muted);font-size:13.5px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  @media(max-width:640px){
+    table{min-width:0}
+    thead{display:none}
+    tr{display:block;border-bottom:1px solid var(--line);padding:10px 6px}
+    td{display:block;border:0;padding:5px 12px}
+    td::before{content:attr(data-label);display:block;color:var(--muted);font-size:11px;
+      text-transform:uppercase;letter-spacing:.6px}
+    .acciones{justify-content:flex-start}
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="pagina">
+  {% if mensaje == "eliminado" %}
+  <div class="aviso-top"><b>Cliente eliminado definitivamente.</b> Sus facturas y proyectos también se borraron.</div>
+  {% endif %}
+
+  <p class="aviso-top">
+    <b>Papelera.</b> Los clientes eliminados se guardan <b>{{ dias }} días</b> y después se borran
+    definitivamente (con sus facturas y proyectos). Mientras estén aquí podés restaurarlos, y si
+    volvés a agregar el NIC como cliente nuevo, sale de la papelera automáticamente.
+  </p>
+
+  <section>
+    <h2>Clientes en la papelera ({{ clientes|length }})</h2>
+    {% if clientes %}
+    <div class="tabla-wrap">
+      <table>
+        <thead><tr><th>NIC</th><th>Cliente</th><th>Distribuidora</th><th>Eliminado</th>
+          <th>Se borra en</th><th></th></tr></thead>
+        <tbody>
+        {% for c in clientes %}
+          <tr>
+            <td data-label="NIC"><b>{{ c.nic }}</b></td>
+            <td data-label="Cliente">{{ c.razon_social or "—" }}
+              {% if c.notas %}<small>{{ c.notas }}</small>{% endif %}</td>
+            <td data-label="Distribuidora">{{ (c.proveedor or "edenorte")|capitalize }}</td>
+            <td data-label="Eliminado">{{ (c.borrado_at or "—")[:16] }}</td>
+            <td data-label="Se borra en">
+              {% if c.dias_restantes is not none %}
+                {% if c.dias_restantes <= 3 %}
+                <span class="pill bad">{{ c.dias_restantes }} día{{ '' if c.dias_restantes == 1 else 's' }}</span>
+                {% else %}
+                <span class="pill warn">{{ c.dias_restantes }} días</span>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td data-label="">
+              <div class="acciones">
+                <form method="post" action="/clientes/{{ c.nic }}/restaurar">
+                  <button class="btn primario" type="submit">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Restaurar</button>
+                </form>
+                <form method="post" action="/clientes/{{ c.nic }}/purgar"
+                      onsubmit="return confirm('¿Borrar a {{ c.nic }} para siempre? No se puede deshacer.')">
+                  <button class="btn peligro" type="submit">
+                    <i class="bi bi-x-octagon" aria-hidden="true"></i> Borrar ya</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="vacio"><b>Papelera vacía</b>No hay clientes eliminados.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
