@@ -141,6 +141,16 @@ teoría.
 | **Arreglo** | `conftest.py` fuerza `DATABASE_URL=""` y borra con NIC inexistentes. |
 | **Regla** | Ninguna prueba escribe en la base real ni llama a los portales: siempre dobles (`MagicMock`) y base temporal. |
 
+## 16. «Factura no disponible actualmente» NO es un fallo de la petición
+
+| | |
+|---|---|
+| **Síntoma** | El portal lista 6 facturas por contrato; el panel solo bajaba 2 y el resto quedaba "sin PDF". Parecía que la petición estaba mal armada. |
+| **Qué se comprobó** | Sobre tres NIC distintos (6997885, 6028583, 6501165) el patrón es idéntico: **las 2 más recientes bajan en PDF (≈119 KB) y todas las anteriores devuelven HTTP 200 con `text/html` de 91 bytes y el texto «Factura no disponible actualmente»**. Se probó con `Referer` del historial, cabeceras completas de navegador, `X-Requested-With`, `?nic=`, POST, barra final y `Cache-Control`, siempre en la misma sesión en la que 045/082/178 sí bajan. El enlace del portal es un `<a href="/factpdf/{ref}">` plano, sin token ni onclick. |
+| **Causa real** | **Retención del portal**: Edenorte guarda los PDF de las 2 facturas más recientes por contrato. Las viejas siguen en el listado pero el archivo ya no existe en su servidor. No hay nada que arreglar en nuestro cliente. |
+| **Qué hace el panel** | Muestra esas facturas como `sin_pdf` (con su fecha de emisión, en una sección aparte), las reintenta en cada corrida y permite pedir el PDF al portal en el momento (`/facturas/{id}/pdf`) sin guardarlo en disco. |
+| **Regla** | Antes de "arreglar" una descarga, comprobar si el portal entrega el archivo a **otro** contrato en la misma sesión: si el patrón se repite (solo las N más nuevas), es retención del proveedor y el trabajo es capturarlas a tiempo, no cambiar la petición. |
+
 ---
 
 ## Comprobación antes de cerrar un cambio
