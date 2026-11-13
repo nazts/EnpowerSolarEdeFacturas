@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -106,6 +107,20 @@ def _coincide(fila, terminos: list[str]) -> bool:
     pajar = " ".join(_normalizar_busqueda(fila.get(c)) for c in campos) \
         if hasattr(fila, "get") else " ".join(_normalizar_busqueda(fila[c]) for c in campos)
     return all(t in pajar for t in terminos)
+
+
+def _pdf_disponible(fila) -> bool:
+    """True si el PDF se puede abrir: esta en disco o ya vive en Telegram."""
+    if str(fila.get("tg_file_id") or "").strip():
+        return True
+    guardada = str(fila.get("pdf_path") or "").strip()
+    if not guardada:
+        return False
+    ruta = Path(guardada)
+    if ruta.exists():
+        return True
+    # la base es compartida: la ruta puede ser de la otra maquina
+    return (Path(config.FACTURAS_DIR) / ruta.name).exists()
 
 
 def _dia_corte_valido(valor: str | None) -> int | None:
@@ -402,6 +417,34 @@ def proyectos_eliminar(proyecto_id: int, request: Request):
         db.eliminar_proyecto(conn, proyecto_id)
         destino = f"/clientes/{fila['nic']}#proyectos" if fila else "/clientes"
     return RedirectResponse(destino, status_code=303)
+@app.exception_handler(StarletteHTTPException)
+async def _error_http(request: Request, exc: StarletteHTTPException):
+    """Un error visto en el navegador sale como pagina, no como JSON crudo.
+
+    Las rutas /api y las llamadas que piden JSON siguen recibiendo JSON.
+    """
+    acepta = (request.headers.get("accept") or "").lower()
+    quiere_html = "text/html" in acepta and not request.url.path.startswith("/api/")
+    if not quiere_html:
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status_code,
+                            headers=getattr(exc, "headers", None))
+
+    # a donde volver: la ficha del cliente si la URL la menciona
+    volver, texto = "/clientes", "Volver a clientes"
+    partes = [t for t in request.url.path.split("/") if t]
+    if len(partes) >= 2 and partes[0] == "clientes":
+        volver, texto = f"/clientes/{partes[1]}", "Volver a la ficha"
+
+    return templates.TemplateResponse(
+        request, "error.html",
+        {"codigo": exc.status_code, "mensaje": exc.detail, "activo": "",
+         "volver": volver, "texto_volver": texto,
+         "titulo": "Ese dato no está disponible" if exc.status_code == 404 else "No se pudo completar la acción",
+         "pista": ("La página o el archivo que buscás no existe o ya no está en el servidor."
+                   if exc.status_code == 404 else "Intentá de nuevo en unos segundos.")},
+        status_code=exc.status_code)
+
+
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 
@@ -857,6 +900,8 @@ def cliente_detalle(request: Request, nic: str):
         if contrato is None:
             raise HTTPException(404, "Ese NIC no está registrado")
         historico = [dict(f) for f in db.historico_facturas(conn, nic)]
+        for f in historico:
+            f["pdf_disponible"] = _pdf_disponible(f)
         pendientes = [dict(p) for p in db.pendientes_abiertos(conn) if str(p["nic"]) == nic]
         proyectos = [dict(p) for p in db.listar_proyectos(conn, nic)]
     datos = dict(contrato)
@@ -950,7 +995,7 @@ def ver_pdf(factura_id: int):
             "SELECT pdf_path, tg_file_id, nic, ref_pago FROM facturas WHERE id = ?",
             (factura_id,)).fetchone()
     if not fila:
-        raise HTTPException(404, "PDF no encontrado")
+        raise HTTPException(404, "Esa factura no está registrada en el panel")
 
     guardada = fila["pdf_path"] or ""
     if guardada:
@@ -968,4 +1013,6 @@ def ver_pdf(factura_id: int):
         return Response(contenido, media_type="application/pdf",
                         headers={"Content-Disposition": f'inline; filename="{nombre}"'})
 
-    raise HTTPException(404, "PDF no encontrado")
+    raise HTTPException(
+        404, f"El PDF de la factura {fila['ref_pago']} (NIC {fila['nic']}) no está "
+             "disponible: no quedó copia en el servidor ni en Telegram.")

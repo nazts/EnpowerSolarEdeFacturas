@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Enpower Solar · {{ codigo }}{% endblock %}
+
+{% block estilos %}
+<style>
+  .error-caja{max-width:620px;margin:34px auto;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:30px 28px;text-align:center}
+  .error-caja .icono{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;
+    margin:0 auto 16px;background:var(--warn-bg);color:var(--warn);font-size:26px}
+  .error-caja h1{margin:0 0 6px;font-size:20px;letter-spacing:0;text-transform:none;color:var(--txt);
+    border:0;padding:0;font-weight:700}
+  .error-caja .cod{display:inline-block;margin-bottom:14px;padding:2px 10px;border-radius:999px;
+    background:var(--bad-bg);color:var(--bad);font-size:12px;font-weight:700;letter-spacing:.4px}
+  .error-caja p{margin:0 0 8px;color:var(--muted);font-size:14px;line-height:1.55}
+  .error-caja .detalle{margin:14px 0 22px;padding:11px 14px;border-radius:10px;background:var(--card2);
+    border:1px solid var(--line);color:var(--txt);font-size:13.5px;word-break:break-word}
+  .error-caja .acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="error-caja">
+  <div class="icono"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></div>
+  <span class="cod">Error {{ codigo }}</span>
+  <h1>{{ titulo or "No se pudo completar la acción" }}</h1>
+  <p>{{ pista or "Revisá el dato e intentá otra vez. Si el problema sigue, avisale al administrador." }}</p>
+  {% if mensaje %}<div class="detalle">{{ mensaje }}</div>{% endif %}
+  <div class="acciones">
+    <a class="btn primario" href="{{ volver or '/clientes' }}">
+      <i class="bi bi-arrow-left" aria-hidden="true"></i> {{ texto_volver or "Volver a clientes" }}
+    </a>
+    <a class="btn" href="/"><i class="bi bi-house" aria-hidden="true"></i> Ir al panel</a>
+  </div>
+</div>
+{% endblock %}
