@@ -126,6 +126,26 @@
     body.side-abierto #menuBtn{opacity:0;pointer-events:none}
     body.side-abierto #velo{display:block;position:fixed;inset:0;background:var(--backdrop);z-index:40}
   }
+
+  /* ---------- Animaciones de navegacion (solo transform/opacity/color) ---------- */
+  @keyframes pg-entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes barra-entra{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  main#principal{animation:pg-entra .2s ease-out backwards;transition:margin-left .2s ease,opacity .13s ease-out,transform .13s ease-out}
+  main#principal.saliendo{opacity:.55;transform:translateY(-4px)}
+  #sidebar a.item{transition:background-color .15s ease,color .15s ease,transform .15s ease}
+  #sidebar a.item:hover{transform:translateX(2px)}
+  #sidebar a.item svg,#sidebar a.item i.bi{transition:transform .18s ease,color .15s ease}
+  #sidebar a.item.activo svg,#sidebar a.item.activo i.bi{transform:scale(1.07)}
+  #sidebar a.item.activo::before{transform-origin:center;animation:barra-entra .22s ease-out backwards}
+  html.tema-anim body,html.tema-anim body *{transition:background-color .18s ease,color .18s ease,border-color .18s ease}
+  @media(prefers-reduced-motion:reduce){
+    main#principal{animation:none;transition:none}
+    main#principal.saliendo{opacity:1;transform:none}
+    #sidebar a.item,#sidebar a.item svg,#sidebar a.item i.bi{transition:none}
+    #sidebar a.item:hover,#sidebar a.item.activo svg,#sidebar a.item.activo i.bi{transform:none}
+    #sidebar a.item.activo::before{animation:none}
+    html.tema-anim body,html.tema-anim body *{transition:none}
+  }
 </style>
 {% block estilos %}{% endblock %}
 </head>
@@ -272,7 +292,10 @@ async function accionCorrer(btn){
   });
   document.getElementById('tema').addEventListener('click', function(){
     var h = document.documentElement, n = h.getAttribute('data-tema') === 'oscuro' ? 'claro' : 'oscuro';
+    h.classList.add('tema-anim');
     h.setAttribute('data-tema', n);
+    clearTimeout(window.__temaAnim);
+    window.__temaAnim = setTimeout(function(){ h.classList.remove('tema-anim'); }, 260);
     try { localStorage.setItem('tema', n); } catch(e){}
     document.dispatchEvent(new Event('tema-cambiado'));
   });
@@ -287,6 +310,23 @@ async function accionCorrer(btn){
     a.addEventListener('click', function(){ if (movil()) abrir(false); });
   });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') abrir(false); });
+  var reducido = window.matchMedia('(prefers-reduced-motion:reduce)');
+  var pr = document.getElementById('principal');
+  document.querySelectorAll('#sidebar a.item').forEach(function(a){
+    a.addEventListener('click', function(e){
+      var href = a.getAttribute('href');
+      if (e.defaultPrevented || !pr || reducido.matches || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      if (a.target === '_blank' || a.hasAttribute('download') || !href || href.charAt(0) === '#') return;
+      e.preventDefault();
+      var hecho = false;
+      function ir(){ if (hecho) return; hecho = true; window.location.href = a.href; }
+      pr.classList.add('saliendo');
+      setTimeout(ir, 130);
+      setTimeout(ir, 350);
+      setTimeout(function(){ pr.classList.remove('saliendo'); }, 2500);
+    });
+  });
+  window.addEventListener('pageshow', function(e){ if (pr && e.persisted) pr.classList.remove('saliendo'); });
 })();
 </script>
 {% block scripts %}{% endblock %}
