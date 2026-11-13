@@ -64,7 +64,7 @@
     border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer}
   .mp-ctl #mp-estilo:focus{outline:2px solid var(--focus);outline-offset:1px}
   .mp-attr{position:absolute;right:0;bottom:0;z-index:10;background:rgba(255,255,255,.88);color:#222;font-size:11px;padding:2px 8px;border-radius:8px 0 0 0}
-  .mp-attr a{color:#0b5d2a}
+  .mp-attr a{color:var(--brand)}
   .mp-vacio{position:absolute;inset:0;z-index:12;display:none;place-items:center;padding:20px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:blur(2px)}
   .mp-vacio.on{display:grid}
   .mp-vacio .caja{max-width:420px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
@@ -340,13 +340,13 @@
   /* ---------- marcadores ---------- */
   var PIN = '<svg viewBox="0 0 44 48" aria-hidden="true">' +
     '<path d="M22 46S5 31 5 18a17 17 0 0 1 34 0c0 13-17 28-17 28z" fill="var(--accent)" stroke="#fff" stroke-width="2.4"/>' +
-    '<g transform="translate(12 10) skewX(-8)"><rect x="0" y="3" width="20" height="13" rx="1.5" fill="#0f3d24" stroke="#fde68a" stroke-width="1.4"/>' +
-    '<path d="M6.7 3v13M13.3 3v13M0 7.3h20M0 11.6h20" stroke="#86efac" stroke-width=".8"/></g>' +
-    '<circle cx="31" cy="9" r="4" fill="#fde047" stroke="#fff" stroke-width="1"/></svg>';
+    '<g transform="translate(12 10) skewX(-8)"><rect x="0" y="3" width="20" height="13" rx="1.5" fill="var(--brand)" stroke="var(--cream)" stroke-width="1.4"/>' +
+    '<path d="M6.7 3v13M13.3 3v13M0 7.3h20M0 11.6h20" stroke="var(--sun)" stroke-width=".8"/></g>' +
+    '<circle cx="31" cy="9" r="4" fill="var(--sun)" stroke="#fff" stroke-width="1"/></svg>';
   var HALO = '<svg viewBox="0 0 120 120" aria-hidden="true">' +
-    '<g class="giro" stroke="#fbbf24" stroke-width="3" stroke-linecap="round">' +
+    '<g class="giro" stroke="var(--sun)" stroke-width="3" stroke-linecap="round">' +
     '<path d="M60 4v14M60 102v14M4 60h14M102 60h14M20 20l10 10M90 90l10 10M20 100l10-10M90 30l10-10"/></g>' +
-    '<g class="giro2" stroke="#fde68a" stroke-width="2" stroke-linecap="round" opacity=".8">' +
+    '<g class="giro2" stroke="var(--cream)" stroke-width="2" stroke-linecap="round" opacity=".8">' +
     '<path d="M60 14v6M60 100v6M14 60h6M100 60h6M27 27l4 4M89 89l4 4M27 93l4-4M89 31l4-4"/></g></svg>';
   function creaMarcas(){
     clientes.filter(tieneUbic).forEach(function(c){

@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Enpower Solar">
   <defs>
     <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#166534"/>
-      <stop offset="1" stop-color="#22c55e"/>
+      <stop offset="0" stop-color="#2E4435"/>
+      <stop offset="1" stop-color="#5E7F68"/>
     </linearGradient>
     <linearGradient id="rayo" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#eafff2"/>
+      <stop offset="1" stop-color="#F5F2E9"/>
     </linearGradient>
   </defs>
 
   <rect width="64" height="64" rx="15" fill="url(#fondo)"/>
 
   <!-- sol chico arriba a la izquierda -->
-  <circle cx="16" cy="16" r="5" fill="#bbf7d0"/>
-  <g stroke="#bbf7d0" stroke-width="2.2" stroke-linecap="round">
+  <circle cx="16" cy="16" r="5" fill="#E8C58C"/>
+  <g stroke="#E8C58C" stroke-width="2.2" stroke-linecap="round">
     <path d="M16 7.6v-2.1"/>
     <path d="M16 24.4v2.1"/>
     <path d="M7.6 16h-2.1"/>
@@ -25,5 +25,5 @@
 
   <!-- rayo -->
   <path d="M38 12 20 37.5h11l-4.5 17L45 27.5H34L38 12Z"
-        fill="url(#rayo)" stroke="#14532d" stroke-width="1.1" stroke-linejoin="round"/>
+        fill="url(#rayo)" stroke="#1B2B21" stroke-width="1.1" stroke-linejoin="round"/>
 </svg>
