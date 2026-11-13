@@ -151,7 +151,7 @@
             <input id="paneles" name="paneles" value="{{ cliente.paneles or '' }}" placeholder="22 JINKO SOLAR 590W">
           </div>
           <div class="campo c3">
-            <label for="potencia_paneles">Capacidad instalada (kW)</label>
+            <label for="potencia_paneles">Potencia instalada (kW)</label>
             <input id="potencia_paneles" name="potencia_paneles" type="number" step="any" min="0"
                    value="{{ cliente.potencia_paneles if cliente.potencia_paneles is not none else '' }}">
           </div>

@@ -176,7 +176,7 @@
           <div class="dato"><span class="k">Latitud</span><span class="v">{{ cliente.latitud if cliente.latitud is not none else "—" }}</span></div>
           <div class="dato"><span class="k">Longitud</span><span class="v">{{ cliente.longitud if cliente.longitud is not none else "—" }}</span></div>
           <div class="dato"><span class="k">Paneles</span><span class="v">{{ cliente.paneles or "—" }}</span></div>
-          <div class="dato"><span class="k">Capacidad instalada</span><span class="v">{% if cliente.potencia_paneles is not none and cliente.potencia_paneles != "" %}{{ cliente.potencia_paneles }} kW{% else %}—{% endif %}</span></div>
+          <div class="dato"><span class="k">Potencia instalada (kW)</span><span class="v">{% if cliente.potencia_paneles is not none and cliente.potencia_paneles != "" %}{{ cliente.potencia_paneles }} kW{% else %}—{% endif %}</span></div>
           <div class="dato"><span class="k">Inversores</span><span class="v">{{ cliente.inversores or "—" }}</span></div>
           <div class="dato"><span class="k">Batería</span><span class="v">{{ cliente.bateria or "—" }}</span></div>
           <div class="dato"><span class="k">Capacidad batería</span><span class="v">{% if cliente.capacidad_bateria is not none and cliente.capacidad_bateria != "" %}{{ cliente.capacidad_bateria }} kWh{% else %}—{% endif %}</span></div>
@@ -242,7 +242,7 @@
               <input id="eq_paneles" name="paneles" value="{{ cliente.paneles or '' }}" placeholder="12 x JA Solar 550W">
             </div>
             <div>
-              <label for="eq_potencia">Capacidad instalada (kW)</label>
+              <label for="eq_potencia">Potencia instalada (kW)</label>
               <input id="eq_potencia" name="potencia_paneles" value="{{ cliente.potencia_paneles if cliente.potencia_paneles is not none else '' }}" inputmode="decimal" placeholder="23.6">
             </div>
             <div>
@@ -289,14 +289,14 @@
       {% if proyectos %}
       <div class="tabla-wrap">
         <table class="cards">
-          <thead><tr><th>Fecha</th><th>Proyecto</th><th>Paneles</th><th>Capacidad</th><th>Inversores</th><th>Batería</th><th>Asesor</th><th></th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Proyecto</th><th>Paneles</th><th>Potencia (kW)</th><th>Inversores</th><th>Batería</th><th>Asesor</th><th></th></tr></thead>
           <tbody>
           {% for p in proyectos %}
             <tr>
               <td data-label="Fecha">{{ p.fecha_instalacion or "—" }}</td>
               <td data-label="Proyecto"><b>{{ p.nombre or "Instalación" }}</b>{% if p.notas %}<br><span class="muted">{{ p.notas }}</span>{% endif %}</td>
               <td data-label="Paneles">{{ p.paneles or "—" }}</td>
-              <td data-label="Capacidad">{% if p.capacidad_instalada is not none %}{{ p.capacidad_instalada }} kW{% else %}—{% endif %}</td>
+              <td data-label="Potencia">{% if p.capacidad_instalada is not none %}{{ p.capacidad_instalada }} kW{% else %}—{% endif %}</td>
               <td data-label="Inversores">{{ p.inversores or "—" }}</td>
               <td data-label="Batería">{{ p.bateria or "—" }}{% if p.capacidad_bateria is not none %} · {{ p.capacidad_bateria }} kWh{% endif %}</td>
               <td data-label="Asesor">{{ p.asesor or "—" }}</td>
@@ -322,7 +322,7 @@
         </div>
         <div class="ubic-grid" style="margin-top:12px">
           <div><label for="pr_paneles">Paneles</label><input id="pr_paneles" name="paneles" placeholder="12 x JA Solar 550W"></div>
-          <div><label for="pr_capacidad">Capacidad instalada (kW)</label><input id="pr_capacidad" name="capacidad_instalada" inputmode="decimal" placeholder="23.6"></div>
+          <div><label for="pr_capacidad">Potencia instalada (kW)</label><input id="pr_capacidad" name="capacidad_instalada" inputmode="decimal" placeholder="23.6"></div>
         </div>
         <div class="ubic-grid" style="margin-top:12px">
           <div><label for="pr_inversores">Inversores</label><input id="pr_inversores" name="inversores" placeholder="2 INVERSORES WECO XTS-12K"></div>
