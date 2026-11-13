@@ -91,6 +91,8 @@
   .chip-asesor.activo{border-color:var(--accent);background:var(--card2);
     box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}
   form.en-linea{display:inline}
+  .mini.icono{display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:32px;padding:0;font-size:15px;line-height:1}
   .mini.peligro{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
   .mini.peligro:hover{background:var(--bad-bg);border-color:var(--bad)}
   .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
@@ -207,13 +209,13 @@
             <td class="num acc">
               {% set u = request.state.usuario if request and request.state else None %}
               {% if u and u.es_admin %}
-              <a class="mini btn" href="/clientes/{{ c.nic }}/editar"
+              <a class="mini btn icono" href="/clientes/{{ c.nic }}/editar"
                  aria-label="Editar los datos del cliente {{ c.nic }}" title="Editar ficha">
-                 <i class="bi bi-pencil-square" aria-hidden="true"></i> Editar</a>
+                 <i class="bi bi-pencil-square" aria-hidden="true"></i></a>
               <form method="post" action="/contratos/{{ c.nic }}/eliminar?volver=clientes"
                     class="en-linea"
                     onsubmit="return confirm('¿Eliminar a {{ (c.nombre_normalizado or c.razon_social or c.nic)|replace("'", " ") }}? Se quita de Edenorte y queda {{ 30 }} días en la papelera.')">
-                <button class="mini peligro" type="submit"
+                <button class="mini peligro icono" type="submit"
                         aria-label="Eliminar el cliente {{ c.nic }}"
                         title="Eliminar (va a la papelera 30 días)">
                   <i class="bi bi-trash" aria-hidden="true"></i></button>
