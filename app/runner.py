@@ -225,6 +225,10 @@ def _corte_equivalente(corte_factura: str | None, objetivos, dias: int = 3) -> s
             co = date.fromisoformat(str(objetivo)[:10])
         except ValueError:
             continue
+        # misma facturacion: si el corte del PDF cae en el mismo mes que el corte
+        # del cliente, es la factura de ese ciclo (el dia puede variar)
+        if cf.year == co.year and cf.month == co.month:
+            return objetivo
         if abs((cf - co).days) <= dias:
             return objetivo
     return None
