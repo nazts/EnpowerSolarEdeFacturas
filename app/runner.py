@@ -640,6 +640,114 @@ def corrida(fecha: date | None = None, enviar: bool = True,
 
 
 # ------------------------------------------------------------------ historico
+def _bytes_pdf(conn, fila, portal=None) -> bytes | None:
+    """Contenido del PDF: disco -> Telegram -> portal (sin dejar copias)."""
+    guardada = str(fila["pdf_path"] or "")
+    if guardada:
+        ruta = Path(guardada)
+        if ruta.exists():
+            return ruta.read_bytes()
+        candidata = Path(config.FACTURAS_DIR) / ruta.name
+        if candidata.exists():
+            return candidata.read_bytes()
+    if str(fila["tg_file_id"] or "").strip():
+        try:
+            return telegram.descargar_archivo(fila["tg_file_id"])
+        except telegram.TelegramError:
+            pass
+    if portal is not None and fila["ref_pago"]:
+        try:
+            return portal.descargar_pdf(fila["ref_pago"])
+        except Exception:  # noqa: BLE001 - el portal no la tiene
+            return None
+    return None
+
+
+def reenviar_facturas(nics, chat_id: str | None = None, portales: dict | None = None) -> dict:
+    """Manda OTRA VEZ la ultima factura de cada NIC, aunque ya se haya enviado.
+
+    Es la accion manual del modulo "Reenviar": sirve cuando el envio anterior
+    fallo, cuando el mensaje se borro del grupo o cuando hay que reenviarlo.
+    El PDF se sirve desde disco, desde Telegram o pidiendoselo al portal, y no
+    se deja ninguna copia en el servidor.
+    """
+    chat_id = chat_id or config.TELEGRAM_CHAT_ID
+    res: dict = {"enviados": [], "errores": []}
+    if not chat_id:
+        res["errores"].append({"error": "Falta TELEGRAM_CHAT_ID en el .env"})
+        return res
+
+    portales = portales or _portales_para_reenvio()
+    activos: dict[str, object] = {}
+    for nombre, portal in portales.items():
+        try:
+            portal.login()
+            activos[nombre] = portal
+        except Exception as exc:  # noqa: BLE001
+            res["errores"].append({"proveedor": nombre, "error": str(exc)[:160]})
+
+    with db.sesion() as conn:
+        for nic in nics:
+            nic = str(nic).strip()
+            if not nic:
+                continue
+            fila = conn.execute(
+                """SELECT f.*, COALESCE(c.proveedor, 'edenorte') AS proveedor
+                   FROM facturas f JOIN contratos c ON c.nic = f.nic
+                   WHERE f.nic = ? AND f.estado IN ('descargada', 'descartada')
+                   ORDER BY f.corte DESC, f.id DESC LIMIT 1""", (nic,)).fetchone()
+            if fila is None:
+                res["errores"].append({"nic": nic, "error": "no tiene facturas para enviar"})
+                continue
+
+            portal = activos.get(str(fila["proveedor"]))
+            contenido = _bytes_pdf(conn, dict(fila), portal)
+            if not contenido:
+                res["errores"].append({"nic": nic, "error": "el PDF no está disponible"})
+                _anotar(conn, "error", f"NIC {nic}: no se pudo reenviar", "PDF no disponible")
+                continue
+
+            datos = _fila_mensaje(conn, nic, {"ref_pago": fila["ref_pago"],
+                                              "facturado": fila["facturado"],
+                                              "cliente": fila["cliente"]})
+            texto = _caption(str(fila["corte"] or ""), [datos], [])
+            destino = Path(tempfile.mkdtemp()) / "f.pdf"
+            try:
+                destino.write_bytes(contenido)
+                respuesta = telegram.enviar_documento(destino, caption=texto, chat_id=chat_id)
+            except telegram.TelegramError as exc:
+                res["errores"].append({"nic": nic, "error": str(exc)[:160]})
+                _anotar(conn, "error", f"NIC {nic}: fallo el reenvio", str(exc)[:200])
+                continue
+            finally:
+                _borrar_pdf(destino)
+
+            archivo = (respuesta or {}).get("document") or {}
+            conn.execute("UPDATE facturas SET enviada = 1, tg_file_id = ?, tg_message_id = ?"
+                         " WHERE id = ?",
+                         (archivo.get("file_id", ""), str((respuesta or {}).get("message_id")),
+                          fila["id"]))
+            conn.commit()
+            _anotar(conn, "info", f"NIC {nic}: factura de {fila['corte']} reenviada a mano",
+                    f"ref {fila['ref_pago']}")
+            res["enviados"].append({"nic": nic, "corte": fila["corte"]})
+    return res
+
+
+def _anotar(conn, nivel: str, mensaje: str, detalle: str = "") -> None:
+    try:
+        db.log_evento(conn, nivel, mensaje, detalle)
+    except Exception:  # noqa: BLE001 - el log nunca tumba el envio
+        pass
+
+
+def _portales_para_reenvio() -> dict:
+    portales = {"edenorte": EdenorteClient()}
+    if config.EDESUR_TOKEN or (config.EDESUR_USER and config.EDESUR_PASSWORD):
+        portales["edesur"] = EdesurPortal()
+    return portales
+
+
 def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = None,
                           enviar: bool = True, chat_id: str | None = None,
                           portales: dict | None = None, nic: str | None = None) -> dict:

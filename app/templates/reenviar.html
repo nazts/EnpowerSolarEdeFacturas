@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block titulo %}Reenviar facturas · Enpower Solar{% endblock %}
+
+{% block estilos %}
+<style>
+  .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;
+    border-bottom:1px solid var(--line);background:var(--card2)}
+  .barra .crece{flex:1}
+  .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;font-size:13px;
+    display:inline-flex;align-items:center;gap:7px;transition:.15s}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+  .btn.primario:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.link{border:0;background:transparent;color:var(--accent);padding:4px 6px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .tabla-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.6px;white-space:nowrap;position:sticky;top:0;background:var(--card);z-index:1}
+  tbody tr:hover{background:var(--hover)}
+  td b{display:block}
+  small{display:block;color:var(--muted);font-size:11.5px}
+  .sel{width:38px}
+  input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);cursor:pointer}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  .pill.info{background:var(--info-bg);color:var(--info)}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .resumen{margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid var(--line);
+    background:var(--card);font-size:13.5px}
+  .resumen h3{margin:0 0 8px;font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--muted)}
+  .resumen ul{margin:0;padding-left:18px}
+  .resumen li{margin:3px 0}
+  .resumen .malo{color:var(--bad)}
+  .vacio{padding:26px 18px;text-align:center;color:var(--muted)}
+  @media(max-width:640px){
+    table{min-width:0}
+    thead{display:none}
+    tr{display:block;border-bottom:1px solid var(--line);padding:10px 4px}
+    td{display:block;border:0;padding:5px 12px}
+    td::before{content:attr(data-label);display:block;color:var(--muted);font-size:11px;
+      text-transform:uppercase;letter-spacing:.6px}
+    .sel{padding-left:12px}
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="pagina">
+
+  {% if resultado %}
+  <div class="resumen">
+    {% if resultado.corrida %}
+      <h3>Corrida terminada</h3>
+      <ul>
+        <li>Facturas descargadas: {{ resultado.corrida.descargadas|length }}</li>
+        <li>Pendientes: {{ resultado.corrida.pendientes|length }}</li>
+        <li>Descartadas: {{ resultado.corrida.descartadas|length }}</li>
+        <li>Histórico enviado: {{ resultado.corrida.historico.enviados if resultado.corrida.historico else 0 }}</li>
+        {% if resultado.corrida.portal_error %}
+        <li class="malo">{{ resultado.corrida.portal_error }}</li>
+        {% endif %}
+      </ul>
+    {% else %}
+      <h3>Reenvío</h3>
+      {% if resultado.aviso %}<p class="malo" style="margin:0 0 8px">{{ resultado.aviso }}</p>{% endif %}
+      <ul>
+        <li><b>{{ resultado.enviados|length }}</b> factura{{ '' if resultado.enviados|length == 1 else 's' }} enviada{{ '' if resultado.enviados|length == 1 else 's' }}:
+          {% for e in resultado.enviados %}{{ e.nic }}{% if not loop.last %}, {% endif %}{% endfor %}{% if not resultado.enviados %}—{% endif %}</li>
+        {% if resultado.errores %}
+        <li class="malo"><b>{{ resultado.errores|length }}</b> con problema:
+          {% for e in resultado.errores %}{{ e.nic or e.proveedor or 'general' }} ({{ e.error }}){% if not loop.last %}; {% endif %}{% endfor %}</li>
+        {% endif %}
+      </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not chat_configurado %}
+  <div class="resumen malo">No hay canal de Telegram configurado (TELEGRAM_CHAT_ID). No se puede enviar.</div>
+  {% endif %}
+
+  <form method="post" action="/reenviar" id="formReenviar">
+    <section>
+      <div class="barra">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <input type="checkbox" id="chkTodos" aria-label="Seleccionar todos">
+          <span>Seleccionar todos</span>
+        </label>
+        <span class="crece"></span>
+        <span class="muted" id="contador" style="font-size:12.5px">0 seleccionados</span>
+        <button class="btn primario" type="submit" id="btnEnviar" disabled>
+          <i class="bi bi-send-fill" aria-hidden="true"></i> Reenviar a los seleccionados</button>
+      </div>
+
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th class="sel"></th><th>NIC</th><th>Cliente</th><th>Distribuidora</th>
+            <th>Última factura</th><th class="num">Pagar</th><th>Estado</th>
+          </tr></thead>
+          <tbody>
+          {% for c in clientes %}
+            <tr>
+              <td class="sel" data-label="Enviar">
+                <input type="checkbox" name="nics" value="{{ c.nic }}"
+                       aria-label="Reenviar a {{ c.nic }}"
+                       {% if not c.factura_id %}disabled title="Sin facturas para enviar"{% endif %}>
+              </td>
+              <td data-label="NIC"><b>{{ c.nic }}</b></td>
+              <td data-label="Cliente">{{ c.nombre_normalizado or c.razon_social or "—" }}
+                {% if c.alias %}<small>{{ c.alias }}</small>{% endif %}</td>
+              <td data-label="Distribuidora">{{ (c.proveedor or "edenorte")|capitalize }}</td>
+              <td data-label="Última factura">{% if c.corte %}{{ c.corte }}{% else %}<span class="muted">sin factura</span>{% endif %}</td>
+              <td class="num" data-label="Pagar">{% if c.facturado is not none %}RD$ {{ "{:,.2f}".format(c.facturado) }}{% else %}—{% endif %}</td>
+              <td data-label="Estado">
+                {% if c.enviada %}<span class="pill ok">enviada</span>
+                {% elif c.factura_id %}<span class="pill info">sin enviar</span>
+                {% else %}<span class="pill warn">sin factura</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </form>
+
+  <section style="margin-top:18px">
+    <div class="barra">
+      <div class="crece">
+        <b style="font-size:13.5px">Correr ahora</b>
+        <small>La corrida diaria de siempre: revisa los cortes de hoy, descarga y envía solo lo nuevo.</small>
+      </div>
+      <form method="post" action="/reenviar/correr"
+            onsubmit="return confirm('¿Correr el proceso completo ahora? Puede tardar varios minutos.')">
+        <button class="btn" type="submit"><i class="bi bi-play-circle-fill" aria-hidden="true"></i> Correr ahora</button>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var todos = document.getElementById('chkTodos');
+  var cajas = Array.prototype.slice.call(document.querySelectorAll('input[name="nics"]:not([disabled])'));
+  var contador = document.getElementById('contador');
+  var enviar = document.getElementById('btnEnviar');
+  function pintar(){
+    var marcadas = cajas.filter(function(c){ return c.checked; }).length;
+    if (contador) contador.textContent = marcadas + ' seleccionado' + (marcadas === 1 ? '' : 's');
+    if (enviar) enviar.disabled = marcadas === 0;
+    if (todos) todos.checked = marcadas > 0 && marcadas === cajas.length;
+  }
+  if (todos) todos.addEventListener('change', function(){
+    cajas.forEach(function(c){ c.checked = todos.checked; });
+    pintar();
+  });
+  cajas.forEach(function(c){ c.addEventListener('change', pintar); });
+  var form = document.getElementById('formReenviar');
+  if (form) form.addEventListener('submit', function(){
+    if (enviar){ enviar.disabled = true; enviar.textContent = 'Enviando…'; }
+  });
+  pintar();
+})();
+</script>
+{% endblock %}

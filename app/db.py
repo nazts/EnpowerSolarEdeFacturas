@@ -336,6 +336,23 @@ def actualizar_contrato(conn: sqlite3.Connection, nic: str, datos: dict) -> bool
 DIAS_PAPELERA = 30
 
 
+def clientes_con_ultima_factura(conn) -> list[dict]:
+    """Todos los clientes con su factura mas reciente (para el modulo Reenviar)."""
+    filas = conn.execute(
+        """SELECT c.nic, c.razon_social, c.nombre_normalizado, c.alias, c.asesor,
+                  COALESCE(c.proveedor, 'edenorte') AS proveedor,
+                  f.id AS factura_id, f.corte, f.facturado, f.estado AS estado_factura,
+                  f.enviada, COALESCE(f.tg_file_id, '') AS tg_file_id
+             FROM contratos c
+             LEFT JOIN facturas f ON f.id = (
+                  SELECT id FROM facturas
+                   WHERE nic = c.nic AND estado IN ('descargada', 'descartada')
+                   ORDER BY corte DESC, id DESC LIMIT 1)
+            WHERE COALESCE(c.estado, 'agregado') <> 'borrado' AND c.activo = 1
+            ORDER BY c.nombre_normalizado, c.nic""").fetchall()
+    return [dict(f) for f in filas]
+
+
 def contratos_papelera(conn) -> list[dict]:
     """Clientes en la papelera, con cuantos dias les quedan."""
     filas = conn.execute(

@@ -185,6 +185,10 @@
     <a class="item{% if activo == 'mapa' %} activo{% endif %}" href="/mapa" title="Mapa de clientes"{% if activo == 'mapa' %} aria-current="page"{% endif %}>
       <i class="bi bi-geo-alt-fill" aria-hidden="true"></i><span>Mapa</span></a>
 
+    <div class="grupo">Envíos</div>
+    <a class="item{% if activo == 'reenviar' %} activo{% endif %}" href="/reenviar" title="Reenviar facturas"{% if activo == 'reenviar' %} aria-current="page"{% endif %}>
+      <i class="bi bi-send-check" aria-hidden="true"></i><span>Reenviar facturas</span></a>
+
     <div class="grupo">Configuración</div>
     <a class="item{% if activo == 'telegram' %} activo{% endif %}" href="/telegram" title="Conexión Telegram"{% if activo == 'telegram' %} aria-current="page"{% endif %}>
       <i class="bi bi-telegram" aria-hidden="true"></i><span>Conexión Telegram</span></a>
