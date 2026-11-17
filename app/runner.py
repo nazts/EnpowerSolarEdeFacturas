@@ -34,7 +34,7 @@ else:                                # Linux / macOS
 
 from . import config, db, naming, telegram
 from .edenorte import EdenorteClient, PdfNoDisponible, PortalError
-from .pdfdata import DatosFactura, datos_de_archivo
+from .pdfdata import DatosFactura, datos_de_archivo, limpiar_titular
 from .proveedores import ALERTA as ALERTA_PROVEEDOR, EdesurPortal, portal_de
 
 TIPO_CONSUMO = "consumo"
@@ -278,8 +278,7 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
             lineas.append(f"Razón social: {_html.escape(razon or '—')}")
         else:
             # Edenorte: el nombre que trae la factura (no el codigo de referencia)
-            titular_pago = (" ".join(str(f.get("cliente") or "").split())
-                            or razon or alias)
+            titular_pago = (limpiar_titular(f.get("cliente")) or razon or alias)
             lineas.append(f"Titular de pago: {_html.escape(titular_pago or '—')}")
             lineas.append(f"Razón social: {_html.escape(razon or '—')}")
             lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
@@ -490,7 +489,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     _guardar_pdf(contenido, destino)
                     db.guardar_factura(conn, {
                         "nic": nic, "ref_pago": fila.ref_pago, "tipo": fila.tipo,
-                        "cliente": datos.titular or fila.cliente,
+                        "cliente": limpiar_titular(datos.titular) or limpiar_titular(fila.cliente),
                         "periodo_ini": datos.periodo_ini, "periodo_fin": datos.periodo_fin,
                         "corte": datos.corte, "emision": datos.emision, "vence": datos.vence,
                         "kwh": datos.kwh, "facturado": datos.facturado,
@@ -502,7 +501,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                                             "corte": datos.corte, "motivo": "sin consumo (en blanco)"})
                     db.guardar_factura(conn, {
                         "nic": nic, "ref_pago": fila.ref_pago, "tipo": fila.tipo,
-                        "cliente": datos.titular or fila.cliente,
+                        "cliente": limpiar_titular(datos.titular) or limpiar_titular(fila.cliente),
                         "periodo_ini": datos.periodo_ini, "periodo_fin": datos.periodo_fin,
                         "corte": datos.corte, "emision": datos.emision, "vence": datos.vence,
                         "facturado": datos.facturado, "estado": "sin_consumo",
@@ -517,7 +516,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     "ref_pago": fila.ref_pago,
                     "no_factura": datos.no_factura,
                     "tipo": fila.tipo,
-                    "cliente": datos.titular or fila.cliente,
+                    "cliente": limpiar_titular(datos.titular) or limpiar_titular(fila.cliente),
                     "periodo_ini": datos.periodo_ini,
                     "periodo_fin": datos.periodo_fin,
                     "corte": datos.corte,
@@ -839,7 +838,7 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                 if datos.kwh is None:
                     db.guardar_factura(conn, {
                         "nic": nic, "ref_pago": fila.ref_pago, "tipo": fila.tipo,
-                        "cliente": datos.titular or fila.cliente, "corte": datos.corte,
+                        "cliente": limpiar_titular(datos.titular) or limpiar_titular(fila.cliente), "corte": datos.corte,
                         "emision": datos.emision, "vence": datos.vence,
                         "facturado": datos.facturado, "estado": "sin_consumo",
                     })

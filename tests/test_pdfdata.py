@@ -151,3 +151,21 @@ def test_texto_pdf_decodifica_utf8(monkeypatch):
 
     assert "Días" in texto                      # sin mojibake
     assert pdfdata.parsear(texto).corte == "2026-10-20"
+
+
+# ------------------------------------- el nombre del titular no trae la cola del PDF
+@pytest.mark.parametrize("crudo,limpio", [
+    ("RODRIGUEZ DE LEON DE FRANCISCO ADALGISA Itiner.............................: 0003",
+     "RODRIGUEZ DE LEON DE FRANCISCO ADALGISA"),
+    ("  JORGE  RAMON   DE LA CRUZ TAVAREZ ", "JORGE RAMON DE LA CRUZ TAVAREZ"),
+    ("AGENCIA TECNICA ADUANAL CARLOS NOUEL & ASOCIADOS SRL",
+     "AGENCIA TECNICA ADUANAL CARLOS NOUEL & ASOCIADOS SRL"),
+    ("GONZALEZ GARCIA, PAULA YVELISES Itiner..: 123", "GONZALEZ GARCIA, PAULA YVELISES"),
+    ("MARIA PEREZ MEDIDOR 45678", "MARIA PEREZ"),
+    ("", ""),
+    (None, ""),
+])
+def test_limpiar_titular(crudo, limpio):
+    from app.pdfdata import limpiar_titular
+
+    assert limpiar_titular(crudo) == limpio

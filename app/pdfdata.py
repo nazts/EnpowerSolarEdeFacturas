@@ -123,6 +123,26 @@ def _fecha(valor: str | None) -> str | None:
     return None
 
 
+# texto que el PDF pega despues del nombre y no forma parte del titular
+_CORTES_TITULAR = re.compile(
+    r"(?i)\b(itiner\w*|itinerario|nit\b|nic\b|contrato\b|direcci\w*|tel[eé]fono\b|"
+    r"medidor\b|ruta\b|barrio\b|sector\b|municipio\b|provincia\b|"
+    r"no\.?\s*factura|periodo|fecha\b|total\b|subtotal\b|vence\b|vencimiento\b)")
+
+
+def limpiar_titular(valor: str | None) -> str:
+    """Solo el nombre del titular: sin colas tipo «Itiner..... 0003» ni etiquetas."""
+    texto = re.sub(r"\s+", " ", str(valor or "")).strip()
+    if not texto:
+        return ""
+    corte = _CORTES_TITULAR.search(texto)
+    if corte:
+        texto = texto[:corte.start()].strip(" .,;:-")
+    # si quedo un texto con muchos puntos o numeros sueltos, se corta ahi
+    texto = re.split(r"\.{3,}|\s{2,}|\d{3,}", texto)[0].strip(" .,;:-")
+    return texto[:70].strip()
+
+
 @dataclass
 class DatosFactura:
     nic: str | None = None
@@ -157,7 +177,7 @@ def parsear(texto: str) -> DatosFactura:
 
     m = re.search(r"NOMBRE O RAZON SOCIAL:\s*(.+)", plano)
     if m:
-        d.titular = re.sub(r"\s+", " ", m.group(1)).strip()
+        d.titular = limpiar_titular(m.group(1))
 
     # Periodo facturado: "No. De Dias Facturados : 20/09/2026 - 20/10/2026 = 30 dias"
     # El fin del periodo ES la fecha de corte.
@@ -229,11 +249,11 @@ def parsear_edesur(texto: str) -> DatosFactura:
     m = re.search(r"^\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ0-9 .,&\-]{4,}?,\s*[A-ZÁÉÍÓÚÑÜ .,&\-]{3,}?)\s*\d{6,}\s+Secci",
                   plano, re.M)
     if m:
-        d.titular = re.sub(r"\s+", " ", m.group(1)).strip()
+        d.titular = limpiar_titular(m.group(1))
     if not d.titular:
         m = re.search(r"TITULAR DEL CONTRATO\s*\n\s*([A-ZÁÉÍÓÚÑÜ][^\n]{5,})", plano)
         if m:
-            d.titular = re.sub(r"\s+", " ", m.group(1)).strip()
+            d.titular = limpiar_titular(m.group(1))
 
     # NIC / NIS / medidor
     m = re.search(r"NIC:\s*(\d{5,})", plano)
