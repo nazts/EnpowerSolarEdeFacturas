@@ -4,6 +4,8 @@ Sirve para cuando el envio anterior fallo o el mensaje se borro del grupo: a
 diferencia de la corrida, no importa si la factura ya estaba marcada como
 enviada — se vuelve a mandar igual.
 """
+import pathlib
+
 import pytest
 
 from app import db, runner, telegram
@@ -141,3 +143,19 @@ def test_listado_para_el_modulo(db_path, tmp_path):
     assert filas[NIC]["corte"] == "2026-10-16"
     assert filas[NIC]["enviada"] == 1
     assert filas["7533709"]["factura_id"] is None      # sin facturas: se puede ver, no enviar
+
+
+def test_el_archivo_conserva_el_nombre_del_cliente(db_path, monkeypatch):
+    """Regresion: el reenvio mandaba el PDF como «f.pdf» y perdia el nombre."""
+    _cliente()
+    _factura()
+    nombres = []
+
+    def falso(path, caption="", chat_id=None):
+        nombres.append(pathlib.Path(path).name)
+        return {"message_id": 1, "document": {"file_id": "F"}}
+
+    monkeypatch.setattr(telegram, "enviar_documento", falso)
+    runner.reenviar_facturas([NIC], chat_id="-100", portales={"edenorte": _PortalFalso()})
+
+    assert nombres == ["JORGE RAMON DE LA CRUZ TAVAREZ 6997885.pdf"]

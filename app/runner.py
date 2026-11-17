@@ -692,7 +692,8 @@ def reenviar_facturas(nics, chat_id: str | None = None, portales: dict | None = 
             if not nic:
                 continue
             fila = conn.execute(
-                """SELECT f.*, COALESCE(c.proveedor, 'edenorte') AS proveedor
+                """SELECT f.*, COALESCE(c.proveedor, 'edenorte') AS proveedor,
+                          COALESCE(c.razon_social, '') AS razon_social
                    FROM facturas f JOIN contratos c ON c.nic = f.nic
                    WHERE f.nic = ? AND f.estado IN ('descargada', 'descartada')
                    ORDER BY f.corte DESC, f.id DESC LIMIT 1""", (nic,)).fetchone()
@@ -711,7 +712,11 @@ def reenviar_facturas(nics, chat_id: str | None = None, portales: dict | None = 
                                               "facturado": fila["facturado"],
                                               "cliente": fila["cliente"]})
             texto = _caption(str(fila["corte"] or ""), [datos], [])
-            destino = Path(tempfile.mkdtemp()) / "f.pdf"
+            # el archivo que llega a Telegram tiene que llevar el nombre de siempre:
+            # "NOMBRES APELLIDOS NIC.pdf" (si ya habia una copia, se reusa su nombre)
+            nombre_doc = _nombre_pdf(fila["pdf_path"]) or naming.nombre_archivo(
+                fila["razon_social"] or (fila["cliente"] or ""), nic)
+            destino = Path(tempfile.mkdtemp()) / nombre_doc
             try:
                 destino.write_bytes(contenido)
                 respuesta = telegram.enviar_documento(destino, caption=texto, chat_id=chat_id)
