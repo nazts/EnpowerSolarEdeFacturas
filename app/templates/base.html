@@ -171,28 +171,44 @@
   <nav>
     {% set uu = request.state.usuario if request and request.state else None %}
     <div class="grupo">General</div>
+    {% if uu and uu.ve('panel') %}
     <a class="item{% if activo == 'panel' %} activo{% endif %}" href="/" title="Panel"{% if activo == 'panel' %} aria-current="page"{% endif %}>
       <i class="bi bi-grid-1x2-fill" aria-hidden="true"></i><span>Panel</span></a>
+    {% endif %}
+    {% if uu and uu.ve('facturas') %}
     <a class="item" href="/#facturas" title="Facturas">
       <i class="bi bi-receipt" aria-hidden="true"></i><span>Facturas</span></a>
+    {% endif %}
+
+    <div class="grupo">Envíos</div>
+    {% if uu and uu.ve('reenviar') %}
+    <a class="item{% if activo == 'reenviar' %} activo{% endif %}" href="/reenviar" title="Reenviar facturas"{% if activo == 'reenviar' %} aria-current="page"{% endif %}>
+      <i class="bi bi-send-check" aria-hidden="true"></i><span>Reenviar facturas</span></a>
+    {% endif %}
+    {% if uu and uu.ve('cotizaciones') %}
+    <a class="item{% if activo == 'cotizaciones' %} activo{% endif %}" href="/cotizaciones" title="Cotizaciones"{% if activo == 'cotizaciones' %} aria-current="page"{% endif %}>
+      <i class="bi bi-file-earmark-text-fill" aria-hidden="true"></i><span>Cotizaciones</span></a>
+    {% endif %}
 
     <div class="grupo">Módulos</div>
+    {% if uu and uu.ve('clientes') %}
     <a class="item{% if activo == 'clientes' %} activo{% endif %}" href="/clientes" title="Clientes agregados"{% if activo == 'clientes' %} aria-current="page"{% endif %}>
       <i class="bi bi-people-fill" aria-hidden="true"></i><span>Clientes agregados</span></a>
-    {% if uu and uu.puede_operar %}
+    {% endif %}
+    {% if uu and uu.ve('nuevo_cliente') and uu.puede_operar %}
     <a class="item{% if activo == 'cliente_nuevo' %} activo{% endif %}" href="/clientes/nuevo" title="Nuevo cliente"{% if activo == 'cliente_nuevo' %} aria-current="page"{% endif %}>
       <i class="bi bi-person-plus-fill" aria-hidden="true"></i><span>Nuevo cliente</span></a>
     {% endif %}
+    {% if uu and uu.ve('mapa') %}
     <a class="item{% if activo == 'mapa' %} activo{% endif %}" href="/mapa" title="Mapa de clientes"{% if activo == 'mapa' %} aria-current="page"{% endif %}>
       <i class="bi bi-geo-alt-fill" aria-hidden="true"></i><span>Mapa</span></a>
-
-    <div class="grupo">Envíos</div>
-    <a class="item{% if activo == 'reenviar' %} activo{% endif %}" href="/reenviar" title="Reenviar facturas"{% if activo == 'reenviar' %} aria-current="page"{% endif %}>
-      <i class="bi bi-send-check" aria-hidden="true"></i><span>Reenviar facturas</span></a>
+    {% endif %}
 
     <div class="grupo">Configuración</div>
+    {% if uu and uu.ve('telegram') %}
     <a class="item{% if activo == 'telegram' %} activo{% endif %}" href="/telegram" title="Conexión Telegram"{% if activo == 'telegram' %} aria-current="page"{% endif %}>
       <i class="bi bi-telegram" aria-hidden="true"></i><span>Conexión Telegram</span></a>
+    {% endif %}
     {% if uu and uu.es_admin %}
     <a class="item{% if activo == 'usuarios' %} activo{% endif %}" href="/usuarios" title="Usuarios"{% if activo == 'usuarios' %} aria-current="page"{% endif %}>
       <i class="bi bi-person-gear" aria-hidden="true"></i><span>Usuarios</span></a>
@@ -202,6 +218,7 @@
       <i class="bi bi-trash3" aria-hidden="true"></i><span>Papelera</span></a>
     {% endif %}
 
+    {% if uu and uu.puede_operar %}
     <div class="grupo">Acciones</div>
     <a class="item" href="/export/excel" title="Descargar Excel">
       <i class="bi bi-file-earmark-excel" aria-hidden="true"></i><span>Descargar Excel</span></a>
@@ -212,6 +229,7 @@
     <button class="item" type="button" id="accHistorial"
             title="Guardar las últimas facturas de cada cliente y enviarlas">
       <i class="bi bi-clock-history" aria-hidden="true"></i><span>Guardar histórico</span></button>
+    {% endif %}
   </nav>
   <div class="pie">
     {% set u = request.state.usuario if request and request.state else None %}

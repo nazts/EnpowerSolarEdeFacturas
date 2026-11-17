@@ -73,6 +73,28 @@ ROLES = ("admin", "soporte", "asesor")
 ROLES_OPERADOR = ("admin", "soporte")   # pueden correr descargas / exportar
 
 
+# Modulos del panel que se pueden habilitar por usuario (el admin los ve todos)
+MODULOS = (
+    ("panel", "Panel"),
+    ("facturas", "Facturas"),
+    ("clientes", "Clientes agregados"),
+    ("nuevo_cliente", "Nuevo cliente"),
+    ("mapa", "Mapa"),
+    ("reenviar", "Reenviar facturas"),
+    ("cotizaciones", "Cotizaciones"),
+    ("telegram", "Conexión Telegram"),
+    ("usuarios", "Usuarios"),
+    ("eventos", "Actividad"),
+    ("papelera", "Papelera"),
+)
+MODULOS_POR_ROL = {
+    "admin": {m for m, _ in MODULOS},
+    "soporte": {"panel", "facturas", "clientes", "nuevo_cliente", "mapa", "reenviar",
+                "cotizaciones", "telegram"},
+    "asesor": {"panel", "clientes", "mapa"},
+}
+
+
 @dataclass
 class Usuario:
     id: int
@@ -80,6 +102,22 @@ class Usuario:
     nombre: str
     rol: str
     activo: int
+    modulos: str = ""
+
+    @property
+    def modulos_lista(self) -> list[str]:
+        """Modulos habilitados: los propios o los del rol si no se eligio ninguno."""
+        elegidos = [m.strip() for m in str(self.modulos or "").split(",") if m.strip()]
+        if not elegidos:
+            elegidos = MODULOS_POR_ROL.get(self.rol, set())
+        orden = {clave: i for i, (clave, _) in enumerate(MODULOS)}
+        return sorted((m for m in elegidos if m in orden), key=lambda m: orden[m])
+
+    def ve(self, modulo: str) -> bool:
+        """El admin ve todo; el resto solo lo que tenga habilitado."""
+        if self.es_admin:
+            return True
+        return modulo in self.modulos_lista
 
     @property
     def es_admin(self) -> bool:
@@ -96,15 +134,17 @@ class Usuario:
 
 
 def crear_usuario(conn: sqlite3.Connection, usuario: str, password: str,
-                  nombre: str = "", rol: str = "asesor") -> int:
+                  nombre: str = "", rol: str = "asesor", modulos: str = "") -> int:
     cursor = conn.execute(
-        """INSERT INTO usuarios (usuario, password_hash, nombre, rol)
-           VALUES (?,?,?,?)
+        """INSERT INTO usuarios (usuario, password_hash, nombre, rol, modulos)
+           VALUES (?,?,?,?,?)
            ON CONFLICT(usuario) DO UPDATE SET password_hash = excluded.password_hash,
                                               nombre = excluded.nombre,
                                               rol = excluded.rol,
+                                              modulos = excluded.modulos,
                                               activo = 1""",
-        (usuario.strip().lower(), hash_password(password), nombre.strip(), rol),
+        (usuario.strip().lower(), hash_password(password), nombre.strip(), rol,
+         ",".join(sorted({m.strip() for m in str(modulos or "").split(",") if m.strip()}))),
     )
     conn.commit()
     return int(cursor.lastrowid or 0)
@@ -118,7 +158,7 @@ def existe_usuario(conn: sqlite3.Connection, nombre: str) -> bool:
 
 def obtener_usuario(conn: sqlite3.Connection, usuario_id: int) -> Usuario | None:
     fila = conn.execute(
-        "SELECT id, usuario, nombre, rol, activo FROM usuarios WHERE id = ?",
+        "SELECT id, usuario, nombre, rol, activo, COALESCE(modulos, '') AS modulos FROM usuarios WHERE id = ?",
         (usuario_id,),
     ).fetchone()
     return Usuario(**dict(fila)) if fila else None
@@ -131,7 +171,7 @@ _HASH_FICTICIO = hash_password("relleno-para-tiempo-constante")
 
 def autenticar(conn: sqlite3.Connection, usuario: str, password: str) -> Usuario | None:
     fila = conn.execute(
-        "SELECT id, usuario, password_hash, nombre, rol, activo FROM usuarios WHERE usuario = ?",
+        "SELECT id, usuario, password_hash, nombre, rol, activo, COALESCE(modulos, '') AS modulos FROM usuarios WHERE usuario = ?",
         (usuario.strip().lower(),),
     ).fetchone()
     if not fila:
@@ -142,12 +182,14 @@ def autenticar(conn: sqlite3.Connection, usuario: str, password: str) -> Usuario
     if not verificar_password(password, fila["password_hash"]):
         return None
     return Usuario(id=fila["id"], usuario=fila["usuario"], nombre=fila["nombre"],
-                   rol=fila["rol"], activo=fila["activo"])
+                   rol=fila["rol"], activo=fila["activo"],
+                   modulos=fila["modulos"] or "")
 
 
 def listar_usuarios(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
-        """SELECT id, usuario, nombre, rol, activo, creado_en, ultimo_acceso
+        """SELECT id, usuario, nombre, rol, activo, creado_en, ultimo_acceso,
+                  COALESCE(modulos, '') AS modulos
            FROM usuarios ORDER BY rol, usuario"""
     ).fetchall()
 

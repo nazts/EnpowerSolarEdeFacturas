@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva cotización · Enpower Solar{% endblock %}
+
+{% block estilos %}
+<style>
+  .rejilla{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+  .campo{display:flex;flex-direction:column;gap:6px}
+  .campo label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px}
+  input,select,textarea{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--input-bd);
+    background:var(--input-bg);color:var(--txt);font:inherit;font-size:13.5px}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--focus);outline-offset:1px}
+  .c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}
+  .c6{grid-column:span 6}.c8{grid-column:span 8}.c12{grid-column:1/-1}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    margin-bottom:16px;overflow:hidden}
+  section h2{margin:0;padding:14px 20px;font-size:12.5px;text-transform:uppercase;
+    letter-spacing:.8px;color:var(--muted);border-bottom:1px solid var(--line);background:var(--card2)}
+  .cuerpo{padding:18px 20px}
+  table.items{width:100%;border-collapse:collapse;font-size:13px}
+  table.items th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+  table.items td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+  table.items input{padding:7px 9px;font-size:13px}
+  table.items .num input{text-align:right;font-variant-numeric:tabular-nums}
+  table.items .imp{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
+    padding-right:10px;white-space:nowrap}
+  .quitar{border:1px solid var(--line);background:var(--card2);color:var(--bad);border-radius:8px;
+    width:30px;height:30px;cursor:pointer;font-size:14px;line-height:1}
+  .quitar:hover{background:var(--bad-bg);border-color:var(--bad)}
+  .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 20px;
+    border-top:1px solid var(--line);background:var(--card2)}
+  .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;padding:9px 14px;
+    background:var(--card2);color:var(--txt);text-decoration:none;font-size:13px;
+    display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);
+    font-weight:600}
+  .btn.primario:hover{filter:brightness(1.08)}
+  .totales{margin-left:auto;min-width:290px;font-size:13.5px}
+  .totales div{display:flex;justify-content:space-between;padding:5px 0}
+  .totales .fuerte{border-top:1px solid var(--line);margin-top:6px;padding-top:9px;
+    font-weight:700;font-size:15px;color:var(--accent)}
+  .ayuda{font-size:12px;color:var(--muted);margin:6px 0 0}
+  @media(max-width:860px){
+    .c3,.c4,.c5,.c6,.c8{grid-column:1/-1}
+    .totales{margin:0;min-width:0;width:100%}
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="pagina">
+<form method="post" action="/cotizaciones" id="formCotiza">
+
+  <section>
+    <h2>Datos de la cotización</h2>
+    <div class="cuerpo rejilla">
+      <div class="campo c3">
+        <label for="numero">No. documento</label>
+        <input id="numero" name="numero" value="{{ numero }}" readonly>
+      </div>
+      <div class="campo c3">
+        <label for="fecha">Fecha</label>
+        <input id="fecha" name="fecha" type="date" value="{{ hoy }}">
+      </div>
+      <div class="campo c3">
+        <label for="moneda">Moneda</label>
+        <select id="moneda" name="moneda">
+          <option>Pesos Dominicanos</option>
+          <option>Dólares (USD)</option>
+        </select>
+      </div>
+      <div class="campo c3">
+        <label for="comision_pct">Comisión (%)</label>
+        <input id="comision_pct" name="comision_pct" value="{{ comision_pct }}" inputmode="decimal">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cliente</h2>
+    <div class="cuerpo rejilla">
+      <div class="campo c6">
+        <label for="cliente_nombre">Nombre</label>
+        <input id="cliente_nombre" name="cliente_nombre" list="listaClientes"
+               placeholder="nombre o razón social" autocomplete="off">
+        <datalist id="listaClientes">
+          {% for c in clientes %}<option value="{{ c.razon_social or c.nombre_normalizado }}">{{ c.nic }}</option>{% endfor %}
+        </datalist>
+      </div>
+      <div class="campo c3">
+        <label for="cliente_rnc">RNC / Cédula</label>
+        <input id="cliente_rnc" name="cliente_rnc" placeholder="1-33-77201-9">
+      </div>
+      <div class="campo c3">
+        <label for="cliente_direccion">Dirección</label>
+        <input id="cliente_direccion" name="cliente_direccion" placeholder="calle, ciudad">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Productos y servicios</h2>
+    <div class="cuerpo" style="padding-bottom:6px">
+      <table class="items">
+        <thead><tr>
+          <th style="width:42%">Descripción</th><th style="width:10%">Cantidad</th>
+          <th style="width:16%">Precio unit.</th><th style="width:10%">Itbis %</th>
+          <th style="width:16%;text-align:right">Importe</th><th style="width:6%"></th>
+        </tr></thead>
+        <tbody id="filas"></tbody>
+      </table>
+    </div>
+    <div class="barra">
+      <button class="btn" type="button" id="btnAgregar">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar renglón</button>
+      <span class="ayuda" style="margin:0">El Itbis es 18% por defecto; ponlo en 0 si el producto no lleva.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Notas y totales</h2>
+    <div class="cuerpo">
+      <div class="campo c12" style="margin-bottom:14px">
+        <label for="notas">Notas para el cliente (opcional)</label>
+        <textarea id="notas" name="notas" rows="3"
+                  placeholder="Forma de pago, tiempo de entrega, validez…"></textarea>
+      </div>
+      <div class="totales">
+        <div><span>Sub. Total</span><b id="tSub">RD$ 0.00</b></div>
+        <div><span>Itbis</span><b id="tItbis">RD$ 0.00</b></div>
+        <div class="fuerte"><span>Total</span><span id="tTotal">RD$ 0.00</span></div>
+        <div class="ayuda"><span>Comisión <span id="tPct">4.5</span>%</span> <b id="tComision">RD$ 0.00</b></div>
+      </div>
+    </div>
+    <div class="barra">
+      <button class="btn primario" type="submit">
+        <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Guardar y generar PDF</button>
+      <a class="btn" href="/cotizaciones">Cancelar</a>
+    </div>
+  </section>
+</form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var filas = document.getElementById('filas');
+  var btn = document.getElementById('btnAgregar');
+  var pct = document.getElementById('comision_pct');
+
+  function fila(desc, cant, precio, itbis){
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><input name="descripcion" placeholder="panel, inversor, instalación…" value=""></td>' +
+      '<td class="num"><input name="cantidad" inputmode="decimal" value="1"></td>' +
+      '<td class="num"><input name="precio" inputmode="decimal" value="0"></td>' +
+      '<td class="num"><input name="itbis_item" inputmode="decimal" value="18"></td>' +
+      '<td class="imp">RD$ 0.00</td>' +
+      '<td><button class="quitar" type="button" aria-label="Quitar renglón">✕</button></td>';
+    var campos = tr.querySelectorAll('input');
+    if (desc) campos[0].value = desc;
+    if (cant !== undefined) campos[1].value = cant;
+    if (precio !== undefined) campos[2].value = precio;
+    if (itbis !== undefined) campos[3].value = itbis;
+    campos.forEach(function(c){ c.addEventListener('input', calcular); });
+    tr.querySelector('.quitar').addEventListener('click', function(){
+      tr.remove(); calcular();
+    });
+    return tr;
+  }
+
+  function num(v){ var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
+  function dinero(v){ return 'RD$ ' + (v || 0).toLocaleString('es-DO', {minimumFractionDigits: 2,
+    maximumFractionDigits: 2}); }
+
+  function calcular(){
+    var sub = 0, itb = 0;
+    Array.prototype.forEach.call(filas.rows, function(tr){
+      var c = tr.querySelectorAll('input');
+      var base = num(c[1].value) * num(c[2].value);
+      var impuesto = base * num(c[3].value) / 100;
+      sub += base; itb += impuesto;
+      tr.querySelector('.imp').textContent = dinero(base + impuesto);
+    });
+    var total = sub + itb;
+    document.getElementById('tSub').textContent = dinero(sub);
+    document.getElementById('tItbis').textContent = dinero(itb);
+    document.getElementById('tTotal').textContent = dinero(total);
+    document.getElementById('tPct').textContent = pct.value || '0';
+    document.getElementById('tComision').textContent = dinero(total * num(pct.value) / 100);
+  }
+
+  if (btn) btn.addEventListener('click', function(){
+    filas.appendChild(fila()); 
+    var ultimo = filas.rows[filas.rows.length - 1].querySelector('input');
+    if (ultimo) ultimo.focus();
+    calcular();
+  });
+  if (pct) pct.addEventListener('input', calcular);
+
+  filas.appendChild(fila());          // un renglón listo para escribir
+  filas.appendChild(fila());
+  filas.appendChild(fila());
+  calcular();
+})();
+</script>
+{% endblock %}

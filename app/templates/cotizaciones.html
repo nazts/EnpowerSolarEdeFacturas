@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block titulo %}Cotizaciones · Enpower Solar{% endblock %}
+
+{% block estilos %}
+<style>
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;
+    border-bottom:1px solid var(--line);background:var(--card2)}
+  .barra .crece{flex:1}
+  .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;padding:9px 14px;
+    background:var(--card2);color:var(--txt);text-decoration:none;font-size:13px;
+    display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);
+    font-weight:600}
+  .tabla-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:720px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.6px;white-space:nowrap}
+  tbody tr:hover{background:var(--hover)}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td b{display:block}
+  small{display:block;color:var(--muted);font-size:11.5px}
+  form.en-linea{display:inline}
+  .mini{border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;
+    padding:6px 10px;font-size:12.5px;cursor:pointer;text-decoration:none;display:inline-flex;
+    align-items:center;gap:6px}
+  .mini:hover{border-color:var(--accent)}
+  .mini.peligro{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+  .mini.peligro:hover{background:var(--bad-bg);border-color:var(--bad)}
+  .vacio{padding:26px;text-align:center;color:var(--muted)}
+  .aviso{margin:0 0 16px;padding:12px 16px;border-radius:12px;background:var(--ok-bg);
+    color:var(--ok);border:1px solid var(--line);font-size:13.5px}
+  @media(max-width:640px){
+    table{min-width:0}
+    thead{display:none}
+    tr{display:block;border-bottom:1px solid var(--line);padding:10px 4px}
+    td{display:block;border:0;padding:5px 12px}
+    td::before{content:attr(data-label);display:block;color:var(--muted);font-size:11px;
+      text-transform:uppercase;letter-spacing:.6px}
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="pagina">
+  {% if mensaje == "eliminada" %}
+  <div class="aviso">Cotización eliminada.</div>
+  {% endif %}
+
+  <section>
+    <div class="barra">
+      <div class="crece">
+        <b style="font-size:14px">Cotizaciones ({{ cotizaciones|length }})</b>
+        <small>Generá el PDF con el formato de la empresa, sin firma.</small>
+      </div>
+      <a class="btn primario" href="/cotizaciones/nueva">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva cotización</a>
+    </div>
+
+    {% if cotizaciones %}
+    <div class="tabla-wrap">
+      <table>
+        <thead><tr><th>No.</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th>
+          <th>Creada por</th><th></th></tr></thead>
+        <tbody>
+        {% for c in cotizaciones %}
+          <tr>
+            <td data-label="No."><b>{{ c.numero }}</b></td>
+            <td data-label="Fecha">{{ c.fecha }}</td>
+            <td data-label="Cliente">{{ c.cliente_nombre or "—" }}
+              {% if c.cliente_rnc %}<small>{{ c.cliente_rnc }}</small>{% endif %}</td>
+            <td class="num" data-label="Total">RD$ {{ "{:,.2f}".format(c.total or 0) }}</td>
+            <td data-label="Creada por">{{ c.creado_por or "—" }}</td>
+            <td data-label="">
+              <a class="mini" href="/cotizaciones/{{ c.id }}.pdf" target="_blank" rel="noopener">
+                <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+              {% set u = request.state.usuario if request and request.state else None %}
+              {% if u and u.es_admin %}
+              <form class="en-linea" method="post" action="/cotizaciones/{{ c.id }}/eliminar"
+                    onsubmit="return confirm('¿Eliminar la cotización {{ c.numero }}?')">
+                <button class="mini peligro" type="submit" aria-label="Eliminar cotización {{ c.numero }}">
+                  <i class="bi bi-trash" aria-hidden="true"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="vacio"><b>Todavía no hay cotizaciones</b>Creá la primera con el botón de arriba.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

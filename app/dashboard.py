@@ -143,6 +143,32 @@ def es_admin_principal(nombre_usuario: str) -> bool:
     return bool(principal) and nombre_usuario.strip().lower() == principal
 
 
+RUTA_MODULO = {
+    "panel": "/", "cotizaciones": "/cotizaciones", "clientes": "/clientes",
+    "nuevo_cliente": "/clientes/nuevo", "mapa": "/mapa", "reenviar": "/reenviar",
+    "facturas": "/", "telegram": "/telegram",
+}
+
+
+def inicio_para(usuario) -> str:
+    """Primera pantalla que le corresponde a ese usuario."""
+    if usuario is None or usuario.es_admin:
+        return "/"
+    for modulo in usuario.modulos_lista:
+        if modulo in RUTA_MODULO:
+            return RUTA_MODULO[modulo]
+    return "/clientes"
+
+
+def requiere_modulo(request: Request, modulo: str) -> None:
+    """Deja pasar solo si el usuario tiene ese modulo habilitado."""
+    usuario = usuario_actual(request)
+    if not usuario:
+        raise HTTPException(401, "Sesión no iniciada")
+    if not usuario.ve(modulo):
+        raise HTTPException(403, f"Tu usuario no tiene acceso al módulo «{modulo}»")
+
+
 def requiere_operador(request: Request) -> None:
     """Para lanzar corridas, sincronizar historico y exportar: admin o soporte."""
     usuario = usuario_actual(request)
@@ -253,7 +279,10 @@ def login(request: Request, usuario: str = Form(...), password: str = Form(...),
         return templates.TemplateResponse(request, "login.html",
                                           {"next": next, "error": "Usuario o contraseña incorrectos",
                                            "usuario_previo": usuario}, status_code=401)
-    respuesta = RedirectResponse(_destino_seguro(next), status_code=303)
+    destino = _destino_seguro(next)
+    if destino == "/" and encontrado is not None and not encontrado.ve("panel"):
+        destino = inicio_para(encontrado)
+    respuesta = RedirectResponse(destino, status_code=303)
     # secure=True cuando el panel va por HTTPS (tunel/VPN): la cookie no viaja
     # nunca por http. En red local sin HTTPS se deja en False o no se podria entrar.
     _INTENTOS.pop(clave, None)
@@ -288,7 +317,8 @@ def usuarios_page(request: Request):
     return templates.TemplateResponse(request, "usuarios.html",
                                       {"activo": "usuarios", "usuarios": lista,
                                        "admin_principal": (config.ADMIN_USER or "").strip().lower(),
-                                       "usuario": usuario})
+                                       "usuario": usuario,
+                                       "catalogo": auth.MODULOS})
 
 
 @app.get("/eventos")
@@ -332,7 +362,8 @@ def mi_clave(request: Request, actual: str = Form(...), nueva: str = Form(...),
 @app.post("/usuarios")
 def usuarios_crear(request: Request, usuario_nuevo: str = Form(...),
                    password: str = Form(...), nombre: str = Form(default=""),
-                   rol: str = Form(default="asesor")):
+                   rol: str = Form(default="asesor"),
+                   modulos: list[str] = Form(default=[])):
     actual = usuario_actual(request)
     if not actual or not actual.es_admin:
         raise HTTPException(403, "Solo un administrador puede crear usuarios")
@@ -348,8 +379,32 @@ def usuarios_crear(request: Request, usuario_nuevo: str = Form(...),
     with db.sesion() as conn:
         if auth.existe_usuario(conn, nombre_usuario):
             raise HTTPException(409, "Ese usuario ya existe")
-        auth.crear_usuario(conn, nombre_usuario, password, nombre, rol)
+        elegidos = [m for m in (modulos if isinstance(modulos, list) else []) if m]
+        auth.crear_usuario(conn, nombre_usuario, password, nombre, rol,
+                           modulos=",".join(elegidos))
         db.log_evento(conn, "info", f"Usuario {usuario_nuevo} creado por {actual.usuario}")
+    return RedirectResponse("/usuarios", status_code=303)
+
+
+@app.post("/usuarios/{usuario_id}/modulos")
+def usuarios_modulos(usuario_id: int, request: Request,
+                     modulos: list[str] = Form(default=[])):
+    """El admin elige que modulos ve cada usuario."""
+    actual = usuario_actual(request)
+    if not actual or not actual.es_admin:
+        raise HTTPException(403, "Solo un administrador puede cambiar los módulos")
+    with db.sesion() as conn:
+        fila = auth.obtener_usuario(conn, usuario_id)
+        if fila is None:
+            raise HTTPException(404, "Usuario no encontrado")
+        if es_admin_principal(fila.usuario) and fila.rol != "admin":
+            raise HTTPException(400, "El administrador principal no se puede limitar")
+        elegidos = sorted({m for m in (modulos if isinstance(modulos, list) else []) if m})
+        conn.execute("UPDATE usuarios SET modulos = ? WHERE id = ?",
+                     (",".join(elegidos), usuario_id))
+        conn.commit()
+        db.log_evento(conn, "info", f"Módulos de {fila.usuario} actualizados",
+                      ", ".join(elegidos) or "(por rol)")
     return RedirectResponse("/usuarios", status_code=303)
 
 
@@ -989,6 +1044,9 @@ def cliente_detalle(request: Request, nic: str):
 # ------------------------------------------------------------------ paginas
 @app.get("/")
 def inicio(request: Request):
+    quien = usuario_actual(request)
+    if quien is not None and not quien.ve("panel"):
+        return RedirectResponse(inicio_para(quien), status_code=303)
     with db.sesion() as conn:
         contratos = [dict(r) for r in db.listar_contratos(conn, solo_activos=False)]
         pendientes = [dict(r) for r in db.pendientes_abiertos(conn)]
@@ -1048,6 +1106,109 @@ def editar_contrato(request: Request, nic: str, razon_social: str = Form(default
         })
         db.log_evento(conn, "info", f"Contrato {nic} actualizado")
     return RedirectResponse("/", status_code=303)
+
+
+# ------------------------------------------------------------- cotizaciones
+@app.get("/cotizaciones")
+def cotizaciones_lista(request: Request):
+    requiere_modulo(request, "cotizaciones")
+    with db.sesion() as conn:
+        filas = db.lista_cotizaciones(conn)
+        numero = db.siguiente_numero_cotizacion(conn)
+    return templates.TemplateResponse(request, "cotizaciones.html", {
+        "activo": "cotizaciones", "cotizaciones": filas, "siguiente": numero,
+        "mensaje": request.query_params.get("mensaje", ""),
+    })
+
+
+@app.get("/cotizaciones/nueva")
+def cotizaciones_nueva(request: Request):
+    requiere_modulo(request, "cotizaciones")
+    with db.sesion() as conn:
+        numero = db.siguiente_numero_cotizacion(conn)
+        clientes = db.resumen_clientes(conn)
+    return templates.TemplateResponse(request, "cotizacion_nueva.html", {
+        "activo": "cotizaciones", "numero": numero, "hoy": db.hoy(),
+        "clientes": clientes, "comision_pct": 4.5,
+    })
+
+
+@app.post("/cotizaciones")
+async def cotizaciones_guardar(request: Request):
+    """Guarda la cotización, calcula los totales y devuelve el PDF."""
+    requiere_modulo(request, "cotizaciones")
+    from . import cotizacion_pdf
+
+    form = await request.form()
+    usuario = usuario_actual(request)
+
+    items = []
+    descripciones = form.getlist("descripcion")
+    cantidades = form.getlist("cantidad")
+    precios = form.getlist("precio")
+    itbis = form.getlist("itbis_item")
+    for i, descripcion in enumerate(descripciones):
+        if not str(descripcion).strip():
+            continue
+        items.append({
+            "descripcion": str(descripcion).strip(),
+            "cantidad": cantidades[i] if i < len(cantidades) else 0,
+            "precio": precios[i] if i < len(precios) else 0,
+            "itbis": itbis[i] if i < len(itbis) else 18,
+        })
+    if not items:
+        raise HTTPException(400, "Agrega al menos un producto a la cotización")
+
+    comision_pct = _num(form.get("comision_pct")) or 4.5
+    datos = cotizacion_pdf.calcular(items, comision_pct)
+    with db.sesion() as conn:
+        numero = (str(form.get("numero") or "").strip()
+                  or db.siguiente_numero_cotizacion(conn))
+        cotizacion_id = db.guardar_cotizacion(conn, {
+            "numero": numero,
+            "fecha": str(form.get("fecha") or db.hoy()),
+            "cliente_nombre": str(form.get("cliente_nombre") or "").strip(),
+            "cliente_rnc": str(form.get("cliente_rnc") or "").strip(),
+            "cliente_direccion": str(form.get("cliente_direccion") or "").strip(),
+            "moneda": str(form.get("moneda") or "Pesos Dominicanos"),
+            "items": datos["items"],
+            "subtotal": datos["subtotal"], "itbis": datos["itbis"],
+            "comision_pct": datos["comision_pct"], "comision": datos["comision"],
+            "total": datos["total"],
+            "notas": str(form.get("notas") or "").strip(),
+            "creado_por": usuario.usuario if usuario else "",
+        })
+        db.log_evento(conn, "info", f"Cotización {numero} creada",
+                      f"total RD${datos['total']:,.2f}")
+    return RedirectResponse(f"/cotizaciones/{cotizacion_id}.pdf", status_code=303)
+
+
+@app.get("/cotizaciones/{cotizacion_id}.pdf")
+def cotizaciones_pdf(cotizacion_id: int, request: Request):
+    requiere_modulo(request, "cotizaciones")
+    from . import cotizacion_pdf
+
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cotizacion_id)
+    if not cot:
+        raise HTTPException(404, "Esa cotización no existe")
+    pdf = cotizacion_pdf.generar(cot)
+    nombre = f"Cotizacion {cot['numero']} {cot.get('cliente_nombre') or ''}".strip()
+    nombre = re.sub(r"[^A-Za-z0-9 ._-]", "", nombre)[:80] + ".pdf"
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{nombre}"'})
+
+
+@app.post("/cotizaciones/{cotizacion_id}/eliminar")
+def cotizaciones_eliminar(cotizacion_id: int, request: Request):
+    requiere_modulo(request, "cotizaciones")
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cotizacion_id)
+        if cot is None:
+            raise HTTPException(404, "Esa cotización no existe")
+        db.eliminar_cotizacion(conn, cotizacion_id)
+        db.log_evento(conn, "aviso", f"Cotización {cot['numero']} eliminada")
+    return RedirectResponse("/cotizaciones?mensaje=eliminada", status_code=303)
 
 
 @app.get("/reenviar")

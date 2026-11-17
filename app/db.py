@@ -82,6 +82,25 @@ CREATE TABLE IF NOT EXISTS envios (
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS cotizaciones (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero            TEXT NOT NULL,
+    fecha             TEXT NOT NULL,
+    cliente_nombre    TEXT NOT NULL DEFAULT '',
+    cliente_rnc       TEXT NOT NULL DEFAULT '',
+    cliente_direccion TEXT NOT NULL DEFAULT '',
+    moneda            TEXT NOT NULL DEFAULT 'Pesos Dominicanos',
+    items             TEXT NOT NULL DEFAULT '[]',
+    subtotal          REAL NOT NULL DEFAULT 0,
+    itbis             REAL NOT NULL DEFAULT 0,
+    comision_pct      REAL NOT NULL DEFAULT 4.5,
+    comision          REAL NOT NULL DEFAULT 0,
+    total             REAL NOT NULL DEFAULT 0,
+    notas             TEXT NOT NULL DEFAULT '',
+    creado_por        TEXT NOT NULL DEFAULT '',
+    created_at        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS usuarios (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     usuario       TEXT NOT NULL UNIQUE,
@@ -89,6 +108,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nombre        TEXT NOT NULL DEFAULT '',
     rol           TEXT NOT NULL DEFAULT 'asesor',
     activo        INTEGER NOT NULL DEFAULT 1,
+    modulos       TEXT NOT NULL DEFAULT '',
     creado_en     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ultimo_acceso TEXT
 );
@@ -152,6 +172,10 @@ def migrar(conn: sqlite3.Connection) -> None:
                 conn.execute(f"ALTER TABLE contratos ADD COLUMN IF NOT EXISTS {columna} {tipo}")
             except Exception:  # noqa: BLE001
                 pass
+        try:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS modulos TEXT NOT NULL DEFAULT ''")
+        except Exception:  # noqa: BLE001
+            pass
         for columna in ("tg_file_id", "tg_message_id"):
             try:
                 conn.execute(f"ALTER TABLE facturas ADD COLUMN IF NOT EXISTS {columna} TEXT")
@@ -167,6 +191,9 @@ def migrar(conn: sqlite3.Connection) -> None:
     for nombre, tipo in COLUMNAS_NUEVAS.items():
         if nombre not in existentes:
             conn.execute(f"ALTER TABLE contratos ADD COLUMN {nombre} {tipo}")
+    columnas_usuarios = {r[1] for r in conn.execute("PRAGMA table_info(usuarios)")}
+    if "modulos" not in columnas_usuarios:
+        conn.execute("ALTER TABLE usuarios ADD COLUMN modulos TEXT NOT NULL DEFAULT ''")
     conn.commit()
 
 
@@ -341,6 +368,62 @@ def actualizar_contrato(conn: sqlite3.Connection, nic: str, datos: dict) -> bool
 
 
 DIAS_PAPELERA = 30
+
+
+# --------------------------------------------------------------- cotizaciones
+def siguiente_numero_cotizacion(conn) -> str:
+    fila = conn.execute("SELECT COUNT(*) AS n FROM cotizaciones").fetchone()
+    return f"{(int(fila['n']) if fila else 0) + 1:06d}"
+
+
+def guardar_cotizacion(conn, datos: dict) -> int:
+    """Inserta la cotizacion (los renglones van como JSON) y devuelve su id."""
+    import json as _json
+
+    items = _json.dumps(datos.get("items") or [], ensure_ascii=False)
+    cur = conn.execute(
+        """INSERT INTO cotizaciones
+           (numero, fecha, cliente_nombre, cliente_rnc, cliente_direccion, moneda, items,
+            subtotal, itbis, comision_pct, comision, total, notas, creado_por, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (str(datos.get("numero") or ""), str(datos.get("fecha") or hoy()),
+         str(datos.get("cliente_nombre") or ""), str(datos.get("cliente_rnc") or ""),
+         str(datos.get("cliente_direccion") or ""),
+         str(datos.get("moneda") or "Pesos Dominicanos"), items,
+         float(datos.get("subtotal") or 0), float(datos.get("itbis") or 0),
+         float(datos.get("comision_pct") or 0), float(datos.get("comision") or 0),
+         float(datos.get("total") or 0), str(datos.get("notas") or ""),
+         str(datos.get("creado_por") or ""), ahora()))
+    conn.commit()
+    return int(cur.lastrowid or 0)
+
+
+def _cotizacion_dict(fila) -> dict:
+    import json as _json
+
+    datos = dict(fila)
+    try:
+        datos["items"] = _json.loads(datos.get("items") or "[]")
+    except ValueError:
+        datos["items"] = []
+    return datos
+
+
+def lista_cotizaciones(conn, limite: int = 200) -> list[dict]:
+    filas = conn.execute(
+        """SELECT * FROM cotizaciones ORDER BY id DESC LIMIT ?""", (limite,)).fetchall()
+    return [_cotizacion_dict(f) for f in filas]
+
+
+def obtener_cotizacion(conn, cotizacion_id: int) -> dict | None:
+    fila = conn.execute("SELECT * FROM cotizaciones WHERE id = ?",
+                        (cotizacion_id,)).fetchone()
+    return _cotizacion_dict(fila) if fila else None
+
+
+def eliminar_cotizacion(conn, cotizacion_id: int) -> None:
+    conn.execute("DELETE FROM cotizaciones WHERE id = ?", (cotizacion_id,))
+    conn.commit()
 
 
 def clientes_con_ultima_factura(conn) -> list[dict]:

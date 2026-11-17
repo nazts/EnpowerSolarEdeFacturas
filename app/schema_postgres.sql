@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS contratos (
     asesor              TEXT NOT NULL DEFAULT '',
     dia_corte           INTEGER,
     activo              INTEGER NOT NULL DEFAULT 1,
+    modulos             TEXT NOT NULL DEFAULT '',
     estado              TEXT NOT NULL DEFAULT 'agregado',
     titular_pago        TEXT NOT NULL DEFAULT '',
     notas               TEXT NOT NULL DEFAULT '',
@@ -123,3 +124,23 @@ ALTER TABLE contratos ADD COLUMN IF NOT EXISTS proveedor TEXT NOT NULL DEFAULT '
 
 -- quien hizo cada movimiento (panel de actividad)
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS usuario TEXT NOT NULL DEFAULT '';
+
+
+CREATE TABLE IF NOT EXISTS cotizaciones (
+    id                BIGSERIAL PRIMARY KEY,
+    numero            TEXT NOT NULL,
+    fecha             TEXT NOT NULL,
+    cliente_nombre    TEXT NOT NULL DEFAULT '',
+    cliente_rnc       TEXT NOT NULL DEFAULT '',
+    cliente_direccion TEXT NOT NULL DEFAULT '',
+    moneda            TEXT NOT NULL DEFAULT 'Pesos Dominicanos',
+    items             TEXT NOT NULL DEFAULT '[]',
+    subtotal          DOUBLE PRECISION NOT NULL DEFAULT 0,
+    itbis             DOUBLE PRECISION NOT NULL DEFAULT 0,
+    comision_pct      DOUBLE PRECISION NOT NULL DEFAULT 4.5,
+    comision          DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total             DOUBLE PRECISION NOT NULL DEFAULT 0,
+    notas             TEXT NOT NULL DEFAULT '',
+    creado_por        TEXT NOT NULL DEFAULT '',
+    created_at        TEXT NOT NULL DEFAULT ''
+);
