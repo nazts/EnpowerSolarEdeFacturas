@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS contratos (
     dia_corte           INTEGER,
     activo              INTEGER NOT NULL DEFAULT 1,
     estado              TEXT NOT NULL DEFAULT 'agregado',
+    titular_pago        TEXT NOT NULL DEFAULT '',
     notas               TEXT NOT NULL DEFAULT '',
     proveedor           TEXT NOT NULL DEFAULT 'edenorte',
     direccion           TEXT NOT NULL DEFAULT '',

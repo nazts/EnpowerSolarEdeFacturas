@@ -92,6 +92,11 @@ def requiere_admin(request: Request) -> None:
         raise HTTPException(403, "Solo un administrador puede hacer esta acción")
 
 
+def _txt(valor) -> str:
+    """Texto seguro: si llega un Form (llamada directa) o None, devuelve ''."""
+    return valor.strip() if isinstance(valor, str) else ""
+
+
 def _normalizar_busqueda(texto: str | None) -> str:
     """minusculas y sin tildes, para que 'jose' encuentre 'JOSÉ'."""
     import unicodedata
@@ -788,7 +793,8 @@ def crear_cliente(request: Request, nic: str = Form(...), razon_social: str = Fo
                   paneles: str = Form(default=""),
                   potencia_paneles: str = Form(default=""), inversores: str = Form(default=""),
                   bateria: str = Form(default=""), capacidad_bateria: str = Form(default=""),
-                  fecha_instalacion: str = Form(default="")):
+                  fecha_instalacion: str = Form(default=""),
+                  titular_pago: str = Form(default="")):
     requiere_operador(request)
     nic = nic.strip()
     if not nic.isdigit():
@@ -832,7 +838,7 @@ def crear_cliente(request: Request, nic: str = Form(...), razon_social: str = Fo
     with db.sesion() as conn:
         db.upsert_contrato(
             conn, nic, razon_social=razon_social, alias=alias, asesor=asesor,
-            proveedor=proveedor,
+            proveedor=proveedor, titular_pago=_txt(titular_pago),
             notas=notas, direccion=direccion, telefono=telefono,
             latitud=_num(latitud), longitud=_num(longitud), paneles=paneles,
             potencia_paneles=_num(potencia_paneles), inversores=inversores,
@@ -918,7 +924,8 @@ def cliente_editar_guardar(request: Request, nic: str,
                            bateria: str = Form(default=""),
                            capacidad_bateria: str = Form(default=""),
                            fecha_instalacion: str = Form(default=""),
-                           activo: str = Form(default="1")):
+                           activo: str = Form(default="1"),
+                           titular_pago: str = Form(default="")):
     """Guarda la ficha completa: lo que venga vacio se guarda vacio."""
     requiere_operador(request)
     proveedor = (proveedor or "edenorte").strip().lower()
@@ -939,6 +946,7 @@ def cliente_editar_guardar(request: Request, nic: str,
             raise HTTPException(404, "Ese NIC no está registrado")
         db.actualizar_contrato(conn, nic, {
             "razon_social": razon_social.strip(), "alias": alias.strip(),
+            "titular_pago": _txt(titular_pago),
             "asesor": asesor.strip(), "dia_corte": dia, "notas": notas.strip(),
             "proveedor": proveedor, "direccion": direccion.strip(),
             "telefono": telefono.strip(), "latitud": lat,

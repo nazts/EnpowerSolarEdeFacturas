@@ -248,6 +248,7 @@ def _fila_mensaje(conn, nic: str, d: dict | None = None) -> dict:
     return {
         "nic": str(nic),
         "proveedor": proveedor.lower(),
+        "titular_pago": _campo(conn, nic, "titular_pago"),
         "cliente": cliente,
         "razon_social": _razon_social(conn, nic),
         "alias": _campo(conn, nic, "alias"),
@@ -278,7 +279,8 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
             lineas.append(f"Razón social: {_html.escape(razon or '—')}")
         else:
             # Edenorte: el nombre que trae la factura (no el codigo de referencia)
-            titular_pago = (limpiar_titular(f.get("cliente")) or razon or alias)
+            titular_pago = (str(f.get("titular_pago") or "").strip()
+                            or limpiar_titular(f.get("cliente")) or razon or alias)
             lineas.append(f"Titular de pago: {_html.escape(titular_pago or '—')}")
             lineas.append(f"Razón social: {_html.escape(razon or '—')}")
             lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")

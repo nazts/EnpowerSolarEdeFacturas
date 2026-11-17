@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS contratos (
     notas              TEXT NOT NULL DEFAULT '',
     estado             TEXT NOT NULL DEFAULT 'agregado',
     borrado_at         TEXT,
+    titular_pago       TEXT NOT NULL DEFAULT '',
     created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -137,6 +138,8 @@ COLUMNAS_NUEVAS = {
     "estado": "TEXT NOT NULL DEFAULT 'agregado'",
     # cuando se mando a la papelera (para purgarla a los 30 dias)
     "borrado_at": "TEXT",
+    # quien paga el proyecto fotovoltaico (no es el titular de la factura)
+    "titular_pago": "TEXT NOT NULL DEFAULT ''",
 }
 
 
@@ -236,7 +239,8 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
                     potencia_paneles: float | None = None,
                     inversores: str = "", bateria: str = "",
                     capacidad_bateria: float | None = None,
-                    fecha_instalacion: str = "", proveedor: str = "") -> None:
+                    fecha_instalacion: str = "", proveedor: str = "",
+                    titular_pago: str = "") -> None:
     """Crea o actualiza un contrato. Los campos vacios no pisan lo ya guardado."""
     nic = str(nic).strip()
     norm = normalizar_razon_social(razon_social)
@@ -254,6 +258,7 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
         if proveedor:
             poner("proveedor", proveedor.strip().lower())
         for col, val in (("alias", alias), ("asesor", asesor), ("notas", notas),
+                         ("titular_pago", titular_pago),
                          ("direccion", direccion), ("telefono", telefono),
                          ("paneles", paneles), ("inversores", inversores), ("bateria", bateria),
                          ("fecha_instalacion", fecha_instalacion)):
@@ -281,14 +286,15 @@ def upsert_contrato(conn: sqlite3.Connection, nic: str, razon_social: str = "",
             """INSERT INTO contratos
                (nic, razon_social, nombre_normalizado, alias, asesor, dia_corte, activo, notas,
                 direccion, telefono, latitud, longitud, paneles, potencia_paneles, inversores,
-                bateria, capacidad_bateria, fecha_instalacion, proveedor, estado)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'agregado')""",
+                bateria, capacidad_bateria, fecha_instalacion, proveedor, estado, titular_pago)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'agregado',?)""",
             (nic, razon_social.strip(), norm, alias.strip(), asesor.strip(),
              int(dia_corte) if dia_corte is not None else None,
              1 if activo is None else int(activo), notas,
              direccion.strip(), telefono.strip(), latitud, longitud, paneles.strip(),
              potencia_paneles, inversores.strip(), bateria.strip(), capacidad_bateria,
-             fecha_instalacion.strip(), (proveedor or "edenorte").strip().lower()),
+             fecha_instalacion.strip(), (proveedor or "edenorte").strip().lower(),
+             (titular_pago or "").strip()),
         )
     conn.commit()
 
@@ -310,6 +316,7 @@ def actualizar_equipo(conn: sqlite3.Connection, nic: str, datos: dict) -> None:
 
 
 CAMPOS_EDITABLES = ("razon_social", "alias", "asesor", "dia_corte", "activo", "notas",
+                    "titular_pago",
                     "proveedor", "direccion", "telefono", "latitud", "longitud",
                     "paneles", "potencia_paneles", "inversores", "bateria",
                     "capacidad_bateria", "fecha_instalacion")

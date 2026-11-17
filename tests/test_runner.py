@@ -1040,3 +1040,27 @@ def test_el_mensaje_no_lleva_numeros_de_intentos(contrato):
     assert "intento" not in texto.lower()
     assert "pendiente" not in texto.lower()
     assert not hasattr(runner, "_caption_pendientes")     # ya no existe la funcion
+
+
+def test_el_titular_de_pago_es_el_del_proyecto_no_el_de_la_factura(contrato):
+    """«Titular de pago» es quien paga el proyecto fotovoltaico, otro dato."""
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON",
+                           titular_pago="EMPRESA PAGADORA SRL", asesor="Steven Lora")
+        datos = runner._fila_mensaje(c, NIC, {"ref_pago": REF, "facturado": 100.0,
+                                              "cliente": "JORGE RAMON DE LA CRUZ TAVAREZ"})
+
+    lineas = runner._caption("2026-11-13", [datos], []).splitlines()
+
+    assert lineas[1] == "Titular de pago: EMPRESA PAGADORA SRL"
+    assert lineas[2] == "Razón social: JORGE RAMON DE LA CRUZ TAVAREZ"
+
+
+def test_sin_titular_de_pago_cae_al_nombre_de_la_factura(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON")
+        datos = runner._fila_mensaje(c, NIC, {"ref_pago": REF, "facturado": 100.0,
+                                              "cliente": "JORGE RAMON DE LA CRUZ TAVAREZ"})
+
+    assert runner._caption("2026-11-13", [datos], []).splitlines()[1] == (
+        "Titular de pago: JORGE RAMON DE LA CRUZ TAVAREZ")

@@ -84,11 +84,16 @@
             <p class="nota">El nombre del PDF se arma con esto: <code>NOMBRES APELLIDOS NIC.pdf</code>.</p>
           </div>
 
-          <div class="campo c6">
-            <label for="alias">Pagador / alias</label>
-            <input id="alias" name="alias" value="{{ cliente.alias or '' }}" placeholder="si paga otra persona o empresa">
+          <div class="campo c4">
+            <label for="alias">Alias del cliente</label>
+            <input id="alias" name="alias" value="{{ cliente.alias or '' }}" placeholder="nombre corto (sale en el mensaje)">
           </div>
-          <div class="campo c3">
+          <div class="campo c4">
+            <label for="titular_pago">Titular de pago (proyecto)</label>
+            <input id="titular_pago" name="titular_pago" value="{{ cliente.titular_pago or '' }}"
+                   placeholder="quién paga el proyecto fotovoltaico">
+          </div>
+          <div class="campo c4">
             <label for="asesor">Asesor</label>
             <input id="asesor" name="asesor" list="listaAsesores" autocomplete="off"
                    value="{{ cliente.asesor or '' }}">
