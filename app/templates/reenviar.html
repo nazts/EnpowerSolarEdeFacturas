@@ -6,6 +6,14 @@
   .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;
     border-bottom:1px solid var(--line);background:var(--card2)}
   .barra .crece{flex:1}
+  .buscar{position:relative;flex:1 1 240px;max-width:380px;min-width:180px}
+  .buscar i{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    color:var(--muted);font-size:14px;pointer-events:none}
+  .buscar input{width:100%;padding:9px 12px 9px 33px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--txt);font:inherit;font-size:13px}
+  .buscar input:focus{outline:2px solid var(--focus);outline-offset:1px}
+  tr.oculta{display:none}
+  .sin-coincide{padding:22px;text-align:center;color:var(--muted);font-size:13.5px}
   .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
     padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;font-size:13px;
     display:inline-flex;align-items:center;gap:7px;transition:.15s}
@@ -89,8 +97,14 @@
   <form method="post" action="/reenviar" id="formReenviar">
     <section>
       <div class="barra">
+        <div class="buscar">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input type="search" id="buscarCliente" autocomplete="off" enterkeyhint="search"
+                 placeholder="Buscar por NIC, cliente, alias o asesor…"
+                 aria-label="Buscar cliente en la lista">
+        </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px">
-          <input type="checkbox" id="chkTodos" aria-label="Seleccionar todos">
+          <input type="checkbox" id="chkTodos" aria-label="Seleccionar todos los visibles">
           <span>Seleccionar todos</span>
         </label>
         <span class="crece"></span>
@@ -107,7 +121,7 @@
           </tr></thead>
           <tbody>
           {% for c in clientes %}
-            <tr>
+            <tr data-buscar="{{ c.nic }} {{ c.nombre_normalizado or '' }} {{ c.razon_social or '' }} {{ c.alias or '' }} {{ c.asesor or '' }} {{ c.proveedor or '' }}">
               <td class="sel" data-label="Enviar">
                 <input type="checkbox" name="nics" value="{{ c.nic }}"
                        aria-label="Reenviar a {{ c.nic }}"
@@ -126,6 +140,9 @@
               </td>
             </tr>
           {% endfor %}
+          <tr id="sinCoincide" hidden>
+            <td colspan="7" class="sin-coincide">Ningún cliente coincide con la búsqueda.</td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -151,20 +168,49 @@
 <script>
 (function(){
   var todos = document.getElementById('chkTodos');
-  var cajas = Array.prototype.slice.call(document.querySelectorAll('input[name="nics"]:not([disabled])'));
   var contador = document.getElementById('contador');
   var enviar = document.getElementById('btnEnviar');
-  function pintar(){
-    var marcadas = cajas.filter(function(c){ return c.checked; }).length;
-    if (contador) contador.textContent = marcadas + ' seleccionado' + (marcadas === 1 ? '' : 's');
-    if (enviar) enviar.disabled = marcadas === 0;
-    if (todos) todos.checked = marcadas > 0 && marcadas === cajas.length;
+  var buscar = document.getElementById('buscarCliente');
+  var filas = Array.prototype.slice.call(
+    document.querySelectorAll('tbody tr:not(#sinCoincide)'));
+  var TOTAL = filas.length;
+
+  function plano(t){                       // minusculas y sin tildes
+    return (t || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
+  function cajasVisibles(){
+    return filas.filter(function(tr){ return !tr.classList.contains('oculta'); })
+                .map(function(tr){ return tr.querySelector('input[name="nics"]'); })
+                .filter(function(c){ return c && !c.disabled; });
+  }
+  function pintar(){
+    var cajas = cajasVisibles();
+    var marcadas = cajas.filter(function(c){ return c.checked; }).length;
+    var hay = filas.some(function(tr){ return !tr.classList.contains('oculta'); });
+    if (contador) contador.textContent = marcadas + ' seleccionado' + (marcadas === 1 ? '' : 's')
+      + (TOTAL && cajas.length !== TOTAL ? ' de ' + cajas.length + ' visibles' : '');
+    if (enviar) enviar.disabled = marcadas === 0;
+    if (todos) todos.checked = cajas.length > 0 && marcadas === cajas.length;
+    var vacio = document.getElementById('sinCoincide');
+    if (vacio) vacio.hidden = hay;
+  }
+  function filtrar(){
+    var terminos = plano(buscar && buscar.value).split(/\s+/).filter(Boolean);
+    filas.forEach(function(tr){
+      var texto = plano(tr.getAttribute('data-buscar') || tr.textContent);
+      var coincide = terminos.every(function(t){ return texto.indexOf(t) !== -1; });
+      tr.classList.toggle('oculta', !coincide);
+    });
+    pintar();
+  }
+  if (buscar) buscar.addEventListener('input', filtrar);
   if (todos) todos.addEventListener('change', function(){
-    cajas.forEach(function(c){ c.checked = todos.checked; });
+    cajasVisibles().forEach(function(c){ c.checked = todos.checked; });
     pintar();
   });
-  cajas.forEach(function(c){ c.addEventListener('change', pintar); });
+  document.querySelectorAll('input[name="nics"]').forEach(function(c){
+    c.addEventListener('change', pintar);
+  });
   var form = document.getElementById('formReenviar');
   if (form) form.addEventListener('submit', function(){
     if (enviar){ enviar.disabled = true; enviar.textContent = 'Enviando…'; }
