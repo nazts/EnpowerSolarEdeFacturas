@@ -88,13 +88,14 @@ def test_guardar_y_leer_la_cotizacion(db_path):
     assert [x["id"] for x in lista] == [nuevo_id]
 
 
-def test_el_numero_siguiente_avanza(db_path):
+def test_el_numero_sigue_desde_la_13(db_path):
+    """Ya habia 12 cotizaciones hechas fuera del panel: la proxima es la 13."""
     datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
     with db.sesion() as c:
         primero = db.siguiente_numero_cotizacion(c)
         db.guardar_cotizacion(c, {**datos, "numero": primero, "fecha": "2026-11-17"})
         segundo = db.siguiente_numero_cotizacion(c)
-    assert primero == "000001" and segundo == "000002"
+    assert primero == "000013" and segundo == "000014"
 
 
 # -------------------------------------------------------- módulos por usuario

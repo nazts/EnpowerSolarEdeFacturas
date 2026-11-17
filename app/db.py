@@ -371,9 +371,16 @@ DIAS_PAPELERA = 30
 
 
 # --------------------------------------------------------------- cotizaciones
+# Ya se hicieron 12 cotizaciones antes de este modulo: la proxima es la 13.
+NUMERO_INICIAL_COTIZACION = 12
+
+
 def siguiente_numero_cotizacion(conn) -> str:
-    fila = conn.execute("SELECT COUNT(*) AS n FROM cotizaciones").fetchone()
-    return f"{(int(fila['n']) if fila else 0) + 1:06d}"
+    """Numero correlativo: sigue desde el mayor guardado (o desde el 12 historico)."""
+    fila = conn.execute(
+        "SELECT MAX(CAST(numero AS INTEGER)) AS m FROM cotizaciones").fetchone()
+    ultimo = int(fila["m"]) if fila and fila["m"] else 0
+    return f"{max(ultimo, NUMERO_INICIAL_COTIZACION) + 1:06d}"
 
 
 def guardar_cotizacion(conn, datos: dict) -> int:

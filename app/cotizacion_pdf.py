@@ -7,8 +7,6 @@ Total DOP. La firma y el sello del coordinador NO se incluyen.
 """
 from __future__ import annotations
 
-from datetime import date
-
 from fpdf import FPDF
 
 AZUL = (31, 48, 95)          # azul marino del encabezado y las bandas
@@ -18,10 +16,10 @@ ROJO = (237, 28, 36)         # banda del total
 GRIS = (90, 90, 90)
 
 EMPRESA = {
-    "nombre": "GENPOWER SOLAR",
+    "nombre": "ENPOWER SOLAR",
     "ciudad": "SANTIAGO, REP. DOM.",
     "rnc": "RNC: 1-33-77201-9",
-    "correo": "info@genpowersolar.com.do",
+    "correo": "info@enpowersolarrd.com",
 }
 
 
@@ -70,6 +68,7 @@ def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
         limpios.append({
             "descripcion": str(item.get("descripcion") or "").strip(),
             "cantidad": cantidad, "precio": precio, "itbis_pct": tasa,
+            "itbis_monto": impuesto,
             "importe": round(base + impuesto, 2),
         })
     total = round(subtotal + itbis, 2)
@@ -79,11 +78,7 @@ def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
 
 
 class CotizacionPDF(FPDF):
-    def footer(self) -> None:
-        self.set_y(-15)
-        self.set_font("Helvetica", "", 8)
-        self.set_text_color(*GRIS)
-        self.cell(0, 6, _t(f"Genpower Solar · Cotización · página {self.page_no()}"), 0, 0, "C")
+    """Sin pie de página: el documento queda limpio para escribirlo a mano."""
 
 
 def generar(cot: dict) -> bytes:
@@ -148,8 +143,8 @@ def generar(cot: dict) -> bytes:
 
     # ------------------------------------------------ tabla de productos
     pdf.ln(4)
-    columnas = (("Descripción", 84, "L"), ("Cantidad", 22, "C"),
-                ("Precio Uni", 28, "R"), ("Itbis", 20, "C"), ("Importe", 32, "R"))
+    columnas = (("Descripción", 80, "L"), ("Cantidad", 20, "C"),
+                ("Precio Uni", 28, "R"), ("Itbis", 28, "R"), ("Importe", 30, "R"))
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_fill_color(*AZUL)
     pdf.set_text_color(255, 255, 255)
@@ -159,7 +154,7 @@ def generar(cot: dict) -> bytes:
 
     pdf.set_text_color(0, 0, 0)
     renglones = datos["items"] or [{"descripcion": "", "cantidad": "", "precio": "",
-                                    "itbis_pct": "", "importe": ""}]
+                                    "itbis_pct": "", "itbis_monto": "", "importe": ""}]
     for i, item in enumerate(renglones):
         alto = 7
         if pdf.get_y() > 250:                      # salto de pagina antes de cortar
@@ -175,14 +170,15 @@ def generar(cot: dict) -> bytes:
         pdf.set_fill_color(*CLARO)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_x(pdf.l_margin)
-        pdf.cell(84, alto, _t(item["descripcion"]), 0, 0, "L", fondo)
-        pdf.cell(22, alto, _t(f"{item['cantidad']:g}" if item["cantidad"] != "" else ""),
+        pdf.cell(80, alto, _t(item["descripcion"]), 0, 0, "L", fondo)
+        pdf.cell(20, alto, _t(f"{item['cantidad']:g}" if item["cantidad"] != "" else ""),
                  0, 0, "C", fondo)
         pdf.cell(28, alto, _t(_dinero(item["precio"]) if item["precio"] != "" else ""),
                  0, 0, "R", fondo)
-        pdf.cell(20, alto, _t(f"{item['itbis_pct']:g}%" if item["itbis_pct"] != "" else ""),
-                 0, 0, "C", fondo)
-        pdf.cell(32, alto, _t(_dinero(item["importe"]) if item["importe"] != "" else ""),
+        # Itbis en dinero (el porcentaje se aplica al calcular)
+        pdf.cell(28, alto, _t(_dinero(item["itbis_monto"]) if item["itbis_monto"] != "" else ""),
+                 0, 0, "R", fondo)
+        pdf.cell(30, alto, _t(_dinero(item["importe"]) if item["importe"] != "" else ""),
                  0, 0, "R", fondo)
         pdf.ln()
 
@@ -195,35 +191,21 @@ def generar(cot: dict) -> bytes:
             pdf.cell(ancho, 7, "", 0, 0, alineacion, fondo)
         pdf.ln()
 
-    # ------------------------------------------------ totales
-    pdf.ln(3)
-    x_totales = 130
-    pdf.set_font("Helvetica", "B", 10)
+    # ------------------------------------------------ totales (sin color, con margen)
+    pdf.ln(4)
+    ancho_total = 86
+    x_totales = pdf.w - pdf.r_margin - ancho_total - 4      # 4 mm de aire al borde
+    pdf.set_draw_color(200, 200, 200)
+    for etiqueta, valor, fuerte in (("Sub. Total", datos["subtotal"], False),
+                                    ("Itbis", datos["itbis"], False),
+                                    ("Total DOP", datos["total"], True)):
+        pdf.set_x(x_totales)
+        pdf.set_font("Helvetica", "B", 10 if fuerte else 9.5)
+        pdf.cell(44, 7, _t(etiqueta), 0, 0, "R")
+        pdf.set_font("Helvetica", "B" if fuerte else "", 10 if fuerte else 9.5)
+        pdf.cell(30, 7, _t(_dinero(valor)), 0, 1, "R")
     pdf.set_x(x_totales)
-    pdf.cell(40, 7, _t("Sub. Total"), 0, 0, "R")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(40, 7, _t(_dinero(datos["subtotal"])), 0, 1, "R")
-
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.set_x(x_totales)
-    pdf.cell(40, 7, _t("Itbis"), 0, 0, "R")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(40, 7, _t(_dinero(datos["itbis"])), 0, 1, "R")
-
-    pdf.set_x(x_totales)
-    pdf.set_fill_color(*ROJO)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(40, 7, _t("Total DOP"), 0, 0, "R", True)
-    pdf.cell(40, 7, _t(_dinero(datos["total"])), 0, 1, "R", True)
-    pdf.set_text_color(0, 0, 0)
-
-    if datos["comision_pct"]:
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(*GRIS)
-        pdf.cell(0, 6, _t(f"Comisión {datos['comision_pct']:g}%: {_dinero(datos['comision'])}"),
-                 0, 1, "R")
+    pdf.cell(ancho_total, 0, "", "T", 1, "R")
 
     if cot.get("notas"):
         pdf.ln(6)
@@ -234,10 +216,5 @@ def generar(cot: dict) -> bytes:
         pdf.set_font("Helvetica", "", 9)
         pdf.multi_cell(0, 5.5, _t(cot["notas"]), 0, "L")
 
-    pdf.ln(14)
-    pdf.set_font("Helvetica", "", 8)
-    pdf.set_text_color(*GRIS)
-    pdf.cell(0, 5, _t(f"Documento generado el {date.today().strftime('%d/%m/%Y')} · "
-                      "válido por 15 días"), 0, 1, "C")
-
+    # el resto de la hoja queda en blanco, para completarlo a mano si hace falta
     return bytes(pdf.output())
