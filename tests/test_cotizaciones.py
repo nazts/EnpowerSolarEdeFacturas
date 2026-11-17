@@ -82,7 +82,7 @@ def test_guardar_y_leer_la_cotizacion(db_path):
         lista = db.lista_cotizaciones(c)
 
     assert cot is not None
-    assert cot["numero"] == "000001"
+    assert cot["numero"] == numero == "000013"
     assert cot["total"] == datos["total"]
     assert cot["items"][0]["descripcion"] == "Panel solar 590W"
     assert [x["id"] for x in lista] == [nuevo_id]
