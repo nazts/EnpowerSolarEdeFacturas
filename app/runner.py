@@ -207,6 +207,29 @@ def _fecha_legible(iso: str | None) -> str:
         return iso
 
 
+def _corte_equivalente(corte_factura: str | None, objetivos, dias: int = 3) -> str | None:
+    """El corte del PDF puede caer 1-3 dias antes del dia de corte del cliente.
+
+    Edesur cierra el periodo un dia antes y Edenorte emite 1-3 dias despues: si
+    se exige igualdad exacta, la factura se descarta para siempre y el pendiente
+    se queda acumulando intentos. Devuelve el corte objetivo que le corresponde.
+    """
+    if not corte_factura:
+        return None
+    try:
+        cf = date.fromisoformat(str(corte_factura)[:10])
+    except ValueError:
+        return None
+    for objetivo in objetivos or ():
+        try:
+            co = date.fromisoformat(str(objetivo)[:10])
+        except ValueError:
+            continue
+        if abs((cf - co).days) <= dias:
+            return objetivo
+    return None
+
+
 def _fila_mensaje(conn, nic: str, d: dict | None = None) -> dict:
     """Datos del cliente que necesita el pie del mensaje (alias, asesor, ref)."""
     d = d or {}
@@ -440,7 +463,9 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                         db.log_evento(conn, "error", f"No se pudo leer el PDF {fila.ref_pago}", str(exc))
                         continue
 
-                if datos.corte not in cortes:
+                objetivo = (datos.corte if datos.corte in cortes
+                            else _corte_equivalente(datos.corte, cortes))
+                if objetivo is None:
                     res.descartadas.append({"nic": nic, "ref_pago": fila.ref_pago,
                                             "corte": datos.corte, "motivo": "corte distinto"})
                     # el archivo se guarda igual: es una factura real del cliente
@@ -499,8 +524,8 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                                    razon_social=razon_social or (datos.titular or ""),
 
                                    dia_corte=int(datos.corte[-2:]))
-                db.cerrar_pendiente(conn, nic, datos.corte)
-                encontrado_por_corte.add(datos.corte)
+                db.cerrar_pendiente(conn, nic, objetivo)
+                encontrado_por_corte.add(objetivo)
                 res.descargadas.append({
                     "id": id_guardado,
                     "nic": nic,
@@ -531,9 +556,15 @@ def corrida(fecha: date | None = None, enviar: bool = True,
 
         # 5. envio: solo las facturas cuyo corte es el de la corrida, en un album
         cortes_objetivo = {(nic, fc) for nic, cs in objetivos.items() for fc in cs}
-        enviables = [d for d in res.descargadas
-                     if (d["nic"], d["corte"]) in cortes_objetivo
-                     and not db.factura_ya_enviada(conn, d["ref_pago"])]
+        enviables = []
+        for d in res.descargadas:
+            objetivos_nic = [fc for (n, fc) in cortes_objetivo if n == d["nic"]]
+            if (d["corte"] not in objetivos_nic
+                    and _corte_equivalente(d["corte"], objetivos_nic) is None):
+                continue
+            if db.factura_ya_enviada(conn, d["ref_pago"]):
+                continue
+            enviables.append(d)
         fuera = [d for d in res.descargadas if d not in enviables]
         for d in fuera:
             db.log_evento(conn, "aviso", "Factura no enviada: su corte no es el de la corrida",

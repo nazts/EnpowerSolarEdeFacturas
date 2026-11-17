@@ -120,9 +120,12 @@ def test_la_factura_descartada_conserva_su_pdf(contrato, leer_pdf, tmp_path):
     """
     with db.sesion(db_path=contrato) as c:                   # el cliente corta el 17
         db.upsert_contrato(c, NIC, razon_social="X", dia_corte=17)
-    p = portal(filas=[fila()], pdfs={REF: _texto_factura("16/09/2026").encode("latin-1")})
+    pdf = _texto_factura("05/09/2026").encode("latin-1")      # 12 dias antes del corte
+    p = portal(filas=[FacturaRef(nic=NIC, ref_pago=REF, cliente="",
+                                 tipo="Recibos de consumos", emision="05/09/2026")],
+               pdfs={REF: pdf})
 
-    r = runner.corrida(D1, enviar=False, cliente=p)           # hoy 17, la factura es 16
+    r = runner.corrida(D1, enviar=False, cliente=p)           # hoy 17, la factura es del 5
 
     assert r.descartadas and r.descartadas[0]["motivo"] == "corte distinto"
     with db.sesion(db_path=contrato) as c:
@@ -931,3 +934,52 @@ def test_el_pie_sin_alias_usa_la_razon_social(contrato):
     assert lineas[1] == "Titular de pago: JORGE RAMON DE LA CRUZ TAVAREZ"
     assert lineas[3] == "Referencia o alias: 6997885045"
     assert "Asesor:" not in "\n".join(lineas)          # sin asesor no se inventa la linea
+
+
+# ------------------------- el corte del PDF no siempre cae el dia del cliente
+def test_el_corte_del_pdf_un_dia_antes_no_descarta_la_factura(contrato, leer_pdf):
+    """Caso real Edesur 2136559: el cliente corta el 13 y el PDF dice 12.
+
+    Antes la factura se descartaba para siempre y el pendiente del 13 seguia
+    acumulando intentos cada corrida.
+    """
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="X", dia_corte=13)
+
+    pdf = _texto_factura("12/09/2026").encode("latin-1")      # corte 12/09
+    p = portal(filas=[FacturaRef(nic=NIC, ref_pago="999", cliente="",
+                                 tipo="Recibos de consumos", emision="12/09/2026")],
+               pdfs={"999": pdf})
+
+    r = runner.corrida(date(2026, 9, 13), enviar=False, cliente=p)   # dia de corte: 13
+
+    assert len(r.descargadas) == 1                    # se acepta como la del corte
+    assert r.descargadas[0]["corte"] == "2026-09-12"
+    assert r.descartadas == []
+    assert pend(contrato) == []                       # no queda pendiente abierto
+
+
+def test_un_corte_muy_lejano_sigue_descartandose(contrato, leer_pdf):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="X", dia_corte=13)
+
+    pdf = _texto_factura("20/07/2026").encode("latin-1")      # dos meses antes
+    p = portal(filas=[FacturaRef(nic=NIC, ref_pago="998", cliente="",
+                                 tipo="Recibos de consumos", emision="20/07/2026")],
+               pdfs={"998": pdf})
+
+    r = runner.corrida(date(2026, 9, 13), enviar=False, cliente=p)
+
+    assert r.descargadas == []
+    assert r.descartadas and r.descartadas[0]["motivo"] == "corte distinto"
+
+
+@pytest.mark.parametrize("corte,objetivo,esperado", [
+    ("2026-11-12", "2026-11-13", "2026-11-13"),      # un dia antes
+    ("2026-11-15", "2026-11-13", "2026-11-13"),      # un dia despues
+    ("2026-11-13", "2026-11-13", "2026-11-13"),      # exacto
+    ("2026-09-12", "2026-11-13", None),              # otro mes
+    (None, "2026-11-13", None),
+])
+def test_corte_equivalente(corte, objetivo, esperado):
+    assert runner._corte_equivalente(corte, [objetivo]) == esperado
