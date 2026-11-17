@@ -900,3 +900,34 @@ def test_la_factura_sin_pdf_se_reintenta_y_se_completa(contrato, leer_pdf):
                          (ref,)).fetchone()
         assert db.facturas_sin_pdf(c, NIC) == []
     assert fila["estado"] == "descargada" and fila["corte"] == "2026-07-21"
+
+
+# ------------------------------------------- formato del pie que va a Telegram
+def test_el_pie_del_mensaje_tiene_los_campos_pedidos(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON",
+                           alias="TALLER VALLE VERDE", asesor="Steven Lora")
+        datos = runner._fila_mensaje(c, NIC, {"ref_pago": "6997885045", "facturado": 243.31})
+
+    texto = runner._caption("2026-11-13", [datos], [])
+
+    assert texto.splitlines() == [
+        "NIC 6997885",
+        "Titular de pago: TALLER VALLE VERDE",
+        "Razón social: JORGE RAMON DE LA CRUZ TAVAREZ",
+        "Referencia o alias: 6997885045",
+        "Asesor: Steven Lora",
+        "Pagar: RD$243.31",
+    ]
+
+
+def test_el_pie_sin_alias_usa_la_razon_social(contrato):
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON")
+        datos = runner._fila_mensaje(c, NIC, {"ref_pago": "6997885045", "facturado": 100.0})
+
+    lineas = runner._caption("2026-11-13", [datos], []).splitlines()
+
+    assert lineas[1] == "Titular de pago: JORGE RAMON DE LA CRUZ TAVAREZ"
+    assert lineas[3] == "Referencia o alias: 6997885045"
+    assert "Asesor:" not in "\n".join(lineas)          # sin asesor no se inventa la linea

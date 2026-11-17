@@ -207,23 +207,39 @@ def _fecha_legible(iso: str | None) -> str:
         return iso
 
 
-def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
-    """Solo lo que pide el cliente: NIC, nombre normalizado, a pagar y asesor.
+def _fila_mensaje(conn, nic: str, d: dict | None = None) -> dict:
+    """Datos del cliente que necesita el pie del mensaje (alias, asesor, ref)."""
+    d = d or {}
+    return {
+        "nic": str(nic),
+        "razon_social": _razon_social(conn, nic),
+        "alias": _campo(conn, nic, "alias"),
+        "asesor": _campo(conn, nic, "asesor"),
+        "ref_pago": d.get("ref_pago") or "",
+        "facturado": d.get("facturado"),
+        "vence": d.get("vence"),
+    }
 
-    La fecha (vencimiento) se agrega unicamente si la factura la trae.
+
+def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
+    """Pie del mensaje de cada factura, en el orden que pidio el cliente:
+
+    NIC / Titular de pago / Razon social / Referencia o alias / Asesor / Pagar
     """
     bloques = []
     for f in nuevas:
-        nombre = naming.normalizar_razon_social(f.get("razon_social") or "")
+        razon = naming.normalizar_razon_social(f.get("razon_social") or "")
+        alias = str(f.get("alias") or "").strip()
+        referencia = str(f.get("ref_pago") or "").strip() or alias
         # parse_mode=HTML: un nombre con <, > o & haria fallar el envio
-        lineas = [f"NIC {f['nic']} · {_html.escape(nombre)}"]
-        monto = f"{f['facturado']:,.2f}" if f.get("facturado") is not None else "s/d"
-        lineas.append(f"Pagar: RD${monto}")
+        lineas = [f"NIC {f['nic']}"]
+        lineas.append(f"Titular de pago: {_html.escape(alias or razon or '—')}")
+        lineas.append(f"Razón social: {_html.escape(razon or '—')}")
+        lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
         if f.get("asesor"):
             lineas.append(f"Asesor: {_html.escape(str(f['asesor']))}")
-        vence = _fecha_legible(f.get("vence"))
-        if vence:
-            lineas.append(f"Vence: {vence}")
+        monto = f"{f['facturado']:,.2f}" if f.get("facturado") is not None else "s/d"
+        lineas.append(f"Pagar: RD${monto}")
         bloques.append("\n".join(lineas))
     return "\n\n".join(bloques)
 
@@ -524,7 +540,8 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                           f"NIC {d['nic']} corte {d['corte']}")
 
         if enviar and enviables:
-            texto = _caption(fiso, enviables, res.pendientes)
+            texto = _caption(fiso, [_fila_mensaje(conn, d["nic"], d) for d in enviables],
+                             res.pendientes)
             try:
                 mensajes = telegram.enviar_album([d["path"] for d in enviables],
                                                  caption=texto, chat_id=chat_id)
@@ -754,10 +771,8 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                     continue
 
                 texto = _caption(fecha.isoformat(), [
-                    {"nic": p["nic"], "razon_social": _razon_social(conn, p["nic"]),
-                     "alias": _campo(conn, p["nic"], "alias"),
-                     "asesor": _campo(conn, p["nic"], "asesor"),
-                     "corte": p["corte"], "vence": _vence(conn, p["nic"], p["corte"]),
+                    {**_fila_mensaje(conn, p["nic"], p),
+                     "vence": _vence(conn, p["nic"], p["corte"]),
                      "facturado": _monto(conn, p["nic"], p["corte"])}], [])
                 try:
                     respuesta = telegram.enviar_documento(ruta, caption=texto, chat_id=chat_id)
