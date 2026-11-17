@@ -268,22 +268,18 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
     for f in nuevas:
         razon = naming.normalizar_razon_social(f.get("razon_social") or "")
         alias = " ".join(str(f.get("alias") or "").split())
-        proveedor = str(f.get("proveedor") or "edenorte").lower()
         # "Referencia o alias": el pagador/alias del cliente, si no hay, el titular
         referencia = alias or razon
         # parse_mode=HTML: un nombre con <, > o & haria fallar el envio
+        # «Titular de pago» es el campo del cliente (quien paga el proyecto), asi
+        # que va en los dos proveedores. Si esta vacio se usa el nombre de la
+        # factura para no dejar la linea en blanco.
+        titular_pago = (str(f.get("titular_pago") or "").strip()
+                        or limpiar_titular(f.get("cliente")) or razon or alias)
         lineas = [f"NIC {f['nic']}"]
-        if proveedor == "edesur":
-            # Edesur no lleva "Titular de pago": el nombre va en referencia/alias
-            lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
-            lineas.append(f"Razón social: {_html.escape(razon or '—')}")
-        else:
-            # Edenorte: el nombre que trae la factura (no el codigo de referencia)
-            titular_pago = (str(f.get("titular_pago") or "").strip()
-                            or limpiar_titular(f.get("cliente")) or razon or alias)
-            lineas.append(f"Titular de pago: {_html.escape(titular_pago or '—')}")
-            lineas.append(f"Razón social: {_html.escape(razon or '—')}")
-            lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
+        lineas.append(f"Titular de pago: {_html.escape(titular_pago or '—')}")
+        lineas.append(f"Razón social: {_html.escape(razon or '—')}")
+        lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
         asesor = " ".join(str(f.get("asesor") or "").split())
         if asesor:
             lineas.append(f"Asesor: {_html.escape(asesor)}")

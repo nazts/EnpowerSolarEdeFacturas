@@ -1016,12 +1016,12 @@ def test_el_pie_de_edesur_no_lleva_titular_de_pago(contrato):
 
     assert lineas == [
         "NIC 6997885",
-        "Referencia o alias: Carlos Nouel (Negocio)",
+        "Titular de pago: AGENCIA TECNICA ADUANAL CARLOS NOUEL &amp; ASOCIADOS SRL",
         "Razón social: AGENCIA TECNICA ADUANAL CARLOS NOUEL &amp; ASOCIADOS SRL",
+        "Referencia o alias: Carlos Nouel (Negocio)",
         "Asesor: Jose Amaury Tavarez",
         "Pagar: RD$25,422.90",
     ]
-    assert not any(linea.startswith("Titular de pago") for linea in lineas)
 
 
 def test_el_mensaje_no_lleva_numeros_de_intentos(contrato):
