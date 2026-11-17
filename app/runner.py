@@ -266,7 +266,7 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
     bloques = []
     for f in nuevas:
         razon = naming.normalizar_razon_social(f.get("razon_social") or "")
-        alias = str(f.get("alias") or "").strip()
+        alias = " ".join(str(f.get("alias") or "").split())
         proveedor = str(f.get("proveedor") or "edenorte").lower()
         # "Referencia o alias": el pagador/alias del cliente, si no hay, el titular
         referencia = alias or razon
@@ -278,25 +278,18 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
             lineas.append(f"Razón social: {_html.escape(razon or '—')}")
         else:
             # Edenorte: el nombre que trae la factura (no el codigo de referencia)
-            titular_pago = str(f.get("cliente") or "").strip() or razon or alias
+            titular_pago = (" ".join(str(f.get("cliente") or "").split())
+                            or razon or alias)
             lineas.append(f"Titular de pago: {_html.escape(titular_pago or '—')}")
             lineas.append(f"Razón social: {_html.escape(razon or '—')}")
             lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
-        if f.get("asesor"):
-            lineas.append(f"Asesor: {_html.escape(str(f['asesor']))}")
+        asesor = " ".join(str(f.get("asesor") or "").split())
+        if asesor:
+            lineas.append(f"Asesor: {_html.escape(asesor)}")
         monto = f"{f['facturado']:,.2f}" if f.get("facturado") is not None else "s/d"
         lineas.append(f"Pagar: RD${monto}")
         bloques.append("\n".join(lineas))
     return "\n\n".join(bloques)
-
-
-def _caption_pendientes(pendientes: list[dict]) -> str:
-    """Aviso aparte para lo que corto y no esta publicado."""
-    lineas = ["Pendientes (cortaron y aun no estan en el portal):"]
-    for p in pendientes:
-        lineas.append(f"NIC {p['nic']} · corte {_fecha_legible(p['fecha_corte'])} · "
-                      f"intento {p['intentos']}")
-    return "\n".join(lineas)
 
 
 # --------------------------------------------------------------------- corrida

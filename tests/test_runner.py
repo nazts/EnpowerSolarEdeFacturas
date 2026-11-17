@@ -1022,3 +1022,21 @@ def test_el_pie_de_edesur_no_lleva_titular_de_pago(contrato):
         "Pagar: RD$25,422.90",
     ]
     assert not any(linea.startswith("Titular de pago") for linea in lineas)
+
+
+def test_el_mensaje_no_lleva_numeros_de_intentos(contrato):
+    """El pie que va al grupo no debe mencionar intentos ni pendientes.
+
+    Antes existia un texto aparte que listaba «NIC ... · corte ... · intento N»
+    y se colaba en el grupo. Se elimino: el mensaje solo lleva datos de la factura.
+    """
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="DE LA CRUZ TAVAREZ, JORGE RAMON",
+                           asesor="Steven Lora")
+        datos = runner._fila_mensaje(c, NIC, {"ref_pago": REF, "facturado": 100.0})
+
+    texto = runner._caption("2026-11-13", [datos], [{"nic": NIC, "intentos": 13}])
+
+    assert "intento" not in texto.lower()
+    assert "pendiente" not in texto.lower()
+    assert not hasattr(runner, "_caption_pendientes")     # ya no existe la funcion
