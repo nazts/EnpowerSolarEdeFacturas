@@ -912,13 +912,14 @@ def test_el_pie_del_mensaje_tiene_los_campos_pedidos(contrato):
                            alias="TALLER VALLE VERDE", asesor="Steven Lora")
         datos = runner._fila_mensaje(c, NIC, {"ref_pago": "6997885045", "facturado": 243.31})
 
+    datos["cliente"] = "JORGE RAMON DE LA CRUZ TAVAREZ"       # nombre que trae la factura
     texto = runner._caption("2026-11-13", [datos], [])
 
     assert texto.splitlines() == [
         "NIC 6997885",
-        "Titular de pago: TALLER VALLE VERDE",
+        "Titular de pago: JORGE RAMON DE LA CRUZ TAVAREZ",
         "Razón social: JORGE RAMON DE LA CRUZ TAVAREZ",
-        "Referencia o alias: 6997885045",
+        "Referencia o alias: TALLER VALLE VERDE",
         "Asesor: Steven Lora",
         "Pagar: RD$243.31",
     ]
@@ -932,7 +933,7 @@ def test_el_pie_sin_alias_usa_la_razon_social(contrato):
     lineas = runner._caption("2026-11-13", [datos], []).splitlines()
 
     assert lineas[1] == "Titular de pago: JORGE RAMON DE LA CRUZ TAVAREZ"
-    assert lineas[3] == "Referencia o alias: 6997885045"
+    assert lineas[3] == "Referencia o alias: JORGE RAMON DE LA CRUZ TAVAREZ"
     assert "Asesor:" not in "\n".join(lineas)          # sin asesor no se inventa la linea
 
 
@@ -1000,3 +1001,24 @@ def test_una_factura_del_mes_del_corte_se_acepta_aunque_el_dia_no_coincida(contr
     assert [d["corte"] for d in r.descargadas] == ["2026-09-05"]
     assert r.descartadas == []
     assert pend(contrato) == []
+
+
+def test_el_pie_de_edesur_no_lleva_titular_de_pago(contrato):
+    """Edesur: el nombre del pagador va en «Referencia o alias», sin Titular."""
+    with db.sesion(db_path=contrato) as c:
+        db.upsert_contrato(c, NIC, razon_social="AGENCIA TECNICA ADUANAL CARLOS NOUEL & ASOCIADOS SRL",
+                           alias="Carlos Nouel (Negocio)", asesor="Jose Amaury Tavarez",
+                           proveedor="edesur")
+        datos = runner._fila_mensaje(c, NIC, {"ref_pago": "2136559092026111200",
+                                              "facturado": 25422.9})
+
+    lineas = runner._caption("2026-11-13", [datos], []).splitlines()
+
+    assert lineas == [
+        "NIC 6997885",
+        "Referencia o alias: Carlos Nouel (Negocio)",
+        "Razón social: AGENCIA TECNICA ADUANAL CARLOS NOUEL &amp; ASOCIADOS SRL",
+        "Asesor: Jose Amaury Tavarez",
+        "Pagar: RD$25,422.90",
+    ]
+    assert not any(linea.startswith("Titular de pago") for linea in lineas)

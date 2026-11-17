@@ -235,10 +235,20 @@ def _corte_equivalente(corte_factura: str | None, objetivos, dias: int = 3) -> s
 
 
 def _fila_mensaje(conn, nic: str, d: dict | None = None) -> dict:
-    """Datos del cliente que necesita el pie del mensaje (alias, asesor, ref)."""
+    """Datos del cliente que necesita el pie del mensaje (alias, asesor, titular)."""
     d = d or {}
+    fila = conn.execute("SELECT COALESCE(proveedor, 'edenorte') AS p FROM contratos"
+                        " WHERE nic = ?", (str(nic),)).fetchone()
+    proveedor = (fila["p"] if fila else "edenorte") or "edenorte"
+    cliente = d.get("cliente") or ""
+    if not cliente:                     # el nombre que trae la factura
+        f2 = conn.execute("SELECT cliente FROM facturas WHERE ref_pago = ?",
+                          (str(d.get("ref_pago") or ""),)).fetchone()
+        cliente = (f2["cliente"] if f2 else "") or ""
     return {
         "nic": str(nic),
+        "proveedor": proveedor.lower(),
+        "cliente": cliente,
         "razon_social": _razon_social(conn, nic),
         "alias": _campo(conn, nic, "alias"),
         "asesor": _campo(conn, nic, "asesor"),
@@ -257,12 +267,21 @@ def _caption(fecha: str, nuevas: list[dict], pendientes: list[dict]) -> str:
     for f in nuevas:
         razon = naming.normalizar_razon_social(f.get("razon_social") or "")
         alias = str(f.get("alias") or "").strip()
-        referencia = str(f.get("ref_pago") or "").strip() or alias
+        proveedor = str(f.get("proveedor") or "edenorte").lower()
+        # "Referencia o alias": el pagador/alias del cliente, si no hay, el titular
+        referencia = alias or razon
         # parse_mode=HTML: un nombre con <, > o & haria fallar el envio
         lineas = [f"NIC {f['nic']}"]
-        lineas.append(f"Titular de pago: {_html.escape(alias or razon or '—')}")
-        lineas.append(f"Razón social: {_html.escape(razon or '—')}")
-        lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
+        if proveedor == "edesur":
+            # Edesur no lleva "Titular de pago": el nombre va en referencia/alias
+            lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
+            lineas.append(f"Razón social: {_html.escape(razon or '—')}")
+        else:
+            # Edenorte: el nombre que trae la factura (no el codigo de referencia)
+            titular_pago = str(f.get("cliente") or "").strip() or razon or alias
+            lineas.append(f"Titular de pago: {_html.escape(titular_pago or '—')}")
+            lineas.append(f"Razón social: {_html.escape(razon or '—')}")
+            lineas.append(f"Referencia o alias: {_html.escape(referencia or '—')}")
         if f.get("asesor"):
             lineas.append(f"Asesor: {_html.escape(str(f['asesor']))}")
         monto = f"{f['facturado']:,.2f}" if f.get("facturado") is not None else "s/d"
