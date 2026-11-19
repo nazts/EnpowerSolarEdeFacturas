@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import time
 from datetime import datetime
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from urllib.parse import quote
@@ -52,8 +53,17 @@ def _coordenadas(texto: str | None) -> tuple[float | None, float | None]:
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.auto_reload = True  # recarga plantillas sin reiniciar el servidor
 
-app = FastAPI(title="Enpower Solar — Facturas Edenorte",
+@asynccontextmanager
+async def _ciclo(_app):
+    """Al arrancar el panel enciende el reloj interno de la corrida diaria."""
+    from . import agenda
+    agenda.arrancar()
+    yield
+
+
+app = FastAPI(title="Enpower Solar — Facturas Edenorte", lifespan=_ciclo,
               docs_url=None, redoc_url=None, openapi_url=None)
+
 
 PUBLICAS = ("/login", "/static", "/favicon.ico")
 COOKIE = "sesion"
@@ -112,6 +122,33 @@ def _coincide(fila, terminos: list[str]) -> bool:
     pajar = " ".join(_normalizar_busqueda(fila.get(c)) for c in campos) \
         if hasattr(fila, "get") else " ".join(_normalizar_busqueda(fila[c]) for c in campos)
     return all(t in pajar for t in terminos)
+
+
+def conviene_buscar(conn, nic: str, minutos: int = 1) -> bool:
+    """True si hay que consultar el portal al abrir la ficha.
+
+    Solo se salta si se consulto hace menos de `minutos`: eso evita que un
+    par de recargas disparen dos veces la misma busqueda. La corrida diaria de
+    las 07:00 ya no bloquea la busqueda de la ficha (antes esperaba 2 horas).
+    """
+    filas = conn.execute(
+        "SELECT MAX(CAST(fecha AS TEXT)) AS u FROM eventos"
+        " WHERE mensaje IN (?, ?) AND mensaje LIKE ?",
+        ("Historico revisado NIC " + nic, "Revisado NIC " + nic, "%NIC " + nic)).fetchone()
+    ultimo = (filas["u"] if filas else None) if hasattr(filas, "__getitem__") else None
+    historico = conn.execute(
+        "SELECT COUNT(*) AS n FROM facturas WHERE nic = ?", (nic,)).fetchone()
+    hay = int((historico["n"] if historico else 0) or 0)
+    if not hay:
+        return True
+    if not ultimo:
+        return True
+    from datetime import datetime as _dt, timedelta as _td
+    try:
+        cuando = _dt.fromisoformat(str(ultimo)[:19])
+    except ValueError:
+        return True
+    return (_dt.now() - cuando) >= _td(minutes=max(minutos, 0))
 
 
 def _pdf_disponible(fila) -> bool:
@@ -1030,6 +1067,10 @@ def cliente_detalle(request: Request, nic: str):
         sin_pdf = [dict(f) for f in db.facturas_sin_pdf(conn, nic)]
         pendientes = [dict(p) for p in db.pendientes_abiertos(conn) if str(p["nic"]) == nic]
         proyectos = [dict(p) for p in db.listar_proyectos(conn, nic)]
+        quien = usuario_actual(request)
+        auto_buscar = (bool(quien and quien.puede_operar)
+                       and not request.query_params.get("auto")
+                       and conviene_buscar(conn, nic))
     datos = dict(contrato)
     datos["proximo_corte"] = proximo_corte(datos.get("dia_corte"))
     datos["dias_corte"] = dias_para_corte(datos.get("dia_corte"))
@@ -1037,7 +1078,7 @@ def cliente_detalle(request: Request, nic: str):
     return templates.TemplateResponse(request, "cliente_detalle.html", {
         "cliente": datos, "historico": historico, "pendientes": pendientes,
         "total_facturado": total, "activo": "clientes", "proyectos": proyectos,
-        "sin_pdf": sin_pdf,
+        "sin_pdf": sin_pdf, "auto_buscar": auto_buscar,
     })
 
 

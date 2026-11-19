@@ -184,6 +184,8 @@ del PDF), crea `.venv`, instala dependencias, prepara `.env` (desde
 | `enpower-panel` | el panel; arranca con el sistema y se reinicia si se cae |
 | `enpower-runner.timer` | dispara la descarga todos los días a las **07:00 hora de RD** (la zona va en el timer) |
 
+> **Reloj interno del panel:** además del timer, el panel lleva su propio reloj (`app/agenda.py`). Si a las 07:00 no hubo corrida —PC apagada, distro dormida, timer caído— la lanza él mismo mientras el servicio esté arriba, con hasta 4 intentos cada 45 minutos. Los PDF ya enviados no se repiten: la corrida se salta lo que está marcado como enviado en la base. Para apagarlo: `ENPOWER_AGENDA=0` en el `.env` del servicio.
+
 Opciones:
 
 ```bash

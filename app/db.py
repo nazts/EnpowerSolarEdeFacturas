@@ -813,8 +813,10 @@ def log_evento(conn: sqlite3.Connection, nivel: str, mensaje: str, detalle: str 
                usuario: str | None = None) -> None:
     """Anota un movimiento. Sin `usuario` se usa el de la peticion en curso."""
     quien = usuario if usuario is not None else usuario_en_curso.get()
-    conn.execute("INSERT INTO eventos (nivel, mensaje, detalle, usuario) VALUES (?,?,?,?)",
-                 (nivel, mensaje, detalle, (quien or "")[:60]))
+    # la fecha va explicita: el DEFAULT del motor es UTC y descuadraba 4 horas
+    conn.execute("INSERT INTO eventos (nivel, mensaje, detalle, usuario, fecha)"
+                 " VALUES (?,?,?,?,?)",
+                 (nivel, mensaje, detalle, (quien or "")[:60], ahora()))
     conn.commit()
 
 

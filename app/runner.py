@@ -150,6 +150,7 @@ def es_consumo(tipo: str) -> bool:
 class Resultado:
     fecha: str
     descargadas: list[dict] = field(default_factory=list)
+    enviadas: list[dict] = field(default_factory=list)
     pendientes: list[dict] = field(default_factory=list)
     descartadas: list[dict] = field(default_factory=list)
     portal_error: str | None = None
@@ -161,6 +162,7 @@ class Resultado:
         return {
             "fecha": self.fecha,
             "descargadas": self.descargadas,
+            "enviadas": self.enviadas,
             "pendientes": self.pendientes,
             "descartadas": self.descartadas,
             "portal_error": self.portal_error,
@@ -299,6 +301,8 @@ def corrida(fecha: date | None = None, enviar: bool = True,
     fecha = fecha or date.today()
     fiso = fecha.isoformat()
     res = Resultado(fecha=fiso)
+    with db.sesion() as conn:
+        db.log_evento(conn, "info", "Corrida diaria", f"fecha={fiso}")
     propios = portales is None
     if propios:
         portales = {"edenorte": cliente or EdenorteClient()}
@@ -600,6 +604,7 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                 # solo las que de verdad fueron en el album (no todo el dia)
                 db.marcar_enviadas(conn, [d["id"] for d in enviables if d.get("id")],
                                    chat_id or config.TELEGRAM_CHAT_ID, detalles=detalles)
+                res.enviadas = list(enviables)
                 # los PDFs ya estan en Telegram: se borran del servidor
                 for d in enviables:
                     _borrar_pdf(Path(d["path"]))
@@ -624,6 +629,10 @@ def corrida(fecha: date | None = None, enviar: bool = True,
         except Exception as exc:  # noqa: BLE001 - el historico no tumba la corrida
             res.historico = {"errores": [str(exc)[:200]], "nuevos": [], "enviados": 0}
 
+    with db.sesion() as conn:
+        db.log_evento(conn, "info", "Corrida diaria terminada",
+                      f"fecha={fiso} enviadas={len(res.enviadas)} "
+                      f"pendientes={len(res.pendientes)}")
     return res
 
 

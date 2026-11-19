@@ -127,6 +127,10 @@
 </style>
 {% endblock %}
 {% block contenido %}
+<style>
+  @keyframes girar{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){.girador{animation:none !important}}
+</style>
 <header>
   <h1>Histórico del cliente</h1>
   <nav class="acciones" aria-label="Navegación">
@@ -354,6 +358,16 @@
   {% endif %}
 
   <section>
+    {% if auto_buscar %}
+    <div class="cuerpo" id="autoBuscar" data-nic="{{ cliente.nic }}"
+         style="border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;
+                font-size:13px;color:var(--muted)">
+      <span class="girador" aria-hidden="true"
+            style="width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);
+                   border-radius:50%;display:inline-block;animation:girar .8s linear infinite"></span>
+      <span id="autoTexto">Buscando las facturas en el portal…</span>
+    </div>
+    {% endif %}
     <h2>Histórico de facturas ({{ historico|length }})
       <button type="button" class="mini btn" id="btnFacturas" style="margin-left:10px">
         <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Buscar facturas</button></h2>
@@ -444,6 +458,24 @@
     }catch(e){ if(window.toast) toast('No se pudo conectar con el servidor', false); }
     finally{ bf.disabled = false; bf.innerHTML = txt; }
   });
+})();
+(function(){
+  var caja = document.getElementById('autoBuscar');
+  if(!caja) return;
+  var nic = caja.dataset.nic || '';
+  var texto = document.getElementById('autoTexto');
+  // sin candado de sesión: el servidor decide (1 minuto) para no repetir de más
+  var fd = new FormData(); fd.append('nic', nic); fd.append('enviar', '0');
+  fetch('/api/historial', {method:'POST', body: fd})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d.ok){ if(texto) texto.textContent = 'No se pudo buscar ahora: ' + (d.error || 'error');
+                 if(window.toast) toast(d.error || 'No se pudo buscar las facturas', false); return; }
+      if(d.nuevos > 0){ location.replace(location.pathname + '?auto=1'); return; }
+      if(texto) texto.textContent = 'Al día: el portal no tiene facturas nuevas.';
+      setTimeout(function(){ caja.remove(); }, 2500);
+    })
+    .catch(function(){ if(texto) texto.textContent = 'No se pudo conectar con el servidor.'; });
 })();
 (function(){
   var el = document.getElementById('miniMapa'); if(!el || !el.dataset.lat) return;
