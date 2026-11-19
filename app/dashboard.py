@@ -148,7 +148,12 @@ def conviene_buscar(conn, nic: str, minutos: int = 1) -> bool:
         cuando = _dt.fromisoformat(str(ultimo)[:19])
     except ValueError:
         return True
-    return (_dt.now() - cuando) >= _td(minutes=max(minutos, 0))
+    pasado = (_dt.now() - cuando).total_seconds()
+    if pasado < 0:
+        # la corrida la escribe el servidor con su reloj (UTC): la fecha queda
+        # "en el futuro" para RD y bloqueaba la busqueda para siempre
+        return True
+    return pasado >= max(minutos, 0) * 60
 
 
 def _pdf_disponible(fila) -> bool:

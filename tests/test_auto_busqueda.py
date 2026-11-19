@@ -105,3 +105,20 @@ def test_la_plantilla_muestra_el_aviso_de_busqueda():
     assert 'id="autoBuscar"' in plantilla
     assert "fd.append('enviar', '0')" in plantilla      # consulta, no envía solo
     assert "sessionStorage" not in plantilla            # ya no hay candado de sesión
+
+
+def test_el_evento_en_utc_no_bloquea_la_busqueda(db_path):
+    """La corrida del servidor anota la fecha con reloj UTC (4 h adelante).
+
+    Con el evento "en el futuro", la resta daba negativa y la ficha creia que
+    acababa de buscar: nunca consultaba el portal. Ese era el fallo real.
+    """
+    _contrato(db_path)
+    _una_factura(db_path)
+    _evento(-240)                     # cuatro horas en el futuro = UTC vs RD
+
+    with db.sesion() as c:
+        assert dashboard.conviene_buscar(c, NIC) is True
+
+    respuesta = dashboard.cliente_detalle(Peticion(), NIC)
+    assert respuesta.context["auto_buscar"] is True
