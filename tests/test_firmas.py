@@ -189,14 +189,14 @@ def test_firmar_la_cotizacion_guarda_su_propia_posicion(dueno, db_path):
     cot_id = _cotizacion_guardada(db_path)
 
     respuesta = asyncio.run(dashboard.cotizaciones_firmar(
-        request=Peticion(usuario=dueno, json_={"firma_id": firma_id, "x": 300, "y": 200,
+        request=Peticion(usuario=dueno, json_={"firma_id": firma_id, "x": 300, "y": 120,
                                                "ancho": 210}),
         cotizacion_id=cot_id))
     assert respuesta.status_code == 200
     with db.sesion() as conn:
         cot = db.obtener_cotizacion(conn, cot_id)
     assert cot["firma_id"] == firma_id
-    assert round(cot["firma_x"]) == 300 and round(cot["firma_y"]) == 200
+    assert round(cot["firma_x"]) == 300 and round(cot["firma_y"]) == 120
     assert round(cot["firma_ancho"]) == 210
 
     # el PDF sale con la firma
@@ -275,3 +275,18 @@ def test_la_hoja_se_conviete_a_png_con_el_conversor_comun():
     png = pdfdata.pdf_a_png(datos, escala=1.0, pagina=1)
     assert png.startswith(b"\x89PNG")
     assert len(png) > 5000
+
+
+def test_la_firma_no_se_guarda_encima_de_los_totales(dueno, db_path):
+    """Arriba de 214 pt están la tabla y los totales: la firma se queda abajo."""
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    cot_id = _cotizacion_guardada(db_path)
+    asyncio.run(dashboard.cotizaciones_firmar(
+        request=Peticion(usuario=dueno, json_={"firma_id": firma_id, "x": 100, "y": 600,
+                                               "ancho": 200}), cotizacion_id=cot_id))
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cot_id)
+    alto_imagen = 200 * 120 / 300
+    assert cot["firma_y"] + alto_imagen <= 214.5

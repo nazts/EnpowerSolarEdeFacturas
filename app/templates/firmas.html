@@ -80,6 +80,8 @@
     border-radius:8px;overflow:hidden;background:#fff;touch-action:none;
     box-shadow:0 4px 14px rgba(0,0,0,.08)}
   .hoja .pagina{display:block;width:100%;height:auto;pointer-events:none;user-select:none}
+  .hoja .guia-firma{position:absolute;border-top:1px solid rgba(31,41,34,.75);
+    pointer-events:none;transition:none}
   .sello{position:absolute;cursor:grab;touch-action:none;user-select:none;
     outline:1px dashed transparent;outline-offset:2px}
   .sello:hover,.sello.arrastrando{outline-color:var(--accent)}
@@ -268,7 +270,7 @@
     sello.src = '/static/firmas/' + boton.dataset.archivo;
     editor = EditorFirma.crear({
       hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
-      x: boton.dataset.x, y: boton.dataset.y, ancho: boton.dataset.ancho,
+      x: boton.dataset.x, y: boton.dataset.y, ancho: boton.dataset.ancho, techo: 214,
       alCambiar: function(p){
         mx.textContent = Math.round(p.x) + ' pt';
         my.textContent = Math.round(p.y) + ' pt';

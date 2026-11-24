@@ -25,6 +25,8 @@
     border-radius:8px;overflow:hidden;background:#fff;touch-action:none;
     box-shadow:0 6px 18px rgba(0,0,0,.08)}
   .hoja .pagina{display:block;width:100%;height:auto;pointer-events:none;user-select:none}
+  .hoja .guia-firma{position:absolute;border-top:1px solid rgba(31,41,34,.75);
+    pointer-events:none;transition:none}
   .sello{position:absolute;cursor:grab;touch-action:none;user-select:none;
     outline:1px dashed transparent;outline-offset:2px}
   .sello:hover,.sello.arrastrando{outline-color:var(--accent)}
@@ -184,7 +186,7 @@
     var ancho = {{ cotizacion.firma_ancho or 'null' }} || elegido.dataset.ancho;
     editor = EditorFirma.crear({
       hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
-      x: x, y: y, ancho: ancho,
+      x: x, y: y, ancho: ancho, techo: 214,
       alCambiar: function(p){
         px.textContent = Math.round(p.x) + ' pt';
         py.textContent = Math.round(p.y) + ' pt';

@@ -1395,7 +1395,8 @@ async def firmas_posicion(request: Request, firma_id: int):
     ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
     alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
     x = min(max(x, 10.0), ancho - 20)
-    y = min(max(y, 10.0), max(alto - alto_img - 10, 10.0))
+    # ni arriba de la tabla (218) ni fuera de la hoja
+    y = min(max(y, 10.0), max(min(alto - alto_img - 10, 214 - alto_img), 10.0))
     with db.sesion() as conn:
         db.ubicar_firma(conn, firma_id, x, y, ancho_img)
     return JSONResponse({"ok": True, "x": round(x, 1), "y": round(y, 1),
@@ -1505,7 +1506,7 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
         ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
         alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
         x = min(max(x, 10.0), ancho_hoja - 20)
-        y = min(max(y, 10.0), max(alto_hoja - alto_img - 10, 10.0))
+        y = min(max(y, 10.0), max(min(alto_hoja - alto_img - 10, 214 - alto_img), 10.0))
 
     with db.sesion() as conn:
         if not db.obtener_cotizacion(conn, cotizacion_id):

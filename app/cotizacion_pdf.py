@@ -362,9 +362,15 @@ def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> Non
             c.drawCentredString(centro, y, cargo)
         return
 
-    # con imagen: el texto va debajo de la firma, centrado en ella
+    # con imagen: la línea guía va debajo de la firma y el texto más abajo,
+    # así la firma se apoya en la línea como en un documento firmado a mano
     centro = x_img + ancho / 2
-    y = y_img - 11
+    y_linea_img = y_img - 2
+    c.setStrokeColor(TEXTO)
+    c.setLineWidth(0.8)
+    c.line(x_img - 12, y_linea_img, x_img + ancho + 12, y_linea_img)
+
+    y = y_linea_img - 11
     if nombre:
         c.setFillColor(TEXTO)
         c.setFont("Archivo-Semi", 8.5)

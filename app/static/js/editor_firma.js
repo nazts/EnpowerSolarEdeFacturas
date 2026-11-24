@@ -17,6 +17,8 @@
     var anchoHoja = opciones.anchoHoja;
     var altoHoja = opciones.altoHoja;
     var alCambiar = opciones.alCambiar || function () {};
+    // hasta dónde puede subir: arriba están los totales y las notas
+    var techo = Number(opciones.techo) || 0;
 
     var ancho = Number(opciones.ancho) || 160;
     var x = Number(opciones.x);
@@ -27,6 +29,11 @@
     var arrastrando = false;
     var inicio = null;
 
+    // línea guía: en el PDF va pegada debajo de la firma, acá se muestra igual
+    var guia = document.createElement('div');
+    guia.className = 'guia-firma';
+    hoja.appendChild(guia);
+
     function escala() { return hoja.clientWidth / anchoHoja; }
     function altoPt() { return ancho * proporcion; }
 
@@ -35,6 +42,11 @@
       sello.style.width = (ancho * k) + 'px';
       sello.style.left = (x * k) + 'px';
       sello.style.top = ((altoHoja - y - altoPt()) * k) + 'px';
+      if (guia) {
+        guia.style.left = ((x - 12) * k) + 'px';
+        guia.style.width = ((ancho + 24) * k) + 'px';
+        guia.style.top = ((altoHoja - (y - 2)) * k) + 'px';
+      }
       alCambiar({x: x, y: y, ancho: ancho});
     }
 
@@ -45,7 +57,8 @@
 
     function limitar() {
       x = Math.min(Math.max(x, 8), anchoHoja - ancho - 8);
-      y = Math.min(Math.max(y, 8), altoHoja - altoPt() - 8);
+      var arriba = (techo || altoHoja - 8) - altoPt();
+      y = Math.min(Math.max(y, 8), Math.max(arriba, 8));
       if (Math.abs(y - LINEA_FIRMA) < 14) y = LINEA_FIRMA;   // imán sobre la línea
     }
 
