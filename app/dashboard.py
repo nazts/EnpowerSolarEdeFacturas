@@ -1094,6 +1094,43 @@ def inicio(request: Request):
     if quien is not None and not quien.ve("panel"):
         return RedirectResponse(inicio_para(quien), status_code=303)
     with db.sesion() as conn:
+        resumen = db.resumen_dashboard(conn)
+        clientes = db.resumen_clientes(conn)
+        pendientes = [dict(r) for r in db.pendientes_abiertos(conn)]
+        facturas = [dict(r) for r in conn.execute(
+            """SELECT f.*, c.alias, c.asesor FROM facturas f
+               LEFT JOIN contratos c ON c.nic = f.nic
+               WHERE f.estado = 'descargada' ORDER BY f.corte DESC LIMIT 200""")]
+        eventos = [dict(r) for r in db.ultimos_eventos(conn, 40)]
+        # MAX() para que el SQL valga en SQLite y en Postgres (GROUP BY estricto)
+        top = conn.execute(
+            """SELECT f.nic,
+                      COALESCE(MAX(c.nombre_normalizado), MAX(c.razon_social), f.nic) AS nombre,
+                      COALESCE(MAX(c.proveedor), 'edenorte') AS proveedor,
+                      COUNT(*) AS facturas, COALESCE(SUM(f.facturado), 0) AS monto
+               FROM facturas f LEFT JOIN contratos c ON c.nic = f.nic
+               WHERE f.estado = 'descargada'
+               GROUP BY f.nic ORDER BY monto DESC LIMIT 6""").fetchall()
+        por_proveedor = conn.execute(
+            """SELECT COALESCE(proveedor, 'edenorte') AS proveedor, COUNT(*) AS n
+               FROM contratos GROUP BY COALESCE(proveedor, 'edenorte')
+               ORDER BY n DESC""").fetchall()
+    datos = dict(resumen)
+    datos["top_clientes"] = [dict(r) for r in top]
+    datos["por_proveedor"] = [dict(r) for r in por_proveedor]
+    return templates.TemplateResponse(request, "index.html", {
+        "resumen": datos, "clientes": clientes, "pendientes": pendientes,
+        "facturas": facturas, "eventos": eventos,
+        "chat_configurado": bool(config.TELEGRAM_CHAT_ID), "activo": "panel",
+    })
+
+
+@app.get("/panel-clasico")
+def panel_clasico(request: Request):
+    """El tablero anterior, intacto, por si hay que volver."""
+    if not usuario_actual(request):
+        raise HTTPException(401, "Sesión no iniciada")
+    with db.sesion() as conn:
         contratos = [dict(r) for r in db.listar_contratos(conn, solo_activos=False)]
         pendientes = [dict(r) for r in db.pendientes_abiertos(conn)]
         facturas = [dict(r) for r in conn.execute(
@@ -1101,7 +1138,7 @@ def inicio(request: Request):
                LEFT JOIN contratos c ON c.nic = f.nic
                WHERE f.estado = 'descargada' ORDER BY f.corte DESC LIMIT 200""")]
         eventos = [dict(r) for r in db.ultimos_eventos(conn, 40)]
-    return templates.TemplateResponse(request, "index.html", {
+    return templates.TemplateResponse(request, "panel_clasico.html", {
         "contratos": contratos, "pendientes": pendientes, "facturas": facturas,
         "eventos": eventos, "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
         "activo": "panel",

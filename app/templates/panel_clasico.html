@@ -1,0 +1,520 @@
+{% extends 'base.html' %}
+{% block titulo %}Enpower Solar{% endblock %}
+{% block estilos %}
+<style>
+  .cab-seccion{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 18px;border-bottom:1px solid var(--line)}
+  .cab-seccion h2{margin:0;padding:0;border:0;font-size:14px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted)}
+  .btn-mini{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:8px;white-space:nowrap;
+    border:1px solid var(--line);background:var(--card2);color:var(--txt);text-decoration:none}
+  .btn-mini:hover{border-color:var(--accent);color:var(--accent)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
+    padding:16px 26px;border-bottom:1px solid var(--line);background:var(--header-bg)}
+  h1{margin:0;font-size:19px;letter-spacing:.3px;white-space:nowrap}
+  h1 span{color:var(--accent)}
+  .acciones{display:flex;gap:8px;flex-wrap:nowrap}
+  a.btn,button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;min-height:38px}
+  a.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}
+  .primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+  .primario:hover{color:var(--on-accent);filter:brightness(1.08)}
+  button:disabled{opacity:.6;cursor:progress}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
+    outline:3px solid var(--focus);outline-offset:2px}
+  .pagina{padding:22px 26px;display:grid;gap:22px;max-width:1400px;margin:0 auto}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  section > h2{margin:0;padding:14px 18px;font-size:14px;text-transform:uppercase;
+    letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .cuerpo{padding:18px}
+  .sin-pad{padding:0}
+  .tabla-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--hover)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+  label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:.6px}
+  input,select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--input-bd);
+    background:var(--input-bg);color:var(--txt);font:inherit;min-height:38px}
+  input:focus,select:focus{border-color:var(--accent)}
+  input::placeholder{color:var(--ph)}
+  .fila{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .fila > div{flex:1 1 170px}
+  .fila > .fijo{flex:0 0 auto}
+  .pie-form{margin-top:14px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  .pill.warn{background:var(--warn-bg);color:var(--accent)}
+  .pill.info{background:var(--info-bg);color:var(--info)}
+  .muted{color:var(--muted)}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .mini{padding:5px 10px;font-size:12px;border-radius:7px;min-height:32px}
+  .acc-fila{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .acc-fila form{margin:0}
+  /* Avisos: ok / err / warn / info */
+  #msg{margin:14px 26px 0;display:none;padding:11px 14px;border-radius:10px;font-size:13.5px;
+    border:1px solid var(--line);max-width:1348px}
+  @media(min-width:1400px){ #msg{margin-left:auto;margin-right:auto;width:calc(100% - 52px)}}
+  #msg.ok{display:block;background:var(--ok-bg);border-color:var(--ok)}
+  #msg.err{display:block;background:var(--bad-bg);border-color:var(--bad)}
+  #msg.info{display:block;background:var(--info-bg);border-color:var(--info)}
+  #msg.warn{display:block;background:var(--warn-bg);border-color:var(--accent)}
+  #msg::before{font-weight:700;margin-right:8px}
+  #msg.ok::before{content:"Listo:";color:var(--ok)}
+  #msg.err::before{content:"Error:";color:var(--bad)}
+  #msg.info::before{content:"En curso:";color:var(--info)}
+  #msg.warn::before{content:"Aviso:";color:var(--accent)}
+  dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--txt);
+    padding:0;width:min(560px,92vw)}
+  dialog::backdrop{background:var(--backdrop)}
+  dialog h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:15px}
+  .vacio{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
+  .vacio b{display:block;color:var(--txt);margin-bottom:3px;font-size:14px}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;
+    border-radius:50%;animation:giro .7s linear infinite}
+  @keyframes giro{to{transform:rotate(360deg)}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media(prefers-reduced-motion:reduce){.spin{animation:none}*{transition:none!important}}
+
+  @media(max-width:900px){
+    header{padding:14px 16px} .pagina{padding:16px}
+    #msg{margin:12px 16px 0}
+  }
+  @media(max-width:640px){
+    h1{white-space:normal;font-size:17px}
+    .acciones{width:100%;flex-wrap:wrap}
+    .acciones > *{flex:1 1 auto}
+    .cuerpo{padding:14px}
+    /* tablas -> tarjetas */
+    table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
+    table.cards thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    table.cards tr{padding:10px 14px;border-bottom:1px solid var(--line)}
+    table.cards tbody tr:last-child{border-bottom:0}
+    table.cards td{border:0;padding:4px 0;display:flex;gap:12px;justify-content:space-between;text-align:right}
+    table.cards td::before{content:attr(data-label);color:var(--muted);font-size:11.5px;text-transform:uppercase;
+      letter-spacing:.6px;text-align:left;flex:0 0 38%}
+    table.cards td.acc{justify-content:flex-end}
+    table.cards td.acc::before{content:none}
+    .tabla-scroll{max-height:70vh}
+  }
+  /* ---------- Panel grafico ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;border-top:4px solid var(--accent)}
+  .kpi .et{font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600}
+  .kpi .val{font-size:30px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums;line-height:1.15}
+  .kpi .sub{font-size:12.5px;color:var(--muted)}
+  .kpi.k-warn{border-top-color:var(--warn)} .kpi.k-info{border-top-color:var(--info)}
+  .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:22px}
+  .barras{display:flex;align-items:flex-end;gap:6px;height:190px;padding:14px 4px 0;border-bottom:2px solid var(--grid);
+    background:repeating-linear-gradient(to top,transparent 0,transparent 46px,var(--grid) 46px,var(--grid) 47px);overflow-x:auto}
+  .barra{flex:1 0 22px;max-width:56px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:22px}
+  .barra .v{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;margin-bottom:2px;white-space:nowrap}
+  .barra .b{width:100%;border-radius:6px 6px 0 0;background:var(--chart1);min-height:3px}
+  .barra.hi .b{background:var(--chart-hi)}
+  .barra.m2 .b{background:var(--chart2)}
+  .ejes{display:flex;gap:6px;padding:6px 4px 0;overflow:hidden}
+  .ejes span{flex:1 0 22px;max-width:56px;min-width:22px;text-align:center;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .ejes span.hi{color:var(--warn);font-weight:700}
+  .leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+  .leyenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .cortes-lista{list-style:none;margin:0;padding:0}
+  .cortes-lista li{display:grid;grid-template-columns:1fr auto;gap:2px 14px;padding:12px 18px;border-bottom:1px solid var(--line);align-items:center}
+  .cortes-lista li:last-child{border-bottom:0}
+  .cortes-lista .nom{font-weight:600}
+  .cortes-lista .meta{font-size:12.5px;color:var(--muted)}
+  .cortes-lista .der{text-align:right;grid-row:1 / span 2;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  .cortes-lista .monto{font-variant-numeric:tabular-nums;font-size:13px}
+  .cargando{padding:22px 18px;color:var(--muted);font-size:13.5px;text-align:center}
+  /* ---------- Tablas con scroll (~15 filas) ---------- */
+  .tabla-scroll{max-height:660px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .tabla-scroll::-webkit-scrollbar{width:8px;height:8px}
+  .tabla-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .tabla-scroll::-webkit-scrollbar-track{background:transparent}
+  .tabla-scroll thead th{position:sticky;top:0;background:var(--card);z-index:1}
+  /* ---------- Log en vivo ---------- */
+  .en-vivo{display:inline-flex;align-items:center;gap:6px;margin-left:12px;font-size:11.5px;font-weight:600;
+    text-transform:none;letter-spacing:.3px;color:var(--ok);vertical-align:middle}
+  .en-vivo::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);
+    animation:pulso 1.6s ease-in-out infinite}
+  .en-vivo.off{color:var(--muted)}
+  .en-vivo.off::before{background:var(--muted);animation:none}
+  @keyframes pulso{0%,100%{box-shadow:0 0 0 0 var(--ok);opacity:1}50%{box-shadow:0 0 0 5px transparent;opacity:.55}}
+  #log-eventos tr{transition:background .6s ease}
+  #log-eventos tr.nuevo{background:var(--card2)}
+  #log-eventos tr.nuevo td:first-child{box-shadow:inset 3px 0 0 var(--ok)}
+  @media(prefers-reduced-motion:reduce){.en-vivo::before{animation:none}}
+</style>{% endblock %}
+{% block contenido %}
+<div id="msg" role="status" aria-live="polite"></div>
+<div class="pagina" id="contenido">
+
+  <div class="kpis" id="kpis" aria-live="polite">
+    <div class="kpi"><div class="et">Clientes registrados</div><div class="val" id="k-cli">…</div><div class="sub" id="k-cli-s">&nbsp;</div></div>
+    <div class="kpi"><div class="et">Facturas descargadas</div><div class="val" id="k-fac">…</div><div class="sub" id="k-fac-s">&nbsp;</div></div>
+    <div class="kpi k-warn"><div class="et">Pendientes</div><div class="val" id="k-pen">…</div><div class="sub">cortaron y no están en el portal</div></div>
+    <div class="kpi k-info"><div class="et">Sin enviar</div><div class="val" id="k-env">…</div><div class="sub">facturas sin mandar a Telegram</div></div>
+  </div>
+
+  <div class="graficos">
+    <section>
+      <h2>Clientes por día de corte</h2>
+      <div class="cuerpo">
+        <div id="g-cortes"><div class="cargando">Cargando…</div></div>
+        <div class="leyenda"><span><i style="background:var(--chart1)"></i>Clientes</span><span><i style="background:var(--chart-hi)"></i>Próximos 3 días</span></div>
+      </div>
+    </section>
+    <section>
+      <h2>Facturas por mes</h2>
+      <div class="cuerpo">
+        <div id="g-meses"><div class="cargando">Cargando…</div></div>
+        <div class="leyenda"><span><i style="background:var(--chart2)"></i>Monto facturado (RD$); cantidad de facturas sobre cada barra</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Próximos cortes</h2>
+    <div class="cuerpo sin-pad" id="g-proximos"><div class="cargando">Cargando…</div></div>
+  </section>
+
+  <section>
+    <div class="cab-seccion">
+      <h2>Contratos ({{ contratos|length }})</h2>
+      <a class="btn-mini" href="/clientes/nuevo">+ Nuevo cliente</a>
+    </div>
+    <div class="cuerpo sin-pad">
+      {% if contratos %}
+      <div class="tabla-wrap tabla-scroll"><table class="cards">
+        <thead><tr><th>NIC</th><th>Razón social</th><th>Pagador / alias</th><th>Asesor</th>
+          <th>Corte</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+        {% for c in contratos %}
+          <tr>
+            <td data-label="NIC"><b>{{ c.nic }}</b></td>
+            <td data-label="Razón social">{{ c.nombre_normalizado or c.razon_social or "—" }}<br>
+                <span class="muted">{{ c.razon_social }}</span></td>
+            <td data-label="Pagador / alias">{{ c.alias or "—" }}</td>
+            <td data-label="Asesor">{{ c.asesor or "—" }}</td>
+            <td data-label="Corte">{{ c.dia_corte or "—" }}</td>
+            <td data-label="Estado">{% if c.activo %}<span class="pill ok">activo</span>{% else %}<span class="pill bad">inactivo</span>{% endif %}</td>
+            <td class="num acc"><div class="acc-fila">
+              <button class="mini" type="button" aria-label="Editar contrato {{ c.nic }}"
+                onclick='editar({{ c|tojson }})'>Editar</button>
+              <form method="post" action="/contratos/{{ c.nic }}/eliminar"
+                    onsubmit="return confirm('¿Eliminar el contrato {{ c.nic }}?')">
+                <button class="mini" type="submit" aria-label="Eliminar contrato {{ c.nic }}">Eliminar</button>
+              </form></div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="vacio"><b>Sin contratos</b>Todavía no hay contratos. Agrega el primero arriba con su NIC.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if pendientes %}
+  <section>
+    <h2>Pendientes — cortaron y aún no están en el portal ({{ pendientes|length }})</h2>
+    <div class="cuerpo sin-pad">
+      <div class="tabla-wrap tabla-scroll"><table class="cards">
+        <thead><tr><th>NIC</th><th>Corte</th><th>Intentos</th><th>Estado</th><th>Último intento</th></tr></thead>
+        <tbody>
+        {% for p in pendientes %}
+          <tr>
+            <td data-label="NIC"><b>{{ p.nic }}</b></td>
+            <td data-label="Corte">{{ p.fecha_corte }}</td>
+            <td data-label="Intentos">{{ p.intentos }}</td>
+            <td data-label="Estado">{% if p.estado == 'atrasado' %}<span class="pill bad">atrasado</span>
+                {% else %}<span class="pill warn">pendiente</span>{% endif %}</td>
+            <td class="muted" data-label="Último intento">{{ p.ultimo_intento }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section id="facturas">
+    <h2>Facturas descargadas ({{ facturas|length }})</h2>
+    <div class="cuerpo sin-pad">
+      {% if facturas %}
+      <div class="tabla-wrap tabla-scroll"><table class="cards">
+        <thead><tr><th>Corte</th><th>NIC</th><th>Nombre</th><th>Pagador</th><th>Asesor</th>
+          <th class="num">kWh</th><th class="num">Facturado</th><th>Vence</th><th>Enviada</th><th></th></tr></thead>
+        <tbody>
+        {% for f in facturas %}
+          <tr>
+            <td data-label="Corte">{{ f.corte }}</td>
+            <td data-label="NIC">{{ f.nic }}</td>
+            <td data-label="Nombre">{{ f.cliente }}</td>
+            <td data-label="Pagador">{{ f.alias or "—" }}</td>
+            <td data-label="Asesor">{{ f.asesor or "—" }}</td>
+            <td class="num" data-label="kWh">{{ f.kwh if f.kwh is not none else "—" }}</td>
+            <td class="num" data-label="Facturado">{{ "{:,.2f}".format(f.facturado) if f.facturado is not none else "—" }}</td>
+            <td data-label="Vence">{{ f.vence or "—" }}</td>
+            <td data-label="Enviada">{% if f.enviada %}<span class="pill ok">sí</span>{% else %}<span class="pill info">no</span>{% endif %}</td>
+            <td class="num acc"><a class="mini btn" href="/facturas/{{ f.id }}/pdf" target="_blank" rel="noopener" aria-label="Abrir PDF de la factura {{ f.nic }} {{ f.corte }}">PDF</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="vacio"><b>Sin facturas</b>Aún no hay facturas descargadas. Usa «Correr ahora» para escanear Edenorte.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <h2>Actividad reciente <span class="en-vivo" id="en-vivo" role="status" aria-live="polite">en vivo</span></h2>
+    <div class="cuerpo sin-pad">
+      <div class="tabla-wrap tabla-scroll" id="log-wrap"{% if not eventos %} hidden{% endif %}><table class="cards">
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Nivel</th><th>Mensaje</th><th>Detalle</th></tr></thead>
+        <tbody id="log-eventos">
+        {% for e in eventos %}
+          <tr data-id="{{ e.id }}">
+            <td class="muted" data-label="Fecha">{{ e.fecha }}</td>
+            <td data-label="Usuario">{{ e.usuario or "sistema" }}</td>
+            <td data-label="Nivel">{% if e.nivel == 'error' %}<span class="pill bad">error</span>
+                {% elif e.nivel == 'aviso' %}<span class="pill warn">aviso</span>
+                {% else %}<span class="pill info">info</span>{% endif %}</td>
+            <td data-label="Mensaje">{{ e.mensaje }}</td>
+            <td class="muted" data-label="Detalle">{{ (e.detalle or "")[:120] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% if not eventos %}
+      <div class="vacio" id="log-vacio"><b>Sin actividad</b>No hay eventos registrados todavía.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <p class="muted" style="font-size:12.5px">
+    Telegram: {% if chat_configurado %}<span class="pill ok">canal configurado</span>
+    {% else %}<span class="pill bad">sin canal</span> — agrega el bot al canal y define TELEGRAM_CHAT_ID{% endif %}
+  </p>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitulo">
+  <h3 id="dlgTitulo">Editar contrato <span id="dlgNic"></span></h3>
+  <form method="post" id="dlgForm" class="cuerpo">
+    <div class="grid">
+      <div><label for="e_razon">Razón social</label><input name="razon_social" id="e_razon"></div>
+      <div><label for="e_alias">Pagador / alias</label><input name="alias" id="e_alias"></div>
+      <div><label for="e_asesor">Asesor</label><input name="asesor" id="e_asesor"></div>
+      <div><label for="e_corte">Día de corte</label><input name="dia_corte" id="e_corte" inputmode="numeric"></div>
+      <div><label for="e_activo">Estado</label>
+        <select name="activo" id="e_activo"><option value="1">Activo</option><option value="0">Inactivo</option></select>
+      </div>
+      <div><label for="e_notas">Notas</label><input name="notas" id="e_notas"></div>
+    </div>
+    <h4 style="margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)">Ubicación y equipo instalado</h4>
+    <div class="grid">
+      <div style="grid-column:1/-1"><label for="e_direccion">Dirección</label><input name="direccion" id="e_direccion"></div>
+      <div><label for="e_telefono">Teléfono</label><input name="telefono" id="e_telefono" inputmode="tel"></div>
+      <div><label for="e_latitud">Latitud</label><input name="latitud" id="e_latitud" inputmode="decimal"></div>
+      <div><label for="e_longitud">Longitud</label><input name="longitud" id="e_longitud" inputmode="decimal"></div>
+      <div><label for="e_paneles">Paneles (marca / modelo)</label><input name="paneles" id="e_paneles" placeholder="12 x JA Solar 550W"></div>
+      <div><label for="e_potencia">Capacidad instalada (kW)</label><input name="potencia_paneles" id="e_potencia" inputmode="decimal"></div>
+      <div><label for="e_inversores">Inversores</label><input name="inversores" id="e_inversores" placeholder="2 x Growatt 5kW"></div>
+      <div><label for="e_bateria">Batería</label><input name="bateria" id="e_bateria" placeholder="Litio 10 kWh"></div>
+      <div><label for="e_capacidad">Capacidad batería (kWh)</label><input name="capacidad_bateria" id="e_capacidad" inputmode="decimal"></div>
+      <div><label for="e_instalacion">Fecha de instalación</label><input name="fecha_instalacion" id="e_instalacion" type="date"></div>
+    </div>
+    <div class="pie-form" style="justify-content:flex-end">
+      <button type="button" onclick="document.getElementById('dlg').close()">Cancelar</button>
+      <button class="primario" type="submit">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const num = n => Number(n||0).toLocaleString('es-DO');
+  const money = n => Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function fecha(iso){ const p = String(iso).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : iso; }
+  function diasHasta(dia){
+    const h = new Date(); h.setHours(0,0,0,0);
+    for (let k=0;k<62;k++){ const d = new Date(h); d.setDate(h.getDate()+k); if (d.getDate()===dia) return k; }
+    return 99;
+  }
+  function cortes(lista){
+    const datos = (lista||[]).filter(x => x.clientes > 0).sort((a,b)=>a.dia-b.dia);
+    if (!datos.length) return '<div class="vacio"><b>Sin días de corte</b>Aún no hay clientes con día de corte.</div>';
+    const max = Math.max(...datos.map(x=>x.clientes));
+    let b = '', e = '';
+    datos.forEach(x => {
+      const hi = diasHasta(x.dia) <= 3;
+      b += `<div class="barra${hi?' hi':''}" title="Día ${x.dia}: ${x.clientes} cliente(s)"><span class="v">${x.clientes}</span><div class="b" style="height:${Math.round(x.clientes/max*78)}%"></div></div>`;
+      e += `<span class="${hi?'hi':''}">${x.dia}</span>`;
+    });
+    return `<div class="barras" role="img" aria-label="Clientes por día de corte del mes">${b}</div><div class="ejes">${e}</div>`;
+  }
+  function meses(lista){
+    const datos = lista || [];
+    if (!datos.length) return '<div class="vacio"><b>Sin facturas</b>Aún no hay facturas descargadas.</div>';
+    const max = Math.max(...datos.map(x=>x.monto), 1);
+    let b = '', e = '';
+    datos.forEach(x => {
+      const p = String(x.mes).split('-'), et = (MESES[(+p[1]||1)-1]||p[1]) + ' ' + String(p[0]).slice(2);
+      b += `<div class="barra m2" title="${esc(x.mes)}: ${x.facturas} factura(s), RD$ ${money(x.monto)}, ${num(x.kwh)} kWh"><span class="v">${x.facturas}</span><div class="b" style="height:${Math.round(x.monto/max*78)}%"></div></div>`;
+      e += `<span>${esc(et)}</span>`;
+    });
+    return `<div class="barras" role="img" aria-label="Facturas y monto por mes">${b}</div><div class="ejes">${e}</div>`;
+  }
+  function proximos(lista){
+    if (!lista || !lista.length) return '<div class="vacio"><b>Sin cortes próximos</b>No hay cortes programados.</div>';
+    return '<ul class="cortes-lista">' + lista.map(c => {
+      const d = c.dias, cls = d > 3 ? 'ok' : d > 0 ? 'warn' : 'bad';
+      const txt = d > 0 ? (d === 1 ? 'falta 1 día' : 'faltan ' + d + ' días') : d === 0 ? 'hoy' : 'ya pasó';
+      const nombre = c.nombre || c.alias || ('NIC ' + c.nic);
+      return `<li><span class="nom">${esc(nombre)}</span>
+        <span class="meta">NIC ${esc(c.nic)} · ${esc(fecha(c.fecha))}${c.asesor ? ' · ' + esc(c.asesor) : ''}</span>
+        <span class="der"><span class="pill ${cls}">${txt}</span>
+        <span class="monto muted">${c.ultimo_monto == null ? 'sin factura' : 'Última: RD$ ' + money(c.ultimo_monto)}</span></span></li>`;
+    }).join('') + '</ul>';
+  }
+  async function cargar(){
+    try{
+      const r = await fetch('/api/resumen'); if(!r.ok) throw new Error(r.status);
+      const d = await r.json();
+      $('k-cli').textContent = num(d.clientes.total);
+      $('k-cli-s').textContent = num(d.clientes.activos) + ' activos · ' + num(d.clientes.sin_corte) + ' sin día de corte';
+      $('k-fac').textContent = num(d.facturas.total);
+      $('k-fac-s').textContent = 'RD$ ' + money(d.facturas.monto) + ' · ' + num(d.facturas.kwh) + ' kWh';
+      $('k-pen').textContent = num(d.pendientes);
+      $('k-env').textContent = num(d.facturas.sin_enviar);
+      $('g-cortes').innerHTML = cortes(d.cortes_por_dia);
+      $('g-meses').innerHTML = meses(d.facturas_por_mes);
+      $('g-proximos').innerHTML = proximos(d.proximos_cortes);
+    }catch(e){
+      ['g-cortes','g-meses','g-proximos'].forEach(i => { $(i).innerHTML = '<div class="vacio"><b>No se pudo cargar el resumen</b>Recarga la página para reintentar.</div>'; });
+      ['k-cli','k-fac','k-pen','k-env'].forEach(i => { $(i).textContent = '—'; });
+    }
+  }
+  cargar();
+})();
+</script>
+<script>
+function aviso(texto, tipo){
+  // tipo: true/'ok' | false/'err' | 'info' | 'warn'
+  const t = tipo === undefined || tipo === true ? 'ok' : tipo === false ? 'err' : tipo;
+  const m = document.getElementById('msg');
+  m.textContent = texto; m.className = t;
+  clearTimeout(window._t);
+  if (t !== 'info') window._t = setTimeout(()=>{m.className=''; m.textContent='';}, 7000);
+}
+function ocupado(id, on, txt){
+  const b = document.getElementById(id); if(!b) return;
+  if(on){ b.dataset.orig = b.textContent; b.disabled = true; b.setAttribute('aria-busy','true');
+    b.innerHTML = '<span class="spin" aria-hidden="true"></span> ' + txt; }
+  else { b.disabled = false; b.removeAttribute('aria-busy'); if(b.dataset.orig) b.textContent = b.dataset.orig; }
+}
+function editar(c){
+  document.getElementById('dlgNic').textContent = c.nic;
+  document.getElementById('dlgForm').action = '/contratos/' + c.nic + '/editar';
+  document.getElementById('e_razon').value = c.razon_social || '';
+  document.getElementById('e_alias').value = c.alias || '';
+  document.getElementById('e_asesor').value = c.asesor || '';
+  document.getElementById('e_corte').value = c.dia_corte || '';
+  document.getElementById('e_activo').value = c.activo ? '1' : '0';
+  document.getElementById('e_notas').value = c.notas || '';
+  document.getElementById('e_direccion').value = c.direccion != null ? c.direccion : '';
+  document.getElementById('e_telefono').value = c.telefono != null ? c.telefono : '';
+  document.getElementById('e_latitud').value = c.latitud != null ? c.latitud : '';
+  document.getElementById('e_longitud').value = c.longitud != null ? c.longitud : '';
+  document.getElementById('e_paneles').value = c.paneles != null ? c.paneles : '';
+  document.getElementById('e_potencia').value = c.potencia_paneles != null ? c.potencia_paneles : '';
+  document.getElementById('e_inversores').value = c.inversores != null ? c.inversores : '';
+  document.getElementById('e_bateria').value = c.bateria != null ? c.bateria : '';
+  document.getElementById('e_capacidad').value = c.capacidad_bateria != null ? c.capacidad_bateria : '';
+  document.getElementById('e_instalacion').value = c.fecha_instalacion != null ? c.fecha_instalacion : '';
+  document.getElementById('dlg').showModal();
+}
+</script>
+<script>
+(function(){
+  var cuerpo = document.getElementById('log-eventos');
+  var wrap = document.getElementById('log-wrap');
+  var ind = document.getElementById('en-vivo');
+  if (!cuerpo || !ind) return;
+  var MAX = 40, CADA = 6000, ultimoId = 0, ocupado = false;
+  Array.prototype.forEach.call(cuerpo.rows, function(tr){
+    var id = parseInt(tr.getAttribute('data-id'), 10);
+    if (id > ultimoId) ultimoId = id;
+  });
+  function estado(vivo){
+    ind.textContent = vivo ? 'en vivo' : 'sin conexión';
+    ind.classList.toggle('off', !vivo);
+  }
+  function celda(txt, etiqueta, muted){
+    var td = document.createElement('td');
+    if (muted) td.className = 'muted';
+    td.setAttribute('data-label', etiqueta);
+    td.textContent = txt;
+    return td;
+  }
+  function fila(e){
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-id', e.id);
+    tr.appendChild(celda(e.fecha || '', 'Fecha', true));
+    tr.appendChild(celda(e.usuario || 'sistema', 'Usuario', false));
+    var tdN = document.createElement('td');
+    tdN.setAttribute('data-label', 'Nivel');
+    var sp = document.createElement('span');
+    var nivel = e.nivel === 'error' ? 'error' : (e.nivel === 'aviso' ? 'aviso' : 'info');
+    sp.className = 'pill ' + (nivel === 'error' ? 'bad' : (nivel === 'aviso' ? 'warn' : 'info'));
+    sp.textContent = nivel;
+    tdN.appendChild(sp);
+    tr.appendChild(tdN);
+    tr.appendChild(celda(e.mensaje || '', 'Mensaje', false));
+    tr.appendChild(celda(String(e.detalle || '').slice(0, 120), 'Detalle', true));
+    return tr;
+  }
+  function agregar(lista){
+    // lista viene del más nuevo al más viejo; se filtran ids ya mostrados
+    var nuevos = lista.filter(function(e){ return e && e.id > ultimoId; });
+    if (!nuevos.length) return;
+    var vacio = document.getElementById('log-vacio');
+    if (vacio) vacio.remove();
+    if (wrap) wrap.hidden = false;
+    var frag = document.createDocumentFragment();
+    var filas = nuevos.map(function(e){ var tr = fila(e); tr.classList.add('nuevo'); frag.appendChild(tr); return tr; });
+    cuerpo.insertBefore(frag, cuerpo.firstChild);
+    nuevos.forEach(function(e){ if (e.id > ultimoId) ultimoId = e.id; });
+    while (cuerpo.rows.length > MAX) cuerpo.deleteRow(cuerpo.rows.length - 1);
+    setTimeout(function(){ filas.forEach(function(tr){ tr.classList.remove('nuevo'); }); }, 2000);
+  }
+  async function consultar(){
+    if (ocupado || document.hidden) return;
+    ocupado = true;
+    try {
+      var r = await fetch('/api/eventos?desde=' + ultimoId + '&limite=' + MAX, {credentials:'same-origin', headers:{'Accept':'application/json'}});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var d = await r.json();
+      agregar(d.eventos || []);
+      if (typeof d.ultimo_id === 'number' && d.ultimo_id > ultimoId) ultimoId = d.ultimo_id;
+      estado(true);
+    } catch (err) {
+      estado(false);
+    } finally {
+      ocupado = false;
+    }
+  }
+  setInterval(consultar, CADA);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) consultar(); });
+})();
+</script>
+{% endblock %}
