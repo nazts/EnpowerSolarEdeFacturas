@@ -289,7 +289,9 @@ async function accionHistorial(btn){
     const r = await fetch('/api/historial', {method:'POST'});
     const d = await r.json();
     if(!d.ok){ toast(d.error || 'No se pudo guardar el histórico', false); return; }
-    toast('Histórico: ' + d.nuevos + ' factura(s) guardada(s), ' + d.enviados + ' enviada(s)');
+    const e = (d.errores||[]);
+    toast('Histórico: ' + d.nuevos + ' factura(s) guardada(s), ' + d.enviados + ' enviada(s)' +
+          (e.length ? ' · ' + e.length + ' con problema: ' + (e[0].error||'') : ''), !e.length);
     setTimeout(function(){ location.reload(); }, 1800);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
   finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
@@ -304,7 +306,9 @@ async function accionCorrer(btn){
     const d = await r.json();
     if(!d.ok && d.portal_error){ toast('⚠️ ' + d.portal_error, false); return; }
     const n = (d.descargadas||[]).length, p = (d.pendientes||[]).length;
-    toast('Listo: ' + n + ' factura(s) descargada(s), ' + p + ' pendiente(s)');
+    const e = (d.errores||[]);
+    toast('Listo: ' + n + ' factura(s) descargada(s), ' + p + ' pendiente(s)' +
+          (e.length ? ' · ' + e.length + ' con problema: ' + (e[0].error||'') : ''), !e.length);
     setTimeout(function(){ location.reload(); }, 1500);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
   finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }

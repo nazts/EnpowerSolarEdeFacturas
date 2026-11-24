@@ -1064,3 +1064,29 @@ def test_sin_titular_de_pago_cae_al_nombre_de_la_factura(contrato):
 
     assert runner._caption("2026-11-13", [datos], []).splitlines()[1] == (
         "Titular de pago: JORGE RAMON DE LA CRUZ TAVAREZ")
+
+
+# ------------------------------------------- PDF que llega pero no se puede leer
+def test_un_pdf_ilegible_no_deja_una_factura_vacia(contrato, db_path, leer_pdf):
+    """Si el PDF no trae corte, kWh ni monto no se guarda: se avisa y se reintenta.
+
+    Antes se guardaba con `corte=None` y `factura_existe` la saltaba para siempre:
+    la factura aparecia en el panel sin datos y no se arreglaba sola.
+    """
+    p = portal(filas=[fila()], pdfs={REF: b""})          # PDF sin texto
+    res = runner.corrida(D0, enviar=False, cliente=p)
+
+    with db.sesion() as c:
+        filas = c.execute("SELECT corte, estado FROM facturas WHERE nic = ?", (NIC,)).fetchall()
+    assert filas == []
+    assert res.errores and "no se pudo leer" in res.errores[0]["error"].lower()
+    assert res.descargadas == []
+
+
+def test_un_pdf_ilegible_deja_el_pendiente_abierto(contrato, db_path, leer_pdf):
+    p = portal(filas=[fila()], pdfs={REF: b""})
+    runner.corrida(D0, enviar=False, cliente=p)
+
+    with db.sesion() as c:
+        abiertos = [r for r in db.pendientes_abiertos(c) if str(r["nic"]) == NIC]
+    assert abiertos, "el corte del día tiene que seguir pendiente para reintentarlo"

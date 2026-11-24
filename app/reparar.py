@@ -34,10 +34,26 @@ def _ruta_pdf(guardada: str) -> Path | None:
     return candidata if candidata.exists() else None
 
 
+def _encolar(conn, fila, motivo: str) -> bool:
+    """Devuelve la factura a la cola de descarga (`sin_pdf`, sin archivo).
+
+    Una fila guardada como `descargada` con el PDF ilegible no se vuelve a mirar
+    nunca: `necesita_pdf` la da por buena porque tiene `pdf_path`. Asi quedo
+    clavada la hoja de error que Edesur contesta en vez de la factura.
+    """
+    conn.execute("UPDATE facturas SET estado = 'sin_pdf', pdf_path = NULL WHERE id = ?",
+                 (fila["id"],))
+    conn.commit()
+    db.log_evento(conn, "aviso",
+                  f"Factura {fila['ref_pago']} reencolada (NIC {fila['nic']})",
+                  f"{motivo}: se vuelve a descargar en la proxima corrida")
+    return True
+
+
 def reparar(simular: bool = False, nic: str | None = None) -> dict:
     """Vuelve a leer el PDF guardado y completa corte/periodo/vencimiento."""
     res = {"revisadas": 0, "corregidas": 0, "sin_pdf": 0, "sin_datos": 0,
-           "contratos_actualizados": 0, "detalle": []}
+           "encoladas": 0, "contratos_actualizados": 0, "detalle": []}
     corregidos: dict[str, list[str]] = {}      # para que --simular tambien informe
 
     with db.sesion() as conn:
@@ -68,9 +84,13 @@ def reparar(simular: bool = False, nic: str | None = None) -> dict:
                 res["sin_datos"] += 1
                 res["detalle"].append({"nic": f["nic"], "ref": f["ref_pago"],
                                        "error": f"PDF ilegible: {exc}"[:120]})
+                if not simular and _encolar(conn, f, "PDF ilegible"):
+                    res["encoladas"] += 1
                 continue
             if not datos.corte:
                 res["sin_datos"] += 1
+                if not simular and _encolar(conn, f, "el PDF no trae fecha de corte"):
+                    res["encoladas"] += 1
                 continue
             if not simular:
                 conn.execute(
@@ -116,6 +136,7 @@ def main() -> None:
     r = reparar(simular=args.simular, nic=(args.nic or "").strip() or None)
     print(f"revisadas: {r['revisadas']} | corregidas: {r['corregidas']} | "
           f"sin PDF: {r['sin_pdf']} | sin datos: {r['sin_datos']} | "
+          f"reencoladas: {r['encoladas']} | "
           f"contratos con dia de corte: {r['contratos_actualizados']}")
     for d in r["detalle"]:
         print("  ", d)

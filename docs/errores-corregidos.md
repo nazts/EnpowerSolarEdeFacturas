@@ -172,6 +172,19 @@ teoría.
 
 ---
 
+## 19. Una factura «aparece pero no se lee»: Edesur contesta un PDF de error
+
+| | |
+|---|---|
+| **Síntoma** | Hay una factura nueva de un NIC de Edesur y el panel no la lee: la ficha la muestra sin corte/kWh/monto (o como «sin consumo»), o el pendiente del día sigue acumulando intentos con «sin factura publicada». |
+| **Qué se comprobó** | `IndraComplaints/GetBillpdf` **no devuelve 404** cuando no tiene el archivo: contesta **HTTP 200 con un PDF de ~8 KB** cuyo `/Title` es `Error en el WebService`. Una factura real pesa ≈83 KB y su `/Title` es `Factura`. Con el billId `2136616022026111200` (noviembre, NIC `5786394`) llegó exactamente esa hoja de error. |
+| **Causa** | El panel guardaba cualquier cosa que empezara con `%PDF` y el parser no encontraba nada: la fila quedaba con `corte`, `kwh` y `facturado` en `NULL`, y `factura_existe` la saltaba para siempre — no se arreglaba ni con una corrida nueva. |
+| **Arreglo** | `edesur.es_pdf_de_factura()` (cabecera `%PDF` + título distinto de «Error…» + tamaño cuando no hay título) y `EdesurClient.pdf()` levantan `PdfNoDisponible`. En el **histórico** (`sincronizar_historial`) la factura se guarda como `sin_pdf`: queda listada, se ve en la ficha y `db.necesita_pdf` la reintenta. En la **corrida** (`corrida`) no se crea fila: se registra el evento «PDF no disponible» y se sigue — al no existir fila, `factura_existe` vuelve a intentarla en la próxima. En las dos rutas, si el PDF **llega** pero no se puede leer nada (sin corte, sin kWh y sin monto) no se guarda: queda el evento «NIC …: factura ilegible» y el error en el resumen (`Resultado.errores` en la corrida, `res["errores"]` en el histórico), y `app.reparar` devuelve a la cola (`sin_pdf`, sin `pdf_path`) las filas viejas que hayan quedado clavadas. |
+| **Diagnóstico** | `python -m app.edesur --ver <NIC>` imprime lo que publica el portal para ese contrato: facturación (`GetContractBilling`), los últimos 4 meses (`GetAvabledBills`) y los pagos con su `simbolo_var`. Si el mes pedido devuelve un `billId` de otro año, Edesur todavía no publicó la factura de ese ciclo: eso es dato, no fallo. |
+| **Regla** | Un archivo que llega no es un archivo válido: **valida el contenido antes de guardarlo** y distingue «no lo tiene el portal» (información, se reintenta) de «no lo pudimos leer» (error con aviso). Nunca dejes una fila a medias, porque el dedupe por `ref_pago` la vuelve permanente. |
+
+---
+
 ## Comprobación antes de cerrar un cambio
 
 1. **Motor doble**: ¿el SQL corre en SQLite *y* en Postgres? ¿leo las filas por nombre?

@@ -416,9 +416,10 @@
     <div class="cuerpo" style="border-top:1px solid var(--line)">
       <h3 style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">
         Publicadas en el portal sin PDF ({{ sin_pdf|length }})</h3>
-      <p class="muted" style="margin:0;font-size:12.5px">Edenorte las sigue listando en el historial,
-        pero ya no entrega el archivo: solo conserva los PDFs de las facturas más recientes.
-        En cada corrida se reintentan por si vuelven a estar disponibles.</p>
+      <p class="muted" style="margin:0;font-size:12.5px">El portal las sigue listando en el historial
+        pero todavía no entrega el archivo (Edenorte conserva los PDFs de las más recientes y Edesur
+        contesta una hoja de error mientras la factura no está publicada). En cada corrida se
+        reintentan por si vuelven a estar disponibles.</p>
     </div>
     <div class="cuerpo sin-pad">
       <div class="tabla-wrap"><table class="cards">
@@ -453,8 +454,13 @@
       fd.append('enviar', '0');
       var r = await fetch('/api/historial', {method:'POST', body: fd});
       var d = await r.json();
-      if(window.toast) toast(d.ok ? ('Facturas nuevas: ' + d.nuevos) : (d.error || 'No se pudo buscar'), d.ok);
-      if(d.ok) setTimeout(function(){ location.reload(); }, 1200);
+      var fallo = d.ok && d.errores && d.errores.length ? (d.errores[0].error || 'error') : '';
+      if(window.toast){
+        if(!d.ok) toast(d.error || 'No se pudo buscar', false);
+        else if(fallo) toast('Facturas nuevas: ' + d.nuevos + ' · ' + fallo, false);
+        else toast('Facturas nuevas: ' + d.nuevos, true);
+      }
+      if(d.ok && (d.nuevos || fallo)) setTimeout(function(){ location.reload(); }, 1200);
     }catch(e){ if(window.toast) toast('No se pudo conectar con el servidor', false); }
     finally{ bf.disabled = false; bf.innerHTML = txt; }
   });
@@ -472,6 +478,12 @@
       if(!d.ok){ if(texto) texto.textContent = 'No se pudo buscar ahora: ' + (d.error || 'error');
                  if(window.toast) toast(d.error || 'No se pudo buscar las facturas', false); return; }
       if(d.nuevos > 0){ location.replace(location.pathname + '?auto=1'); return; }
+      if(d.errores && d.errores.length){
+        // hubo un problema real: no se puede decir "al día"
+        if(texto) texto.textContent = 'No se pudo leer: ' + (d.errores[0].error || 'error');
+        if(window.toast) toast(d.errores[0].error || 'El portal no entregó la factura', false);
+        return;
+      }
       if(texto) texto.textContent = 'Al día: el portal no tiene facturas nuevas.';
       setTimeout(function(){ caja.remove(); }, 2500);
     })

@@ -7,6 +7,7 @@ from datetime import date
 import pytest
 
 from app import edesur, pdfdata
+from app.edenorte import PdfNoDisponible
 from app.edesur import EdesurClient, EdesurError, FacturaEdesur, fecha_de_bill_id
 from app.naming import nombre_archivo
 
@@ -89,6 +90,19 @@ def test_detectar_proveedor():
     assert pdfdata.detectar_proveedor("EDENORTE DOMINICANA S.A.") == "edenorte"
 
 
+def _pdf_con_titulo(titulo: str, relleno: int = 0) -> bytes:
+    """PDF minimo imitando el que devuelve Edesur (el titulo va en UTF-16BE)."""
+    utf16 = "\ufeff" + titulo
+    crudo = utf16.encode("utf-16-be")
+    cuerpo = b"%PDF-1.4\n1 0 obj\n<< /Title ("
+    cuerpo += crudo.replace(b"(", b"\\(").replace(b")", b"\\)")
+    cuerpo += b") >>\nendobj\n" + b"%" * relleno
+    return cuerpo
+
+
+FACTURA_PDF = _pdf_con_titulo("Factura", 25000)
+
+
 class _Respuesta:
     def __init__(self, datos=None, status=200, texto=None):
         self._datos = datos
@@ -119,7 +133,11 @@ class _FalsoSesion:
         if url.endswith("GetAvabledBills"):
             return _Respuesta(self.por_mes.get(params["mes"], []))
         if url.endswith("GetBillpdf"):
-            return _Respuesta(base64.b64encode(b"%PDF-1.4 falso").decode())
+            # factura real: titulo "Factura" y tamano de factura (el panel
+            # rechaza las hojas de error de ~8 KB, ver es_pdf_de_factura)
+            return _Respuesta(base64.b64encode(FACTURA_PDF).decode())
+        if url.endswith("GetIndraPaymentHistory"):
+            return _Respuesta({"totalamount": 0, "payments": []})
         return _Respuesta({}, 404, "no encontrado")
 
     def post(self, url, data=None, json=None, headers=None, timeout=None):
@@ -206,3 +224,84 @@ def test_agregar_contrato_sin_referencia_ni_factura_avisa():
     cli.sesion.billing = []
     with pytest.raises(EdesurError):
         cli.agregar_contrato("5786394")
+
+
+# ------------------------------------------- el PDF que no es la factura
+def test_el_pdf_de_la_factura_se_reconoce():
+    assert edesur.es_pdf_de_factura(_pdf_con_titulo("Factura", 25000))
+
+
+def test_la_hoja_de_error_de_edesur_no_es_una_factura():
+    """Edesur contesta 200 con un PDF de ~8 KB que dice «Error…», no un 404."""
+    assert not edesur.es_pdf_de_factura(_pdf_con_titulo("Error en la factura", 8000))
+
+
+def test_un_pdf_minusculo_sin_titulo_no_es_factura():
+    assert not edesur.es_pdf_de_factura(b"%PDF-1.4\nhola")
+
+
+def test_algo_que_no_es_pdf_no_pasa():
+    assert not edesur.es_pdf_de_factura(b"<html>Factura no disponible</html>")
+
+
+def test_pdf_avisa_cuando_edesur_no_tiene_la_factura():
+    """Antes se guardaba la hoja de error y la factura quedaba «sin leer»."""
+    cli = _cliente_falso()
+    cli.sesion.sesion = None
+    falso = _pdf_con_titulo("Error en la factura", 8000)
+    cli.sesion.get = lambda url, params=None, headers=None, timeout=None: _Respuesta(
+        base64.b64encode(falso).decode()) if "GetBillpdf" in url else _Respuesta([])
+    with pytest.raises(PdfNoDisponible):
+        cli.pdf("2136616022026111200")
+
+
+def test_ver_contrato_resume_lo_publicado():
+    cli = _cliente_falso()
+    cli.sesion.billing = [{"billId": "2136559092026111200", "billDate": "2026-11-12 00:00:00",
+                           "totalAmount": 25422.9, "simbolo_var": "2136559344",
+                           "billTypeDescription": "Recibos de consumos"}]
+    datos = edesur.ver_contrato("2136559", cli)
+    assert datos["nic"] == "2136559"
+    assert datos["billing"][0]["billId"] == "2136559092026111200"
+    assert datos["billing"][0]["referencia"] == "2136559344"
+    assert set(datos) >= {"asociado", "billing", "meses", "pagos"}
+
+
+def test_el_titulo_se_encuentra_al_final_del_archivo():
+    """Muchos generadores escriben el diccionario Info al final del PDF."""
+    cuerpo = b"%PDF-1.4\n" + b"%" * 3000
+    cuerpo += b"trailer\n<< /Info 5 0 R /Title (Factura de consumo) >>"
+    assert edesur.es_pdf_de_factura(cuerpo) is True
+
+
+def test_la_hoja_de_error_en_texto_plano_se_rechaza():
+    cuerpo = b"%PDF-1.4\n" + b"%" * 25000 + b"\n<< /Title (Error en el WebService) >>"
+    assert edesur.es_pdf_de_factura(cuerpo) is False
+
+
+def test_la_hoja_de_error_que_dice_factura_no_encontrada_se_rechaza():
+    """El PDF de error real de Edesur (8 KB) se titula «Factura no encontrada»:
+    empezar por «Factura» no alcanza, hay que vetar la palabra."""
+    cuerpo = b"%PDF-1.4\n" + b"%" * 8000 + b"\n<< /Title (Factura no encontrada) >>"
+    assert edesur.es_pdf_de_factura(cuerpo) is False
+
+
+def test_ver_contrato_cierra_el_cliente_que_abre():
+    abiertos = []
+
+    class Falso(EdesurClient):
+        def __init__(self):
+            super().__init__(token="t")
+            self.cerrado = False
+
+        def cerrar(self):
+            self.cerrado = True
+
+    cli = Falso()
+    edesur.ver_contrato("2136559", cli)          # cliente de fuera: no se cierra
+    assert cli.cerrado is False
+
+
+def test_ver_contrato_rechaza_un_nic_que_no_es_numero():
+    with pytest.raises(EdesurError):
+        edesur.ver_contrato("abc/../x", _cliente_falso())

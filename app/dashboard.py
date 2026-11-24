@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import auth, config, db, excel, naming, telegram
-from .edenorte import EdenorteClient, PortalError
+from .edenorte import EdenorteClient, PdfNoDisponible, PortalError
 
 BASE = Path(__file__).resolve().parent
 
@@ -1446,6 +1446,10 @@ def ver_pdf(factura_id: int):
                     portal.cerrar()
                 except Exception:  # noqa: BLE001 - cerrar nunca debe tapar el error real
                     pass
+        except PdfNoDisponible as exc:
+            # el portal ya no publica esa factura: no es una caída del sitio
+            raise HTTPException(
+                404, f"Esa factura todavía no está publicada: {str(exc)[:160]}") from None
         except Exception as exc:  # noqa: BLE001 - portal caido, factura sin archivo, etc.
             raise HTTPException(
                 502, f"El portal no entregó el PDF de la factura {fila['ref_pago']} "

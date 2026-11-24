@@ -153,6 +153,7 @@ class Resultado:
     enviadas: list[dict] = field(default_factory=list)
     pendientes: list[dict] = field(default_factory=list)
     descartadas: list[dict] = field(default_factory=list)
+    errores: list[dict] = field(default_factory=list)
     portal_error: str | None = None
     mensaje_enviado: bool = False
     detalle_envio: str = ""
@@ -165,6 +166,7 @@ class Resultado:
             "enviadas": self.enviadas,
             "pendientes": self.pendientes,
             "descartadas": self.descartadas,
+            "errores": self.errores,
             "portal_error": self.portal_error,
             "mensaje_enviado": self.mensaje_enviado,
             "historico": self.historico,
@@ -477,8 +479,19 @@ def corrida(fecha: date | None = None, enviar: bool = True,
                     try:
                         datos = datos_de_archivo(tmp_pdf, proveedor=prov)
                     except Exception as exc:
-                        db.log_evento(conn, "error", f"No se pudo leer el PDF {fila.ref_pago}", str(exc))
+                        db.log_evento(conn, "error", f"No se pudo leer el PDF {fila.ref_pago}",
+                                      str(exc)[:300])
                         continue
+
+                if datos.corte is None and datos.kwh is None and datos.facturado is None:
+                    # el PDF llego pero no se pudo leer nada: guardarlo asi dejaria
+                    # una factura "vacia" que jamas se repara. Se avisa y se reintenta
+                    # en la proxima corrida.
+                    res.errores.append({"nic": nic, "ref": fila.ref_pago,
+                                        "error": "el PDF no se pudo leer (sin corte, kWh ni monto)"})
+                    db.log_evento(conn, "error", f"NIC {nic}: factura ilegible",
+                                  f"ref {fila.ref_pago} - {fila.tipo} - se reintenta en la proxima corrida")
+                    continue
 
                 objetivo = (datos.corte if datos.corte in cortes
                             else _corte_equivalente(datos.corte, cortes))
@@ -839,6 +852,15 @@ def sincronizar_historial(fecha: date | None = None, por_cliente: int | None = N
                         res["errores"].append({"nic": nic, "ref": fila.ref_pago,
                                                "error": f"PDF ilegible: {exc}"[:160]})
                         continue
+
+                if datos.corte is None and datos.kwh is None and datos.facturado is None:
+                    # PDF sin nada legible: no es «sin consumo», es ilegible.
+                    # Guardarlo como fila vacia la deja inservible para siempre.
+                    res["errores"].append({"nic": nic, "ref": fila.ref_pago,
+                                           "error": "el PDF no se pudo leer (sin corte, kWh ni monto)"})
+                    db.log_evento(conn, "error", f"NIC {nic}: factura ilegible",
+                                  f"ref {fila.ref_pago} - {fila.tipo} - se reintenta en la proxima corrida")
+                    continue
 
                 if datos.corte and datos.corte > fecha.isoformat():
                     continue                                   # factura futura: no aplica

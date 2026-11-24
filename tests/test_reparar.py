@@ -67,3 +67,39 @@ def test_reparar_salta_las_que_no_tienen_pdf(una_factura_sin_corte, monkeypatch)
     r = reparar.reparar()
 
     assert r["revisadas"] == 1 and r["sin_pdf"] == 1 and r["corregidas"] == 0
+
+
+def test_un_pdf_ilegible_vuelve_a_la_cola(una_factura_sin_corte, monkeypatch):
+    """La fila clavada con la hoja de error de Edesur se re-descarga.
+
+    Con `pdf_path` puesto y estado 'descargada', `necesita_pdf` la daba por
+    buena y nunca se volvia a mirar: la factura quedaba sin datos para siempre.
+    """
+    monkeypatch.setattr(config, "DATABASE_URL", "")
+
+    def _ilegible(p, proveedor="edenorte"):
+        raise RuntimeError("PDF ilegible")
+
+    monkeypatch.setattr(reparar, "datos_de_archivo", _ilegible)
+
+    r = reparar.reparar()
+
+    assert r["sin_datos"] == 1 and r["encoladas"] == 1
+    with db.sesion(db_path=una_factura_sin_corte) as c:
+        f = c.execute("SELECT estado, pdf_path FROM facturas WHERE ref_pago = '6501165082'").fetchone()
+        eventos = c.execute("SELECT mensaje FROM eventos WHERE mensaje LIKE '%reencolada%'").fetchall()
+    assert f["estado"] == "sin_pdf" and f["pdf_path"] is None
+    assert eventos
+
+
+def test_simular_no_reencola(una_factura_sin_corte, monkeypatch):
+    monkeypatch.setattr(config, "DATABASE_URL", "")
+    monkeypatch.setattr(reparar, "datos_de_archivo",
+                        lambda p, proveedor="edenorte": (_ for _ in ()).throw(RuntimeError("x")))
+
+    r = reparar.reparar(simular=True)
+
+    assert r["encoladas"] == 0 and r["sin_datos"] == 1
+    with db.sesion(db_path=una_factura_sin_corte) as c:
+        f = c.execute("SELECT estado FROM facturas WHERE ref_pago = '6501165082'").fetchone()
+    assert f["estado"] == "descargada"

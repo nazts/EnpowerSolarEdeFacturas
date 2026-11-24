@@ -20,6 +20,7 @@ from typing import Iterable
 import requests
 
 from . import config
+from .edenorte import PdfNoDisponible, PortalError
 
 API = config.EDESUR_API.rstrip("/")
 
@@ -51,6 +52,67 @@ class FacturaEdesur:
     @property
     def corte_iso(self) -> str | None:
         return self.fecha.isoformat() if self.fecha else None
+
+
+def _titulo_pdf(pdf: bytes) -> str:
+    """Titulo del PDF (`/Title`), buscandolo en todo el archivo.
+
+    Va en el diccionario Info, que muchos generadores escriben **al final**:
+    mirar solo la cabecera daba titulo vacio y se rechazaban facturas buenas.
+    Acepta UTF-16BE, hexadecimal y texto plano.
+    """
+    i = pdf.rfind(b"/Title")
+    if i < 0:
+        i = pdf.find(b"/Title")
+    if i < 0:
+        return ""
+    trozo = pdf[i:i + 400]
+
+    hexa = re.search(rb"/Title\s*<([0-9A-Fa-f\s]+)>", trozo)
+    if hexa:
+        try:
+            crudo = bytes.fromhex(re.sub(rb"\s+", b"", hexa.group(1)).decode("ascii"))
+        except ValueError:
+            return ""
+    else:
+        texto = re.search(rb"/Title\s*\((.*?)\)", trozo, re.S)
+        if not texto:
+            return ""
+        crudo = (texto.group(1).replace(b"\\(", b"(").replace(b"\\)", b")")
+                 .replace(b"\\\\", b"\\"))
+
+    if crudo.startswith(b"\xfe\xff"):
+        return crudo[2:].decode("utf-16-be", "ignore").strip()
+    return crudo.decode("latin-1", "ignore").strip()
+
+
+# Palabras que delatan la hoja de error de Edesur. La real (medida) trae
+# `/Title` = «Error en el WebService»; otra variante dice «Factura no encontrada».
+# Ojo: el titulo NO alcanza por si solo — la hoja de error puede decir «Factura…».
+_TITULO_ERROR = ("error", "no encontrada", "no encontrado", "no disponible", "no existe")
+
+
+def es_pdf_de_factura(pdf: bytes) -> bool:
+    """True solo si el archivo es una factura.
+
+    Edesur no contesta 404 cuando no tiene la factura: devuelve **HTTP 200 con
+    un PDF de ~8 KB** cuya primera pagina dice «Error en el WebService» o
+    «Factura no encontrada». Guardarlo hacia que el panel lo leyera como una
+    factura vacia (corte, kWh y monto en NULL) y la factura buena quedaba «sin
+    leer» para siempre.
+
+    Dos senales, en este orden: el titulo veta (si dice error, no es factura) y
+    el tamano decide cuando no hay titulo reconocible. Una factura real de
+    Edesur pesa ~83 KB; la hoja de error, ~8 KB.
+    """
+    if not pdf.startswith(b"%PDF"):
+        return False
+    titulo = _titulo_pdf(pdf).strip().lower()
+    if any(palabra in titulo for palabra in _TITULO_ERROR):
+        return False
+    if titulo.startswith(("factura", "recibo")):
+        return True
+    return len(pdf) >= 20000
 
 
 def fecha_de_bill_id(bill_id: str) -> date | None:
@@ -340,9 +402,66 @@ class EdesurClient:
             b64 = r.text
         b64 = b64.strip().strip('"')
         try:
-            return base64.b64decode(b64)
+            pdf = base64.b64decode(b64)
         except Exception as exc:  # noqa: BLE001
             raise EdesurError(f"El PDF de {bill_id} no vino en base64 valido: {exc}") from exc
+        if not es_pdf_de_factura(pdf):
+            # no es la factura: es la hoja de error de Edesur
+            raise PdfNoDisponible(
+                f"Edesur no tiene el PDF de la factura {bill_id} (contesta una hoja de error)")
+        return pdf
+
+
+def ver_contrato(nic: str, cliente: "EdesurClient | None" = None) -> dict:
+    """Que publica Edesur para un NIC: facturacion, meses y pagos.
+
+    Sirve para comparar en segundos lo que ve el usuario en el portal con lo que
+    ve el panel (`python -m app.edesur --ver <NIC>`).
+    """
+    propio = cliente is None
+    cli = cliente or EdesurClient()
+    nic = str(nic).strip()
+    if not re.fullmatch(r"\d{1,12}", nic):
+        raise EdesurError(f"NIC invalido: {nic!r} (solo digitos)")
+    resumen: dict = {"nic": nic, "asociado": None, "billing": [], "meses": {}, "pagos": []}
+    try:
+        resumen["asociado"] = cli.tiene_contrato(nic)
+    except EdesurError as exc:
+        resumen["error_asociacion"] = str(exc)[:200]
+
+    try:
+        for f in cli.facturas(nic, largo=12):
+            resumen["billing"].append({"billId": f.bill_id,
+                                       "fecha": f.fecha.isoformat() if f.fecha else None,
+                                       "total": f.total, "tipo": f.tipo,
+                                       "referencia": f.referencia})
+    except EdesurError as exc:
+        resumen["error_billing"] = str(exc)[:200]
+
+    hoy = date.today()
+    for atras in range(4):
+        total = hoy.year * 12 + (hoy.month - 1) - atras
+        anio, mes = total // 12, total % 12 + 1
+        try:
+            resumen["meses"][f"{anio}-{mes:02d}"] = cli.facturas_por_mes(nic, mes)
+        except EdesurError as exc:
+            resumen["meses"][f"{anio}-{mes:02d}"] = f"error: {str(exc)[:120]}"
+
+    try:
+        pagos = cli._json(cli._get("IndraComplaints/GetIndraPaymentHistory",
+                                   Contractid=nic), "pagos") or {}
+        if not isinstance(pagos, dict):
+            pagos = {}
+        lista = [p for p in (pagos.get("payments") or []) if isinstance(p, dict)]
+        resumen["pagos"] = sorted(lista, key=lambda p: str(p.get("billDate") or ""),
+                                  reverse=True)[:6]
+        resumen["pagado_total"] = pagos.get("totalamount")
+    except (EdesurError, AttributeError) as exc:
+        resumen["error_pagos"] = str(exc)[:200]
+    finally:
+        if propio:
+            cli.cerrar()          # se abrio aqui: se cierra aqui
+    return resumen
 
 
 # --------------------------------------------------------------------- tarea
@@ -401,22 +520,38 @@ def descargar_ultima(nic: str, referencia: str | None = None, alias: str = "x",
 def _cli(argv: list[str] | None = None) -> int:
     import argparse
     import json as _json
+    import sys
 
     p = argparse.ArgumentParser(description="Descarga la factura mas reciente de Edesur")
-    p.add_argument("--nic", nargs="+", required=True, help="NIC o varios")
+    p.add_argument("--nic", nargs="+", help="NIC o varios")
+    p.add_argument("--ver", metavar="NIC",
+                   help="solo muestra lo que Edesur publica para ese NIC (diagnostico)")
     p.add_argument("--ref", help="referencia de pago (sin el guion) si el contrato no esta asociado")
     p.add_argument("--alias", default="x", help="alias provisional solo si hay que asociarlo")
     args = p.parse_args(argv)
+    if args.ver:
+        try:
+            print(_json.dumps(ver_contrato(args.ver), ensure_ascii=False, indent=2))
+        except EdesurError as exc:
+            print(f"NIC {args.ver}: {exc}", file=sys.stderr)
+            return 2
+        return 0
+    if not args.nic:
+        p.error("indica --nic o --ver")
 
     cliente = EdesurClient()
-    for nic in args.nic:
-        try:
-            print(_json.dumps(descargar_ultima(nic, args.ref, args.alias, cliente),
-                              ensure_ascii=False, indent=2))
-        except EdesurError as exc:
-            print(f"NIC {nic}: {exc}")
-            return 1
-    return 0
+    codigo = 0
+    try:
+        for nic in args.nic:
+            try:
+                print(_json.dumps(descargar_ultima(nic, args.ref, args.alias, cliente),
+                                  ensure_ascii=False, indent=2))
+            except (EdesurError, PortalError) as exc:
+                print(f"NIC {nic}: {exc}", file=sys.stderr)
+                codigo = 1
+    finally:
+        cliente.cerrar()          # la sesion del portal no se queda abierta
+    return codigo
 
 
 if __name__ == "__main__":
