@@ -60,9 +60,20 @@
   .mp-ctl button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font:inherit;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.18)}
   .mp-ctl button:hover{border-color:var(--accent);color:var(--accent)}
   .mp-ctl button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-  .mp-ctl #mp-estilo{margin-top:6px;width:132px;font:inherit;font-size:12px;padding:6px 8px;
-    border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer}
-  .mp-ctl #mp-estilo:focus{outline:2px solid var(--focus);outline-offset:1px}
+  .mp-vistas{margin-top:6px;display:flex;flex-direction:column;gap:4px;width:132px}
+  .mp-vistas button{width:100%;height:34px;font-size:12.5px;display:flex;align-items:center;
+    justify-content:flex-start;gap:8px;padding:0 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--txt);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+  .mp-vistas button i{font-size:14px;line-height:1}
+  .mp-vistas button:hover{border-color:var(--accent);color:var(--accent)}
+  .mp-vistas button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
+    color:var(--on-accent);font-weight:600}
+  .mp-vistas button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  @media(max-width:720px){
+    .mp-vistas{width:auto;flex-direction:row}
+    .mp-vistas button{width:38px;height:38px;justify-content:center;padding:0}
+    .mp-vistas button span{display:none}
+  }
   .mp-attr{position:absolute;right:0;bottom:0;z-index:10;background:rgba(255,255,255,.88);color:#222;font-size:11px;padding:2px 8px;border-radius:8px 0 0 0}
   .mp-attr a{color:var(--brand)}
   .mp-vacio{position:absolute;inset:0;z-index:12;display:none;place-items:center;padding:20px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:blur(2px)}
@@ -158,10 +169,14 @@
         <button type="button" id="zin" aria-label="Acercar" title="Acercar"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
         <button type="button" id="zout" aria-label="Alejar" title="Alejar"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>
         <button type="button" id="zfit" aria-label="Ver todos" title="Ver todos"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></button>
-        <select id="mp-estilo" aria-label="Estilo del mapa" title="Estilo del mapa">
-          <option value="calles">Calles</option>
-          <option value="satelite">Satélite</option>
-        </select>
+        <div class="mp-vistas" role="group" aria-label="Vista del mapa">
+          <button type="button" data-estilo="calles" aria-pressed="true" title="Mapa">
+            <i class="bi bi-map" aria-hidden="true"></i><span>Mapa</span></button>
+          <button type="button" data-estilo="satelite" aria-pressed="false" title="Satélite">
+            <i class="bi bi-globe-americas" aria-hidden="true"></i><span>Satélite</span></button>
+          <button type="button" data-estilo="relieve" aria-pressed="false" title="Relieve">
+            <i class="bi bi-triangle" aria-hidden="true"></i><span>Relieve</span></button>
+        </div>
       </div>
       <div class="mp-attr" id="mp-attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
       <div class="mp-vacio" id="vacio">
@@ -212,15 +227,20 @@
      sus servidores son de voluntarios y bloquean las apps internas (403
      "Access blocked - tile usage policy"). Se usa Esri, que es quien las sirve. */
   var ESTILOS = {
-    calles:   {nombre: 'Calles', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    calles:   {nombre: 'Mapa', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
                attr: '© <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> · © OpenStreetMap contributors',
                filtro: ''},
     satelite: {nombre: 'Satélite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                attr: 'Imágenes © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics',
+               filtro: ''},
+    /* Relieve: el mapa topográfico de Esri (curvas de nivel, sombreado y nombres),
+       el equivalente sin clave a la vista «Relieve» de Google Maps. */
+    relieve:  {nombre: 'Relieve', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+               attr: '© <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, HERE, Garmin, © OpenStreetMap contributors',
                filtro: ''}
   };
   var estiloActual = 'calles';
-  var selectEstilo = null;
+  var botonesEstilo = [];
   function urlTile(z, x, y){
     var e = ESTILOS[estiloActual] || ESTILOS.osm;
     return e.url.replace('{z}', z).replace('{x}', x).replace('{y}', y);
@@ -232,7 +252,9 @@
     var e = ESTILOS[nombre];
     var attr = document.getElementById('mp-attr');
     if(attr) attr.innerHTML = e.attr;
-    if(selectEstilo) selectEstilo.value = nombre;
+    botonesEstilo.forEach(function(b){
+      b.setAttribute('aria-pressed', b.dataset.estilo === nombre ? 'true' : 'false');
+    });
     var capaTiles = document.querySelectorAll('.tile');
     for(var i = 0; i < capaTiles.length; i++) capaTiles[i].style.filter = e.filtro || 'none';
     if(redibujar !== false){
@@ -466,17 +488,17 @@
   }).catch(function(){});
 
   iniciar();
-  selectEstilo = document.getElementById('mp-estilo');
+  botonesEstilo = Array.prototype.slice.call(document.querySelectorAll('.mp-vistas button'));
+  botonesEstilo.forEach(function(b){
+    b.addEventListener('click', function(){
+      aplicarEstilo(b.dataset.estilo, true);
+      if(window.toast) toast('Vista del mapa: ' + ESTILOS[b.dataset.estilo].nombre);
+    });
+  });
   var guardado = 'calles';
   try { guardado = localStorage.getItem('mapa-estilo') || 'calles'; } catch(e){}
   if(!ESTILOS[guardado]) guardado = 'calles';      // estilos viejos ya no existen
   aplicarEstilo(guardado, true);
-  if(selectEstilo){
-    selectEstilo.addEventListener('change', function(){
-      aplicarEstilo(selectEstilo.value, true);
-      if(window.toast) toast('Estilo del mapa: ' + ESTILOS[selectEstilo.value].nombre);
-    });
-  }
 
   requestAnimationFrame(function(){ if(!sel) ajustar(); else render(); });
 })();
