@@ -103,9 +103,10 @@ class _Respuesta:
 class _FalsoSesion:
     """Simula la API de Edesur con la forma real de las respuestas."""
 
-    def __init__(self, contratos, por_mes):
+    def __init__(self, contratos, por_mes, billing=None):
         self.contratos = contratos
         self.por_mes = por_mes
+        self.billing = billing or []
         self.headers = {}
         self.validaciones = []
 
@@ -113,7 +114,8 @@ class _FalsoSesion:
         if url.endswith("GetClientContracts"):
             return _Respuesta(self.contratos)
         if url.endswith("GetContractBilling"):
-            return _Respuesta([])                      # contrato recien asociado
+            # sin facturas publicadas: contrato recien asociado
+            return _Respuesta(self.billing)
         if url.endswith("GetAvabledBills"):
             return _Respuesta(self.por_mes.get(params["mes"], []))
         if url.endswith("GetBillpdf"):
@@ -174,3 +176,33 @@ def test_error_si_no_hay_credenciales(monkeypatch):
     monkeypatch.setattr(edesur.config, "EDESUR_TOKEN", "")
     with pytest.raises(EdesurError):
         EdesurClient().login()
+
+
+# --------------------------------------------------- referencia de la factura
+def test_referencia_vigente_toma_el_simbolo_var():
+    """Edesur publica `simbolo_var` aunque el contrato no este asociado."""
+    cli = _cliente_falso()
+    cli.sesion.billing = [{"billId": "2136559092026111200", "simbolo_var": "2136559344"}]
+    assert cli.referencia_vigente("2136559") == "2136559344"
+
+
+def test_referencia_vigente_sin_facturas_devuelve_none():
+    cli = _cliente_falso()
+    cli.sesion.billing = []
+    assert cli.referencia_vigente("5786394") is None
+
+
+def test_agregar_contrato_sin_referencia_usa_la_publicada():
+    """Al migrar una cuenta no hay referencias guardadas: se sacan del portal."""
+    cli = _cliente_falso()
+    cli.sesion.billing = [{"billId": "2115589092026081300", "simbolo_var": "2115589318"}]
+    datos = cli.agregar_contrato("2115589")
+    assert datos["Titular"] == "ORTIZ MARTINEZ, WILLIAN MARIA"
+    assert cli.sesion.validaciones == ["2115589318"]
+
+
+def test_agregar_contrato_sin_referencia_ni_factura_avisa():
+    cli = _cliente_falso()
+    cli.sesion.billing = []
+    with pytest.raises(EdesurError):
+        cli.agregar_contrato("5786394")

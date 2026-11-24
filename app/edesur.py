@@ -178,6 +178,23 @@ class EdesurClient:
         nic = str(nic).strip()
         return any(str(c.get("contractNo")) == nic for c in self.contratos())
 
+    def referencia_vigente(self, nic: str) -> str | None:
+        """Referencia de pago de la factura mas reciente (`simbolo_var`).
+
+        Edesur la publica aunque el contrato no este asociado a la cuenta, asi
+        que sirve para asociarlo sin tener que adivinarla ni leer el PDF.
+        """
+        try:
+            filas = self._json(self._get("Contract/GetContractBilling",
+                                         contractid=str(nic).strip(), length=1),
+                               "GetContractBilling") or []
+        except EdesurError:
+            return None
+        if not filas:
+            return None
+        valor = str(filas[0].get("simbolo_var") or "").strip()
+        return valor or None
+
     def validar_contrato(self, nic: str, referencia: str, alias: str = "x") -> dict:
         """Valida NIC + referencia de pago. Devuelve los datos con el titular real."""
         cuerpo = {"contractid": int(str(nic).strip()),
@@ -220,6 +237,18 @@ class EdesurClient:
                 ultimo_error = exc
         else:
             ultimo_error = EdesurError("sin referencia de pago")
+
+        # sin referencia valida: la factura publicada trae la de pago
+        if base is None:
+            vigente = self.referencia_vigente(nic)
+            if vigente and vigente != str(referencia or "").strip():
+                try:
+                    return self.asociar_contrato(nic, vigente, alias)
+                except EdesurError as exc:
+                    ultimo_error = exc
+                    sufijo = vigente[len(nic):] if vigente.startswith(nic) else vigente
+                    if sufijo.isdigit():
+                        base = int(sufijo)
 
         if base is None:
             raise EdesurError(
