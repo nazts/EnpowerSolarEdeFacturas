@@ -43,7 +43,8 @@ BORDE = colors.HexColor("#BFC8C2")
 TEXTO = colors.HexColor("#1F2922")
 TENUE = colors.HexColor("#5A665E")
 
-FUENTES = Path(__file__).resolve().parent / "static" / "fonts" / "pdf"
+RAIZ_STATIC = Path(__file__).resolve().parent / "static"
+FUENTES = RAIZ_STATIC / "fonts" / "pdf"
 
 # Medidas de la plantilla (carta 612 x 791 pt): el logo ocupa la esquina
 # superior izquierda y el pie llega hasta y ≈ 84 pt.
@@ -290,26 +291,58 @@ def _totales(c: canvas.Canvas, datos: dict, y_top: float) -> None:
     tabla.drawOn(c, derecha - tot_w, y_top - alto)
 
 
-def _firma(c: canvas.Canvas, nombre: str = "") -> None:
-    """Línea de firma, la imagen PNG si existe y el nombre de quien firma."""
+def _alto_imagen(ruta: Path, ancho: float) -> float:
+    """Alto que le corresponde a la imagen para no deformarla."""
+    from PIL import Image
+
+    try:
+        with Image.open(ruta) as img:
+            ancho_px, alto_px = img.size
+        return ancho * alto_px / ancho_px if ancho_px else ancho * 0.35
+    except Exception:  # noqa: BLE001 - si no se puede leer, se usa una proporción típica
+        return ancho * 0.35
+
+
+def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> None:
+    """Línea de firma y, si hay, la imagen (firma o sello) en la posición elegida.
+
+    `firma` viene de la tabla `firmas`: archivo, ancho, x e y en puntos PDF.
+    Sin x/y se usa la posición de siempre (sobre la línea, a la izquierda).
+    """
     x0, ancho = MARGEN + 10, 160
     y_linea = Y_LIMITE + 30
     centro = x0 + ancho / 2
     _registrar_fuentes()
 
-    ruta = Path(config.FIRMA_COTIZACION)
-    if ruta.exists():
+    ruta = None
+    if firma and firma.get("archivo"):
+        candidata = RAIZ_STATIC / "firmas" / str(firma["archivo"])
+        if candidata.exists():
+            ruta, ancho = candidata, float(firma.get("ancho") or 160)
+    if ruta is None:
+        por_defecto = Path(config.FIRMA_COTIZACION)
+        ruta = por_defecto if por_defecto.exists() else None
+
+    if ruta is not None:
+        alto = _alto_imagen(ruta, ancho)
+        if firma and firma.get("x") is not None and firma.get("y") is not None:
+            x_img, y_img = float(firma["x"]), float(firma["y"])
+        else:
+            x_img, y_img = x0, y_linea + 3
         try:
-            c.drawImage(ImageReader(str(ruta)), x0, y_linea + 3, width=ancho, height=55,
+            c.drawImage(ImageReader(str(ruta)), x_img, y_img, width=ancho, height=alto,
                         mask="auto", preserveAspectRatio=True, anchor="c")
         except Exception:  # noqa: BLE001 - una firma rota no debe tumbar la cotización
             pass
 
-    c.setStrokeColor(TEXTO)
-    c.setLineWidth(0.8)
-    c.line(x0 - 15, y_linea, x0 + ancho + 15, y_linea)
+    if not firma:
+        c.setStrokeColor(TEXTO)
+        c.setLineWidth(0.8)
+        c.line(x0 - 15, y_linea, x0 + ancho + 15, y_linea)
 
     y = y_linea - 13
+    if firma:
+        nombre = str(firma.get("nombre") or "").strip() or nombre
     nombre = (nombre or "").strip() or config.FIRMA_NOMBRE
     if nombre:
         c.setFillColor(TEXTO)
@@ -341,13 +374,30 @@ def _notas(c: canvas.Canvas, notas: str) -> None:
 def _cierre(c: canvas.Canvas, cot: dict, datos: dict) -> None:
     """Totales, firma y notas, siempre en el mismo lugar del pie de la hoja."""
     _totales(c, datos, Y_CIERRE)
-    _firma(c, str(cot.get("firma") or ""))
+    _firma(c, str(cot.get("firma") or ""), cot.get("firma_imagen"))
     _notas(c, cot.get("notas") or "")
 
 
 # ------------------------------------------------------------------- generar
+def _firma_elegida(cot: dict) -> dict | None:
+    """Trae la firma o sello guardado que eligió la cotización (si hay base)."""
+    if cot.get("firma_imagen"):
+        return cot["firma_imagen"]
+    firma_id = cot.get("firma_id")
+    if not firma_id:
+        return None
+    try:
+        from app import db
+
+        with db.sesion() as conn:
+            return db.obtener_firma(conn, int(firma_id))
+    except Exception:  # noqa: BLE001 - sin base, la cotización sale sin sello
+        return None
+
+
 def generar(cot: dict) -> bytes:
     """Devuelve el PDF (una o más hojas) sobre la plantilla de la empresa."""
+    cot = {**cot, "firma_imagen": _firma_elegida(cot)}
     datos = calcular(cot.get("items") or [], cot.get("comision_pct", 4.5))
     plantilla = PdfReader(str(config.PLANTILLA_COTIZACION))
     base = plantilla.pages[0]

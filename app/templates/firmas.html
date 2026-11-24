@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block titulo %}Firmas y sellos{% endblock %}
+
+{% block estilos %}
+<style>
+  .intro{margin:0 0 16px;color:var(--muted);font-size:13.5px;max-width:820px;line-height:1.65}
+  .aviso{margin:0 0 16px;padding:11px 14px;border-radius:10px;font-size:13px;
+    background:var(--ok-bg);color:var(--ok);border:1px solid var(--line)}
+  .aviso.malo{background:var(--bad-bg);color:var(--bad)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    margin-bottom:16px;overflow:hidden}
+  section h2{margin:0;padding:13px 18px;font-size:12.5px;text-transform:uppercase;
+    letter-spacing:.7px;color:var(--muted);border-bottom:1px solid var(--line);
+    background:var(--card2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  section h2 .cargo{font-weight:400;text-transform:none;letter-spacing:0;font-size:12px}
+  .cuerpo{padding:16px 18px}
+  .subida{display:grid;grid-template-columns:1.2fr 1fr 1.2fr auto;gap:12px;align-items:end}
+  .campo{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .campo label{font-size:11.5px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.5px}
+  input[type=text],input[type=file]{width:100%;padding:9px 11px;border-radius:9px;
+    border:1px solid var(--input-bd);background:var(--input-bg);color:var(--txt);
+    font:inherit;font-size:13.5px}
+  input[type=file]{padding:7px 9px;font-size:12.5px}
+  .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;
+    font-size:13px;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);
+    font-weight:600}
+  .btn.peligro{color:var(--bad)}
+  .btn.peligro:hover{border-color:var(--bad);background:var(--bad-bg)}
+
+  .editor{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;padding:16px 18px}
+  .hoja{position:relative;width:100%;max-width:520px;border:1px solid var(--line);
+    border-radius:8px;overflow:hidden;background:#fff;touch-action:none}
+  .hoja > img.pagina{display:block;width:100%;height:auto;pointer-events:none;user-select:none}
+  .sello{position:absolute;cursor:grab;touch-action:none;user-select:none;
+    outline:1px dashed transparent}
+  .sello:hover,.sello.arrastrando{outline-color:var(--accent)}
+  .sello.arrastrando{cursor:grabbing}
+  .lado{display:flex;flex-direction:column;gap:12px;font-size:13px;min-width:0}
+  .lado .fila{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}
+  .lado .fila b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .lado .ayuda{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
+  input[type=range]{width:100%}
+  .vacio{padding:26px 18px;text-align:center;color:var(--muted);font-size:13.5px}
+  .firma.recien{border-color:var(--accent);box-shadow:0 0 0 3px var(--ok-bg)}
+  @media(max-width:860px){
+    .subida{grid-template-columns:1fr}
+    .editor{grid-template-columns:1fr}
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<h1>Firmas y sellos</h1>
+<p class="intro">Subí la firma o el sello en PNG con fondo transparente (también acepta JPG) y
+  <b>arrastralo sobre la hoja</b> hasta donde va. La posición queda guardada: la próxima
+  cotización sale firmada en el mismo lugar. Si una cotización no lleva sello, sale solo con
+  la línea para firmar a mano.</p>
+
+{% if mensaje == "guardada" %}<div class="aviso">Firma agregada. Ahora arrastrala donde va y guardá la posición.</div>{% endif %}
+{% if mensaje == "eliminada" %}<div class="aviso">Firma quitada del listado.</div>{% endif %}
+{% if mensaje == "tipo" %}<div class="aviso malo">El archivo tiene que ser una imagen PNG, JPG o WEBP de verdad.</div>{% endif %}
+{% if mensaje == "tamano" %}<div class="aviso malo">La imagen está vacía o pasa de 5 MB.</div>{% endif %}
+{% if mensaje == "sin-archivo" %}<div class="aviso malo">Elegí un archivo antes de subir.</div>{% endif %}
+
+<section>
+  <h2><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Subir firma o sello</h2>
+  <form class="cuerpo subida" method="post" action="/firmas" enctype="multipart/form-data">
+    <div class="campo">
+      <label for="nombre">Nombre para reconocerla</label>
+      <input id="nombre" name="nombre" placeholder="Firma Ing. Luis / Sello Enpower" required>
+    </div>
+    <div class="campo">
+      <label for="cargo">Cargo (opcional)</label>
+      <input id="cargo" name="cargo" placeholder="Coord. Presupuesto">
+    </div>
+    <div class="campo">
+      <label for="archivo">Imagen (PNG con transparencia)</label>
+      <input id="archivo" name="archivo" type="file" accept="image/png,image/jpeg,image/webp" required>
+    </div>
+    <button class="btn primario" type="submit">
+      <i class="bi bi-upload" aria-hidden="true"></i> Subir</button>
+  </form>
+</section>
+
+{% for f in firmas %}
+<section class="firma" id="firma-{{ f.id }}" data-id="{{ f.id }}" data-x="{{ f.x if f.x is not none else '' }}"
+         data-y="{{ f.y if f.y is not none else '' }}" data-ancho="{{ f.ancho or 160 }}">
+  <h2><i class="bi bi-vector-pen" aria-hidden="true"></i> {{ f.nombre }}
+    {% if f.cargo %}<span class="cargo">— {{ f.cargo }}</span>{% endif %}</h2>
+  <div class="editor">
+    <div class="hoja">
+      <img class="pagina" src="/firmas/hoja.png" alt="Vista de la hoja de la cotización">
+      <img class="sello" src="/static/firmas/{{ f.archivo }}" alt="{{ f.nombre }}" draggable="false">
+    </div>
+    <div class="lado">
+      <div class="fila"><span>Posición X</span><b class="rx">—</b></div>
+      <div class="fila"><span>Posición Y</span><b class="ry">—</b></div>
+      <div class="fila"><span>Ancho</span><b class="rw">—</b></div>
+      <label class="campo" for="ancho-{{ f.id }}">
+        <span class="ayuda">Tamaño en la hoja</span>
+        <input type="range" id="ancho-{{ f.id }}" class="rancho" min="40" max="300" step="2"
+               value="{{ (f.ancho or 160) | round | int }}">
+      </label>
+      <button class="btn primario guardar" type="button">
+        <i class="bi bi-check2" aria-hidden="true"></i> Guardar posición</button>
+      <p class="ayuda">Arrastrá la firma con el mouse. Se guarda en puntos del PDF, así sale
+        igual en cualquier impresora.</p>
+      <form method="post" action="/firmas/{{ f.id }}/eliminar" class="quitar-form">
+        <button class="btn peligro" type="submit">
+          <i class="bi bi-trash3" aria-hidden="true"></i> Quitar</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% else %}
+<section><p class="vacio">Todavía no hay firmas guardadas. Subí la primera arriba.</p></section>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var ANCHO_HOJA = {{ ancho_hoja }};
+  var ALTO_HOJA = {{ alto_hoja }};
+  var LINEA_FIRMA = 130;                 // y de la línea donde se firma (pt)
+
+  function iniciar(seccion){
+    var hoja = seccion.querySelector('.hoja');
+    var pagina = seccion.querySelector('.pagina');
+    var sello = seccion.querySelector('.sello');
+    var rancho = seccion.querySelector('.rancho');
+    var rx = seccion.querySelector('.rx'), ry = seccion.querySelector('.ry');
+    var rw = seccion.querySelector('.rw');
+    var anchoPt = parseFloat(seccion.dataset.ancho) || 160;
+    var proporcion = 0.35;                 // alto / ancho de la imagen
+    var x = parseFloat(seccion.dataset.x);  // puntos desde la izquierda
+    var y = parseFloat(seccion.dataset.y);  // puntos desde abajo
+    if (isNaN(x)) x = 60;
+    if (isNaN(y)) y = 128;
+    var arrastrando = false, inicio = null;
+
+    function escala(){ return hoja.clientWidth / ANCHO_HOJA; }
+    function altoPt(){ return anchoPt * proporcion; }
+
+    function pintar(){
+      var k = escala();
+      sello.style.width = (anchoPt * k) + 'px';
+      sello.style.left = (x * k) + 'px';
+      sello.style.top = ((ALTO_HOJA - y - altoPt()) * k) + 'px';
+      rx.textContent = Math.round(x) + ' pt';
+      ry.textContent = Math.round(y) + ' pt';
+      rw.textContent = Math.round(anchoPt) + ' pt';
+      rancho.value = Math.round(anchoPt);
+    }
+
+    function medir(){
+      if (sello.naturalWidth) proporcion = sello.naturalHeight / sello.naturalWidth;
+      pintar();
+    }
+
+    sello.addEventListener('pointerdown', function(ev){
+      ev.preventDefault();
+      arrastrando = true;
+      sello.classList.add('arrastrando');
+      sello.setPointerCapture(ev.pointerId);
+      inicio = {x: ev.clientX, y: ev.clientY, x0: x, y0: y};
+    });
+    sello.addEventListener('pointermove', function(ev){
+      if (!arrastrando) return;
+      var k = escala();
+      x = inicio.x0 + (ev.clientX - inicio.x) / k;
+      y = inicio.y0 - (ev.clientY - inicio.y) / k;   // en el PDF la Y crece hacia arriba
+      x = Math.min(Math.max(x, 8), ANCHO_HOJA - anchoPt - 8);
+      y = Math.min(Math.max(y, 8), ALTO_HOJA - altoPt() - 8);
+      // imán: si queda cerca de la línea de firma, se apoya en ella
+      if (Math.abs(y - LINEA_FIRMA) < 14) y = LINEA_FIRMA;
+      pintar();
+    });
+    sello.addEventListener('pointerup', function(){
+      arrastrando = false;
+      sello.classList.remove('arrastrando');
+    });
+
+    rancho.addEventListener('input', function(){
+      anchoPt = parseFloat(rancho.value) || 160;
+      x = Math.min(x, ANCHO_HOJA - anchoPt - 8);
+      pintar();
+    });
+
+    seccion.querySelector('.guardar').addEventListener('click', function(ev){
+      var boton = ev.currentTarget;
+      boton.disabled = true;
+      fetch('/firmas/' + seccion.dataset.id + '/posicion', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({x: x, y: y, ancho: anchoPt})
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d && d.ok){ x = d.x; y = d.y; anchoPt = d.ancho; pintar(); }
+        boton.innerHTML = '<i class="bi bi-check2-all"></i> Guardado';
+        setTimeout(function(){
+          boton.disabled = false;
+          boton.innerHTML = '<i class="bi bi-check2"></i> Guardar posición';
+        }, 1600);
+      }).catch(function(){
+        boton.disabled = false;
+        boton.textContent = 'No se pudo guardar';
+      });
+    });
+
+    window.addEventListener('resize', pintar);
+    if (sello.complete) medir();
+    else sello.addEventListener('load', medir);
+    if (pagina.complete) pintar();
+    else pagina.addEventListener('load', pintar);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.firma'), iniciar);
+
+  var recien = {{ (nueva or '')|tojson }};
+  if (recien) {
+    var seccion = document.getElementById('firma-' + recien);
+    if (seccion) {
+      seccion.classList.add('recien');
+      seccion.scrollIntoView({block: 'center', behavior: 'smooth'});
+    }
+  }
+})();
+</script>
+{% endblock %}

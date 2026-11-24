@@ -218,6 +218,8 @@
     {% if uu and uu.ve('cotizaciones') %}
     <a class="item{% if activo == 'cotizaciones' %} activo{% endif %}" href="/cotizaciones" title="Cotizaciones"{% if activo == 'cotizaciones' %} aria-current="page"{% endif %}>
       <i class="bi bi-file-earmark-text-fill" aria-hidden="true"></i><span>Cotizaciones</span></a>
+    <a class="item{% if activo == 'firmas' %} activo{% endif %}" href="/firmas" title="Firmas y sellos"{% if activo == 'firmas' %} aria-current="page"{% endif %}>
+      <i class="bi bi-vector-pen" aria-hidden="true"></i><span>Firmas y sellos</span></a>
     {% endif %}
 
     <div class="grupo">Módulos</div>

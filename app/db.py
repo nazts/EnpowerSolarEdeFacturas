@@ -99,9 +99,22 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     total             REAL NOT NULL DEFAULT 0,
     notas             TEXT NOT NULL DEFAULT '',
     firma             TEXT NOT NULL DEFAULT '',
+    firma_id          INTEGER,
     token             TEXT,
     creado_por        TEXT NOT NULL DEFAULT '',
     created_at        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS firmas (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre      TEXT NOT NULL DEFAULT '',
+    cargo       TEXT NOT NULL DEFAULT '',
+    archivo     TEXT NOT NULL DEFAULT '',
+    ancho       REAL NOT NULL DEFAULT 160,
+    x           REAL,
+    y           REAL,
+    activo      INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -214,7 +227,8 @@ def migrar(conn: sqlite3.Connection) -> None:
         _asegurar_columnas(conn, "usuarios", {"modulos": "TEXT NOT NULL DEFAULT ''"})
         _asegurar_columnas(conn, "cotizaciones",
                            {"firma": "TEXT NOT NULL DEFAULT ''", "token": "TEXT",
-                            "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'"})
+                            "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'",
+                            "firma_id": "INTEGER"})
         try:
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
                          " ON cotizaciones(token)")
@@ -241,7 +255,8 @@ def migrar(conn: sqlite3.Connection) -> None:
     # cotizaciones: firma de quien firma y token anti-duplicado
     columnas_cot = {r[1] for r in conn.execute("PRAGMA table_info(cotizaciones)")}
     for nombre, tipo in (("firma", "TEXT NOT NULL DEFAULT ''"), ("token", "TEXT"),
-                         ("cliente_doc_tipo", "TEXT NOT NULL DEFAULT 'RNC'")):
+                         ("cliente_doc_tipo", "TEXT NOT NULL DEFAULT 'RNC'"),
+                         ("firma_id", "INTEGER")):
         if nombre not in columnas_cot:
             conn.execute(f"ALTER TABLE cotizaciones ADD COLUMN {nombre} {tipo}")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
@@ -454,9 +469,9 @@ def guardar_cotizacion(conn, datos: dict) -> int:
     cur = conn.execute(
         """INSERT INTO cotizaciones
            (numero, fecha, cliente_nombre, cliente_rnc, cliente_doc_tipo, cliente_direccion,
-            moneda, items, subtotal, itbis, comision_pct, comision, total, notas, firma, token,
-            creado_por, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            moneda, items, subtotal, itbis, comision_pct, comision, total, notas, firma,
+            firma_id, token, creado_por, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (str(datos.get("numero") or ""), str(datos.get("fecha") or hoy()),
          str(datos.get("cliente_nombre") or ""), str(datos.get("cliente_rnc") or ""),
          _tipo_documento(datos.get("cliente_doc_tipo")),
@@ -465,7 +480,9 @@ def guardar_cotizacion(conn, datos: dict) -> int:
          float(datos.get("subtotal") or 0), float(datos.get("itbis") or 0),
          float(datos.get("comision_pct") or 0), float(datos.get("comision") or 0),
          float(datos.get("total") or 0), str(datos.get("notas") or ""),
-         str(datos.get("firma") or ""), (str(datos.get("token") or "").strip() or None),
+         str(datos.get("firma") or ""),
+         (int(datos["firma_id"]) if datos.get("firma_id") else None),
+         (str(datos.get("token") or "").strip() or None),
          str(datos.get("creado_por") or ""), ahora()))
     conn.commit()
     return int(cur.lastrowid or 0)
@@ -486,6 +503,43 @@ def lista_cotizaciones(conn, limite: int = 200) -> list[dict]:
     filas = conn.execute(
         """SELECT * FROM cotizaciones ORDER BY id DESC LIMIT ?""", (limite,)).fetchall()
     return [_cotizacion_dict(f) for f in filas]
+
+
+def guardar_firma(conn, datos: dict) -> int:
+    """Registra una firma o sello subido (PNG/JPG) con su posición en el PDF."""
+    conn.execute(
+        """INSERT INTO firmas (nombre, cargo, archivo, ancho, x, y, activo, created_at)
+           VALUES (?,?,?,?,?,?,1,?)""",
+        (str(datos.get("nombre") or ""), str(datos.get("cargo") or ""),
+         str(datos.get("archivo") or ""), float(datos.get("ancho") or 160),
+         (float(datos["x"]) if datos.get("x") is not None else None),
+         (float(datos["y"]) if datos.get("y") is not None else None),
+         ahora()))
+    fila = conn.execute("SELECT id FROM firmas ORDER BY id DESC LIMIT 1").fetchone()
+    conn.commit()
+    return int(fila["id"] if isinstance(fila, dict) else fila[0])
+
+
+def lista_firmas(conn) -> list[dict]:
+    filas = conn.execute("SELECT * FROM firmas WHERE activo = 1 ORDER BY id").fetchall()
+    return [dict(f) for f in filas]
+
+
+def obtener_firma(conn, firma_id: int) -> dict | None:
+    fila = conn.execute("SELECT * FROM firmas WHERE id = ?", (int(firma_id),)).fetchone()
+    return dict(fila) if fila else None
+
+
+def ubicar_firma(conn, firma_id: int, x: float, y: float, ancho: float) -> None:
+    """Guarda dónde va la firma en la hoja (puntos PDF) para reusarla."""
+    conn.execute("UPDATE firmas SET x = ?, y = ?, ancho = ? WHERE id = ?",
+                 (float(x), float(y), float(ancho), int(firma_id)))
+    conn.commit()
+
+
+def eliminar_firma(conn, firma_id: int) -> None:
+    conn.execute("UPDATE firmas SET activo = 0 WHERE id = ?", (int(firma_id),))
+    conn.commit()
 
 
 def cotizacion_por_token(conn, token: str) -> dict | None:

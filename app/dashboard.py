@@ -10,7 +10,7 @@ from pathlib import Path
 
 from urllib.parse import quote
 
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
@@ -1179,9 +1179,10 @@ def cotizaciones_nueva(request: Request):
     with db.sesion() as conn:
         numero = db.siguiente_numero_cotizacion(conn)
         clientes = db.resumen_clientes(conn)
+        firmas = db.lista_firmas(conn)
     return templates.TemplateResponse(request, "cotizacion_nueva.html", {
         "activo": "cotizaciones", "numero": numero, "hoy": db.hoy(),
-        "clientes": clientes, "comision_pct": 4.5,
+        "clientes": clientes, "comision_pct": 4.5, "firmas": firmas,
         # marca de este formulario: si se envía dos veces no se duplica
         "token": uuid.uuid4().hex, "firma_sugerida": config.FIRMA_NOMBRE,
     })
@@ -1238,12 +1239,165 @@ async def cotizaciones_guardar(request: Request):
             "total": datos["total"],
             "notas": str(form.get("notas") or "").strip(),
             "firma": str(form.get("firma") or "").strip(),
+            "firma_id": (int(form.get("firma_id")) if str(form.get("firma_id") or "").isdigit()
+                         else None),
             "token": token,
             "creado_por": usuario.usuario if usuario else "",
         })
         db.log_evento(conn, "info", f"Cotización {numero} creada",
                       f"total RD${datos['total']:,.2f}")
     return RedirectResponse(f"/cotizaciones?guardada={cotizacion_id}", status_code=303)
+
+
+# --------------------------------------------------------- firmas y sellos
+CARPETA_FIRMAS = Path(__file__).resolve().parent / "static" / "firmas"
+_HOJA_MUESTRA: dict = {}          # caché en memoria de la vista previa
+TIPOS_IMAGEN = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
+
+
+def _medidas_hoja() -> tuple[float, float]:
+    """Ancho y alto de la hoja de cotización en puntos (para el editor)."""
+    try:
+        from pypdf import PdfReader
+
+        caja = PdfReader(str(config.PLANTILLA_COTIZACION)).pages[0].mediabox
+        return float(caja.width), float(caja.height)
+    except Exception:  # noqa: BLE001
+        return 612.0, 791.0
+
+
+@app.get("/firmas")
+def firmas_lista(request: Request):
+    requiere_modulo(request, "cotizaciones")
+    with db.sesion() as conn:
+        firmas = db.lista_firmas(conn)
+    ancho, alto = _medidas_hoja()
+    return templates.TemplateResponse(request, "firmas.html", {
+        "activo": "firmas", "firmas": firmas, "ancho_hoja": round(ancho, 1),
+        "alto_hoja": round(alto, 1), "mensaje": request.query_params.get("mensaje", ""),
+        "nueva": request.query_params.get("nueva", ""),
+    })
+
+
+@app.get("/firmas/hoja.png")
+def firmas_hoja(request: Request):
+    """Una cotización de ejemplo como imagen, para arrastrar la firma encima.
+
+    Se dibuja una cotización real (con tabla, totales y línea de firma) y no la
+    plantilla vacía: así se ve exactamente dónde cae la firma.
+    """
+    requiere_modulo(request, "cotizaciones")
+    import io as _io
+    import time as _time
+
+    import pypdfium2 as pdfium
+
+    from . import cotizacion_pdf
+
+    ahora = _time.time()
+    if _HOJA_MUESTRA.get("png") and ahora - _HOJA_MUESTRA.get("momento", 0) < 3600:
+        return Response(_HOJA_MUESTRA["png"], media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=3600"})
+
+    muestra = {
+        "numero": "000000", "fecha": db.hoy(), "cliente_nombre": "Cliente de ejemplo",
+        "cliente_rnc": "1-33-77201-9", "cliente_doc_tipo": "RNC",
+        "cliente_direccion": "Santiago, Rep. Dom.", "moneda": "Pesos Dominicanos",
+        "items": [
+            {"descripcion": "Sistema fotovoltaico 3 kW\n- 6 paneles de 550W\n- Inversor híbrido",
+             "cantidad": 1, "precio": 250000, "itbis": 18},
+            {"descripcion": "Instalación y puesta en marcha", "cantidad": 1,
+             "precio": 45000, "itbis": 18},
+        ],
+        "comision_pct": 4.5, "notas": "Precios válidos por 15 días.", "firma": "Ing. Luis",
+    }
+    pdf = cotizacion_pdf.generar(muestra)
+    imagen = pdfium.PdfDocument(pdf)[0].render(scale=1.5).to_pil()
+    salida = _io.BytesIO()
+    imagen.save(salida, format="PNG")
+    _HOJA_MUESTRA.update({"png": salida.getvalue(), "momento": ahora})
+    return Response(salida.getvalue(), media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.post("/firmas")
+async def firmas_subir(request: Request, nombre: str = Form(""), cargo: str = Form(""),
+                       archivo: UploadFile = File(None)):
+    requiere_modulo(request, "cotizaciones")
+    if archivo is None or not archivo.filename:
+        return RedirectResponse("/firmas?mensaje=sin-archivo", status_code=303)
+
+    extension = TIPOS_IMAGEN.get((archivo.content_type or "").lower())
+    if not extension:
+        return RedirectResponse("/firmas?mensaje=tipo", status_code=303)
+    datos = await archivo.read()
+    if not datos or len(datos) > 5 * 1024 * 1024:
+        return RedirectResponse("/firmas?mensaje=tamano", status_code=303)
+
+    # se valida abriéndola: un archivo renombrado no pasa
+    imagen = _io_imagen(datos)
+    if imagen is None:
+        return RedirectResponse("/firmas?mensaje=tipo", status_code=303)
+
+    CARPETA_FIRMAS.mkdir(parents=True, exist_ok=True)
+    guardado = f"{uuid.uuid4().hex}{extension}"
+    (CARPETA_FIRMAS / guardado).write_bytes(datos)
+    ancho_pt = 160.0
+    try:
+        proporcion = imagen.size[1] / imagen.size[0]
+        ancho_pt = min(max(proporcion * 160, 80), 260) if proporcion else 160.0
+    except Exception:  # noqa: BLE001
+        pass
+
+    with db.sesion() as conn:
+        firma_id = db.guardar_firma(conn, {"nombre": nombre.strip() or archivo.filename,
+                                           "cargo": cargo.strip(), "archivo": guardado,
+                                           "ancho": 160.0})
+        db.log_evento(conn, "info", f"Firma o sello agregado: {nombre.strip() or archivo.filename}",
+                      f"archivo {guardado}")
+    return RedirectResponse(f"/firmas?mensaje=guardada&nueva={firma_id}", status_code=303)
+
+
+@app.post("/firmas/{firma_id}/posicion")
+async def firmas_posicion(request: Request, firma_id: int):
+    """Guarda dónde va la firma en la hoja (x, y, ancho en puntos PDF)."""
+    requiere_modulo(request, "cotizaciones")
+    cuerpo = await request.json()
+    ancho, alto = _medidas_hoja()
+    try:
+        x = float(cuerpo.get("x"))
+        y = float(cuerpo.get("y"))
+        ancho_img = float(cuerpo.get("ancho") or 160)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Posición inválida")
+    # dentro de la hoja
+    x = min(max(x, 10.0), ancho - 20)
+    y = min(max(y, 10.0), alto - 20)
+    ancho_img = min(max(ancho_img, 40.0), ancho - 2 * 10)
+    with db.sesion() as conn:
+        db.ubicar_firma(conn, firma_id, x, y, ancho_img)
+    return JSONResponse({"ok": True, "x": round(x, 1), "y": round(y, 1),
+                         "ancho": round(ancho_img, 1)})
+
+
+@app.post("/firmas/{firma_id}/eliminar")
+def firmas_eliminar(request: Request, firma_id: int):
+    requiere_modulo(request, "cotizaciones")
+    with db.sesion() as conn:
+        db.eliminar_firma(conn, firma_id)
+    return RedirectResponse("/firmas?mensaje=eliminada", status_code=303)
+
+
+def _io_imagen(datos: bytes):
+    """Abre la imagen para comprobar que es una imagen de verdad."""
+    from PIL import Image
+
+    try:
+        from io import BytesIO
+
+        return Image.open(BytesIO(datos))
+    except Exception:  # noqa: BLE001
+        return None
 
 
 @app.get("/cotizaciones/{cotizacion_id}.pdf")

@@ -161,6 +161,17 @@
                   placeholder="Forma de pago, tiempo de entrega, validez…"></textarea>
       </div>
       <div class="campo c6" style="margin-bottom:14px">
+        <label for="firma_id">Firma o sello guardado</label>
+        <select id="firma_id" name="firma_id">
+          <option value="">— solo la línea para firmar —</option>
+          {% for f in firmas or [] %}
+          <option value="{{ f.id }}">{{ f.nombre }}{% if f.cargo %} — {{ f.cargo }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <p class="ayuda">Se elige en <a href="/firmas">Firmas y sellos</a>, donde se arrastra
+          hasta el lugar exacto de la hoja.</p>
+      </div>
+      <div class="campo c6" style="margin-bottom:14px">
         <label for="firma">Firma (nombre de quien firma)</label>
         <input id="firma" name="firma" placeholder="Ing. Luis" value="{{ firma_sugerida or '' }}"
                autocomplete="off">

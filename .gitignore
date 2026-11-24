@@ -31,3 +31,7 @@ logs/
 
 # claves entregadas a cada persona
 credenciales_usuarios.txt
+
+# firmas y sellos subidos desde el panel (viven en el servidor)
+app/static/firmas/*
+!app/static/firmas/.gitkeep
