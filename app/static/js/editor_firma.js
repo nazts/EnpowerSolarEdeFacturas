@@ -58,10 +58,10 @@
     }
 
     function limitar() {
-      x = Math.min(Math.max(x, 8), anchoHoja - ancho - 8);
-      var arriba = (techo || altoHoja - 8) - altoPt();
-      y = Math.min(Math.max(y, 8), Math.max(arriba, 8));
-      if (Math.abs(y - LINEA_FIRMA) < 14) y = LINEA_FIRMA;   // imán sobre la línea
+      x = Math.min(Math.max(x, 2), Math.max(anchoHoja - ancho - 2, 2));
+      var arriba = (techo || altoHoja - 2) - altoPt();
+      y = Math.min(Math.max(y, 2), Math.max(arriba, 2));
+      if (Math.abs(y - LINEA_FIRMA) < 6) y = LINEA_FIRMA;    // imán suave
     }
 
     sello.addEventListener('pointerdown', function (ev) {

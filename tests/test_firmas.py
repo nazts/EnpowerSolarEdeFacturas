@@ -277,8 +277,8 @@ def test_la_hoja_se_conviete_a_png_con_el_conversor_comun():
     assert len(png) > 5000
 
 
-def test_la_firma_no_se_guarda_encima_de_los_totales(dueno, db_path):
-    """Arriba de 214 pt están la tabla y los totales: la firma se queda abajo."""
+def test_la_firma_se_queda_exactamente_donde_se_puso(dueno, db_path):
+    """El punto elegido se respeta: sólo se recorta si se sale de la hoja."""
     _subir(dueno, _png())
     with db.sesion() as conn:
         firma_id = db.lista_firmas(conn)[0]["id"]
@@ -289,10 +289,8 @@ def test_la_firma_no_se_guarda_encima_de_los_totales(dueno, db_path):
     with db.sesion() as conn:
         cot = db.obtener_cotizacion(conn, cot_id)
         firma = db.obtener_firma(conn, firma_id)
-    # el alto real lo manda la imagen ya recortada, no el tamaño original
-    alto_imagen = cotizacion_pdf._alto_imagen(
-        dashboard.CARPETA_FIRMAS / firma["archivo"], cot["firma_ancho"])
-    assert cot["firma_y"] + alto_imagen <= 214.5
+    assert round(cot["firma_y"]) == 600 and round(cot["firma_x"]) == 100
+    assert round(cot["firma_ancho"]) == 200
 
 
 # ------------------------------- imagen: fondo, recorte y posición exacta
@@ -314,7 +312,8 @@ def test_la_firma_escaneada_pierde_el_fondo_blanco():
     assert imagen.format == "PNG"
     alfa = imagen.convert("RGBA").getchannel("A")
     assert alfa.getextrema()[0] == 0           # hay zonas transparentes
-    assert imagen.width < 400                   # se recortó el aire de alrededor
+    # el tamaño NO cambia: así la firma se queda donde se ubicó
+    assert imagen.size == (400, 150)
 
 
 def test_un_sello_con_blanco_adentro_no_se_perfora():
@@ -377,3 +376,18 @@ def test_la_linea_se_apoya_donde_termina_la_tinta(tmp_path):
     borde = _borde_inferior_tinta(ruta)      # la tinta termina a 121 px de 200
     assert 0.55 < borde < 0.65
     assert _borde_inferior_tinta(tmp_path / "no-existe.png") == 1.0
+
+
+def test_subir_un_png_no_cambia_su_tamano(dueno):
+    """Lo que se sube mantiene ancho y alto: la firma no se corre al guardarla."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    datos = _png(300, 120)
+    _subir(dueno, datos)
+    with db.sesion() as conn:
+        firma = db.lista_firmas(conn)[0]
+    guardado = dashboard.CARPETA_FIRMAS / firma["archivo"]
+    assert guardado.suffix == ".png"
+    assert Image.open(guardado).size == Image.open(BytesIO(datos)).size

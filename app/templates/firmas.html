@@ -104,14 +104,15 @@
   <span class="cuenta">{{ firmas|length }} guardada{{ '' if firmas|length == 1 else 's' }}</span>
 </div>
 <p class="intro">Subí la firma o el sello en <b>PNG con fondo transparente</b> y ubicalo una vez:
-  queda guardado en puntos del PDF y cada cotización lo toma en ese lugar. Al subirla se le
-  quita el fondo blanco y se recorta sola (las que ya estaban subidas, con el botón
-  <i class="bi bi-magic" aria-hidden="true"></i>). También podés firmar una cotización
-  puntual desde <b>Cotizaciones → Firmar</b>.</p>
+  queda guardado en puntos del PDF y cada cotización lo toma <b>exactamente</b> en ese lugar:
+  el PNG se usa tal cual, sin recortarlo ni cambiarle el tamaño. Al subirlo sólo se le quita
+  el fondo blanco si es opaco (si ya tiene transparencia no se toca). Si querés sacarle el
+  aire de alrededor, usá el botón <i class="bi bi-magic" aria-hidden="true"></i> de la
+  tarjeta. También podés firmar una cotización puntual desde <b>Cotizaciones → Firmar</b>.</p>
 
 {% if mensaje == "guardada" %}<div class="aviso">Firma agregada. Ahora ubicala en la hoja.</div>{% endif %}
 {% if mensaje == "eliminada" %}<div class="aviso">Firma quitada.</div>{% endif %}
-{% if mensaje == "tipo" %}<div class="aviso malo">El archivo tiene que ser una imagen PNG, JPG o WEBP de verdad.</div>{% endif %}
+{% if mensaje == "tipo" %}<div class="aviso malo">Tiene que ser un <b>PNG</b> de verdad. Si la tenés en JPG, guardala como PNG con fondo transparente.</div>{% endif %}
 {% if mensaje == "tamano" %}<div class="aviso malo">La imagen está vacía o pasa de 5 MB.</div>{% endif %}
 {% if mensaje == "sin-archivo" %}<div class="aviso malo">Elegí un archivo antes de subir.</div>{% endif %}
 {% if mensaje == "limpiada" %}<div class="aviso">Listo: se le quitó el fondo blanco y se recortó.</div>{% endif %}
@@ -120,8 +121,9 @@
   <h2><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Agregar una firma o sello</h2>
   <form class="cuerpo subida" method="post" action="/firmas" enctype="multipart/form-data">
     <label class="soltar" id="soltar">
-      <input id="archivo" name="archivo" type="file" accept="image/png,image/jpeg,image/webp">
-      <span class="texto"><b>Arrastrá el PNG</b> o hacé clic para elegirlo</span>
+      <input id="archivo" name="archivo" type="file" accept="image/png">
+      <span class="texto"><b>Arrastrá el PNG</b> o hacé clic para elegirlo<br>
+        (sólo PNG con fondo transparente)</span>
       <img id="vista" alt="">
     </label>
     <div class="campos">
@@ -158,7 +160,7 @@
         </div>
         <div class="pie-tarjeta">
           <form method="post" action="/firmas/{{ f.id }}/limpiar" style="display:contents">
-            <button class="btn icono" type="submit" title="Quitar el fondo blanco y recortar"
+            <button class="btn icono" type="submit" title="Recortar el aire y quitar el fondo blanco"
                     aria-label="Quitar fondo">
               <i class="bi bi-magic" aria-hidden="true"></i></button>
           </form>
@@ -279,7 +281,7 @@
     sello.src = '/static/firmas/' + boton.dataset.archivo;
     editor = EditorFirma.crear({
       hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
-      x: boton.dataset.x, y: boton.dataset.y, ancho: boton.dataset.ancho, techo: 214,
+      x: boton.dataset.x, y: boton.dataset.y, ancho: boton.dataset.ancho,
       borde: boton.dataset.borde,
       alCambiar: function(p){
         mx.textContent = Math.round(p.x) + ' pt';

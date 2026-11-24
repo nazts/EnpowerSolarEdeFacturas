@@ -1252,7 +1252,7 @@ async def cotizaciones_guardar(request: Request):
 # --------------------------------------------------------- firmas y sellos
 CARPETA_FIRMAS = Path(__file__).resolve().parent / "static" / "firmas"
 _HOJA_MUESTRA: dict = {}          # caché en memoria de la vista previa
-TIPOS_IMAGEN = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
+TIPOS_IMAGEN = {"image/png": ".png"}          # sólo PNG: es el único con transparencia
 
 
 def _medidas_hoja() -> tuple[float, float]:
@@ -1413,9 +1413,9 @@ async def firmas_posicion(request: Request, firma_id: int):
 
     ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
     alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
-    x = min(max(x, 10.0), ancho - 20)
-    # ni arriba de la tabla (218) ni fuera de la hoja
-    y = min(max(y, 10.0), max(min(alto - alto_img - 10, 214 - alto_img), 10.0))
+    x = min(max(x, 4.0), max(ancho - 20, 4.0))
+    # se respeta el punto elegido; sólo se evita que se salga de la hoja
+    y = min(max(y, 4.0), max(alto - alto_img - 4, 4.0))
     with db.sesion() as conn:
         db.ubicar_firma(conn, firma_id, x, y, ancho_img)
     return JSONResponse({"ok": True, "x": round(x, 1), "y": round(y, 1),
@@ -1436,7 +1436,7 @@ def firmas_limpiar(request: Request, firma_id: int):
     if not ruta.exists():
         return RedirectResponse("/firmas?mensaje=sin-archivo", status_code=303)
     try:
-        limpio = preparar_firma(ruta.read_bytes())
+        limpio = preparar_firma(ruta.read_bytes(), recortar=True)
     except Exception:  # noqa: BLE001
         return RedirectResponse("/firmas?mensaje=tipo", status_code=303)
 
@@ -1551,8 +1551,8 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
 
         ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
         alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
-        x = min(max(x, 10.0), ancho_hoja - 20)
-        y = min(max(y, 10.0), max(min(alto_hoja - alto_img - 10, 214 - alto_img), 10.0))
+        x = min(max(x, 4.0), max(ancho_hoja - 20, 4.0))
+        y = min(max(y, 4.0), max(alto_hoja - alto_img - 4, 4.0))
 
     with db.sesion() as conn:
         if not db.obtener_cotizacion(conn, cotizacion_id):

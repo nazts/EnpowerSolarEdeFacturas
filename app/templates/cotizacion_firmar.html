@@ -186,7 +186,7 @@
     var ancho = {{ cotizacion.firma_ancho or 'null' }} || elegido.dataset.ancho;
     editor = EditorFirma.crear({
       hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
-      x: x, y: y, ancho: ancho, techo: 214, borde: elegido.dataset.borde,
+      x: x, y: y, ancho: ancho, borde: elegido.dataset.borde,
       alCambiar: function(p){
         px.textContent = Math.round(p.x) + ' pt';
         py.textContent = Math.round(p.y) + ' pt';

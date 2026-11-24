@@ -364,8 +364,10 @@ def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> Non
         try:
             # anchor="sw": (x, y) es la esquina inferior izquierda, igual que en el
             # editor. Con el centro, la firma salía corrida media imagen hacia arriba.
+            # size exacto: nada de letterboxing (eso corría la imagen dentro del
+            # recuadro); (x, y) es la esquina inferior izquierda
             c.drawImage(ImageReader(str(ruta)), x_img, y_img, width=ancho, height=alto,
-                        mask="auto", preserveAspectRatio=True, anchor="sw")
+                        mask="auto", preserveAspectRatio=False, anchor="sw")
         except Exception:  # noqa: BLE001 - una firma rota no debe tumbar la cotización
             pass
 

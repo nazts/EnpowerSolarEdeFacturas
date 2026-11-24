@@ -57,12 +57,15 @@ def _quitar_fondo(imagen: Image.Image, umbral: int = UMBRAL_BLANCO) -> Image.Ima
     return imagen
 
 
-def preparar_firma(datos: bytes, umbral: int = UMBRAL_BLANCO) -> bytes:
-    """Devuelve un PNG con transparencia, recortado al contenido.
+def preparar_firma(datos: bytes, umbral: int = UMBRAL_BLANCO,
+                   recortar: bool = False) -> bytes:
+    """Devuelve un PNG con transparencia, **sin cambiar el tamaño**.
 
-    - Si la imagen ya trae transparencia real (PNG con alfa), se respeta.
-    - Si no, se le quita el fondo blanco que toca los bordes.
-    - Siempre se recorta el aire de alrededor y se guarda como PNG.
+    - Si la imagen ya trae transparencia real (PNG con alfa), se respeta tal cual.
+    - Si no, se le quita el fondo blanco que toca los bordes (el blanco de adentro
+      de un sello se mantiene).
+    - El ancho y el alto no se tocan: así la firma ocupa exactamente el lugar que
+      se eligió y no se corre al guardar. `recortar=True` sólo se usa a mano.
     """
     original = Image.open(io.BytesIO(datos))
     original.load()
@@ -76,7 +79,7 @@ def preparar_firma(datos: bytes, umbral: int = UMBRAL_BLANCO) -> bytes:
     if not tiene_alfa:
         imagen = _quitar_fondo(imagen, umbral)
 
-    caja = imagen.getbbox()                  # recorta lo transparente de alrededor
+    caja = imagen.getbbox() if recortar else None
     if caja:
         izquierda, arriba, derecha, abajo = caja
         izquierda = max(izquierda - MARGEN, 0)
