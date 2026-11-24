@@ -7,13 +7,18 @@ Total DOP. La firma y el sello del coordinador NO se incluyen.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from fpdf import FPDF
 
-AZUL = (31, 48, 95)          # azul marino del encabezado y las bandas
-OCRE = (233, 160, 28)        # amarillo del logo
-CLARO = (232, 237, 247)      # relleno alterno de las filas
-ROJO = (237, 28, 36)         # banda del total
+# Paleta del Manual de Marca 2026: verde #26412D, dorado #BB894C, crema #FAF3E9
+VERDE = (38, 65, 45)         # encabezado, bandas y títulos
+DORADO = (187, 137, 76)      # acentos
+CREMA = (250, 243, 233)      # relleno alterno de las filas
 GRIS = (90, 90, 90)
+
+# Tipografía de marca: Archivo (títulos y texto) y Genos (cifras)
+FUENTES = Path(__file__).resolve().parent / "static" / "fonts" / "pdf"
 
 EMPRESA = {
     "nombre": "ENPOWER SOLAR",
@@ -21,6 +26,14 @@ EMPRESA = {
     "rnc": "RNC: 1-33-77201-9",
     "correo": "info@enpowersolarrd.com",
 }
+
+
+def _registrar_fuentes(pdf: FPDF) -> None:
+    """Carga Archivo y Genos desde `app/static/fonts/pdf` (sin CDN)."""
+    pdf.add_font("Archivo", "", str(FUENTES / "Archivo-Regular.ttf"))
+    pdf.add_font("Archivo", "B", str(FUENTES / "Archivo-SemiBold.ttf"))
+    pdf.add_font("Genos", "", str(FUENTES / "Genos-Light.ttf"))
+    pdf.add_font("Genos", "B", str(FUENTES / "Genos-SemiBold.ttf"))
 
 
 def _t(texto) -> str:
@@ -85,6 +98,7 @@ def generar(cot: dict) -> bytes:
     """Devuelve el PDF en bytes. `cot` es el dict guardado en la base."""
     datos = calcular(cot.get("items") or [], cot.get("comision_pct", 4.5))
     pdf = CotizacionPDF(orientation="P", unit="mm", format="A4")
+    _registrar_fuentes(pdf)
     pdf.set_auto_page_break(auto=True, margin=22)
     pdf.set_margins(12, 12, 12)
     pdf.add_page()
@@ -92,42 +106,42 @@ def generar(cot: dict) -> bytes:
     # ------------------------------------------------ encabezado: logo y empresa
     x_logo, y_logo = 14, 16
     pdf.set_xy(x_logo, y_logo)
-    pdf.set_font("Helvetica", "B", 26)
-    pdf.set_text_color(*AZUL)
+    pdf.set_font("Archivo", "B", 26)
+    pdf.set_text_color(*VERDE)
     pdf.cell(70, 10, _t("ENPOWER"), 0, 2, "L")
     pdf.set_x(x_logo + 12)
-    pdf.set_font("Helvetica", "", 17)
+    pdf.set_font("Archivo", "", 17)
     pdf.cell(60, 9, _t("SOLAR"), 0, 2, "L")
     pdf.set_x(x_logo + 12)
-    pdf.set_font("Helvetica", "I", 9)
+    pdf.set_font("Genos", "", 10)
     pdf.cell(60, 6, _t("¡Del sol a tu favor!"), 0, 2, "L")
 
     pdf.set_xy(120, y_logo)
     for i, (texto, fuente) in enumerate(((EMPRESA["nombre"], "B"),
                                          (EMPRESA["ciudad"], "B"),
                                          (EMPRESA["rnc"], "B"))):
-        pdf.set_font("Helvetica", fuente, 9)
+        pdf.set_font("Archivo", fuente, 9)
         pdf.set_text_color(0, 0, 0)
         pdf.cell(78, 5, _t(texto), 0, 2, "C")
-    pdf.set_font("Helvetica", "", 9)
-    pdf.set_text_color(*AZUL)
+    pdf.set_font("Archivo", "", 9)
+    pdf.set_text_color(*VERDE)
     pdf.cell(78, 5, _t(EMPRESA["correo"]), 0, 2, "C")
 
     # ------------------------------------------------ título y datos del documento
     pdf.ln(4)
-    pdf.set_font("Helvetica", "B", 15)
+    pdf.set_font("Archivo", "B", 15)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 8, _t("Cotización"), 0, 1, "C")
-    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_font("Archivo", "B", 10)
     pdf.cell(0, 5.5, _t(f"No. Documento: {cot.get('numero') or '000001'}"), 0, 1, "C")
     pdf.cell(0, 5.5, _t(f"Fecha: {_fecha(cot.get('fecha'))}"), 0, 1, "C")
     pdf.cell(0, 5.5, _t(f"Moneda: {cot.get('moneda') or 'Pesos Dominicanos'}"), 0, 1, "C")
 
     # ------------------------------------------------ bloque del cliente
     pdf.ln(6)
-    pdf.set_fill_color(*AZUL)
+    pdf.set_fill_color(*VERDE)
     pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_font("Archivo", "B", 10)
     pdf.cell(0, 7, _t("CLIENTE"), 0, 1, "C", True)
     pdf.ln(1.5)
     pdf.set_text_color(0, 0, 0)
@@ -135,9 +149,9 @@ def generar(cot: dict) -> bytes:
                             ("RNC", cot.get("cliente_rnc")),
                             ("DIRECCION", cot.get("cliente_direccion"))):
         pdf.set_x(pdf.l_margin)
-        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_font("Archivo", "B", 9)
         pdf.cell(24, 5.5, _t(f"{etiqueta}:"), 0, 0, "L")
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("Archivo", "", 9)
         pdf.multi_cell(0, 5.5, _t(valor or ""), 0, "L")
         pdf.set_x(pdf.l_margin)
 
@@ -145,8 +159,8 @@ def generar(cot: dict) -> bytes:
     pdf.ln(4)
     columnas = (("Descripción", 80, "L"), ("Cantidad", 20, "C"),
                 ("Precio Uni", 28, "R"), ("Itbis", 28, "R"), ("Importe", 30, "R"))
-    pdf.set_font("Helvetica", "B", 9)
-    pdf.set_fill_color(*AZUL)
+    pdf.set_font("Archivo", "B", 9)
+    pdf.set_fill_color(*VERDE)
     pdf.set_text_color(255, 255, 255)
     for titulo, ancho, alineacion in columnas:
         pdf.cell(ancho, 7, _t(titulo), 0, 0, alineacion, True)
@@ -159,16 +173,16 @@ def generar(cot: dict) -> bytes:
         alto = 7
         if pdf.get_y() > 250:                      # salto de pagina antes de cortar
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.set_fill_color(*AZUL)
+            pdf.set_font("Archivo", "B", 9)
+            pdf.set_fill_color(*VERDE)
             pdf.set_text_color(255, 255, 255)
             for titulo, ancho, alineacion in columnas:
                 pdf.cell(ancho, 7, _t(titulo), 0, 0, alineacion, True)
             pdf.ln()
             pdf.set_text_color(0, 0, 0)
         fondo = i % 2 == 0
-        pdf.set_fill_color(*CLARO)
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_fill_color(*CREMA)
+        pdf.set_font("Archivo", "", 9)
         pdf.set_x(pdf.l_margin)
         pdf.cell(80, alto, _t(item["descripcion"]), 0, 0, "L", fondo)
         pdf.cell(20, alto, _t(f"{item['cantidad']:g}" if item["cantidad"] != "" else ""),
@@ -184,7 +198,7 @@ def generar(cot: dict) -> bytes:
 
     # relleno hasta completar el alto de la plantilla (10 renglones)
     for i in range(len(renglones), 10):
-        pdf.set_fill_color(*CLARO)
+        pdf.set_fill_color(*CREMA)
         fondo = i % 2 == 0
         pdf.set_x(pdf.l_margin)
         for _, ancho, alineacion in columnas:
@@ -200,9 +214,10 @@ def generar(cot: dict) -> bytes:
                                     ("Itbis", datos["itbis"], False),
                                     ("Total DOP", datos["total"], True)):
         pdf.set_x(x_totales)
-        pdf.set_font("Helvetica", "B", 10 if fuerte else 9.5)
+        pdf.set_font("Archivo", "B", 10 if fuerte else 9.5)
         pdf.cell(44, 7, _t(etiqueta), 0, 0, "R")
-        pdf.set_font("Helvetica", "B" if fuerte else "", 10 if fuerte else 9.5)
+        # las cifras van en Genos, la tipografía de números de la marca
+        pdf.set_font("Genos", "B" if fuerte else "", 13 if fuerte else 11)
         pdf.cell(30, 7, _t(_dinero(valor)), 0, 1, "R")
     pdf.set_x(x_totales)
     pdf.cell(ancho_total, 0, "", "T", 1, "R")
@@ -211,9 +226,9 @@ def generar(cot: dict) -> bytes:
         pdf.ln(6)
         pdf.set_x(pdf.l_margin)
         pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_font("Archivo", "B", 9)
         pdf.cell(0, 6, _t("Notas"), 0, 1, "L")
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("Archivo", "", 9)
         pdf.multi_cell(0, 5.5, _t(cot["notas"]), 0, "L")
 
     # el resto de la hoja queda en blanco, para completarlo a mano si hace falta
