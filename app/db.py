@@ -433,6 +433,25 @@ def eliminar_cotizacion(conn, cotizacion_id: int) -> None:
     conn.commit()
 
 
+def facturas_reenviables(conn) -> dict[str, list[dict]]:
+    """Facturas que se pueden reenviar, agrupadas por NIC (la mas nueva primero).
+
+    Alimenta el desplegable de «Reenviar facturas»: ahi se elige una factura
+    concreta, no solo la ultima del cliente.
+    """
+    filas = conn.execute(
+        """SELECT id, nic, corte, periodo_ini, periodo_fin, kwh, facturado,
+                  COALESCE(enviada, 0) AS enviada, estado
+           FROM facturas
+           WHERE estado IN ('descargada', 'descartada')
+           ORDER BY nic, corte DESC, id DESC""").fetchall()
+    salida: dict[str, list[dict]] = {}
+    for f in filas:
+        datos = dict(f)
+        salida.setdefault(str(datos["nic"]), []).append(datos)
+    return salida
+
+
 def clientes_con_ultima_factura(conn) -> list[dict]:
     """Todos los clientes con su factura mas reciente (para el modulo Reenviar)."""
     filas = conn.execute(

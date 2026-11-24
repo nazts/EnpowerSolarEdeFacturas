@@ -159,3 +159,64 @@ def test_el_archivo_conserva_el_nombre_del_cliente(db_path, monkeypatch):
     runner.reenviar_facturas([NIC], chat_id="-100", portales={"edenorte": _PortalFalso()})
 
     assert nombres == ["JORGE RAMON DE LA CRUZ TAVAREZ 6997885.pdf"]
+
+
+# ------------------------------------------------- facturas anteriores (nuevo)
+def test_lista_las_facturas_anteriores_de_cada_cliente(db_path, tmp_path):
+    _cliente()
+    pdf = tmp_path / "f.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    _factura(ref="6997885040", corte="2026-08-16", pdf=pdf)
+    _factura(ref="6997885041", corte="2026-09-16", pdf=pdf)
+    _factura(ref="6997885042", corte="2026-10-16", pdf=pdf)
+
+    with db.sesion() as c:
+        historial = db.facturas_reenviables(c)
+
+    cortes = [f["corte"] for f in historial[NIC]]
+    assert cortes == ["2026-10-16", "2026-09-16", "2026-08-16"], "la mas nueva primero"
+
+
+def test_se_puede_enviar_una_factura_anterior_concreta(db_path, enviados, tmp_path):
+    """El despliegue del modulo manda la factura elegida, no la ultima."""
+    _cliente()
+    pdf = tmp_path / "f.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    _factura(ref="6997885040", corte="2026-08-16", enviada=1, pdf=pdf)
+    _factura(ref="6997885041", corte="2026-09-16", enviada=1, pdf=pdf)
+    with db.sesion() as c:
+        objetivo = c.execute("SELECT id FROM facturas WHERE ref_pago = '6997885040'").fetchone()["id"]
+
+    res = runner.reenviar_facturas([], ids=[objetivo], chat_id="-100",
+                                   portales={"edenorte": _PortalFalso()})
+
+    assert res["enviados"] == [{"nic": NIC, "corte": "2026-08-16"}]
+    assert len(enviados) == 1
+    assert "NIC 6997885" in enviados[0]["caption"]
+
+
+def test_un_id_que_no_existe_avisa_sin_romper(db_path, enviados):
+    _cliente()
+    res = runner.reenviar_facturas([], ids=["999999"], chat_id="-100",
+                                   portales={"edenorte": _PortalFalso()})
+    assert res["enviados"] == []
+    assert res["errores"][0]["error"] == "esa factura no se puede enviar"
+    assert enviados == []
+
+
+def test_un_id_que_no_es_numero_avisa(db_path, enviados):
+    _cliente()
+    res = runner.reenviar_facturas([], ids=["abc"], chat_id="-100",
+                                   portales={"edenorte": _PortalFalso()})
+    assert res["errores"][0]["error"] == "identificador no valido"
+
+
+def test_el_modulo_muestra_el_desplegable_de_anteriores():
+    """La pantalla tiene el desplegable y el boton que manda una factura suelta."""
+    from pathlib import Path
+
+    plantilla = (Path(__file__).resolve().parent.parent
+                 / "app" / "templates" / "reenviar.html").read_text(encoding="utf-8")
+    assert 'details class="anteriores"' in plantilla
+    assert 'name="ids"' in plantilla
+    assert 'form="formUna"' in plantilla            # no anida formularios

@@ -675,11 +675,58 @@ def _bytes_pdf(conn, fila, portal=None) -> bytes | None:
     return None
 
 
-def reenviar_facturas(nics, chat_id: str | None = None, portales: dict | None = None) -> dict:
-    """Manda OTRA VEZ la ultima factura de cada NIC, aunque ya se haya enviado.
+def _facturas_a_reenviar(conn, nics=None, ids=None) -> tuple[list, list[dict]]:
+    """Filas a enviar: las `ids` pedidas o, si no, la ultima de cada NIC.
+
+    Devuelve (filas, errores) para poder avisar de los NIC sin facturas.
+    """
+    errores: list[dict] = []
+    filas: list = []
+
+    if ids:
+        for crudo in ids:
+            try:
+                numero = int(str(crudo).strip())
+            except (TypeError, ValueError):
+                errores.append({"id": crudo, "error": "identificador no valido"})
+                continue
+            fila = conn.execute(
+                """SELECT f.*, COALESCE(c.proveedor, 'edenorte') AS proveedor,
+                          COALESCE(c.razon_social, '') AS razon_social
+                   FROM facturas f JOIN contratos c ON c.nic = f.nic
+                   WHERE f.id = ? AND f.estado IN ('descargada', 'descartada')""",
+                (numero,)).fetchone()
+            if fila is None:
+                errores.append({"id": numero, "error": "esa factura no se puede enviar"})
+                continue
+            filas.append(fila)
+        return filas, errores
+
+    for nic in nics or []:
+        nic = str(nic).strip()
+        if not nic:
+            continue
+        fila = conn.execute(
+            """SELECT f.*, COALESCE(c.proveedor, 'edenorte') AS proveedor,
+                      COALESCE(c.razon_social, '') AS razon_social
+               FROM facturas f JOIN contratos c ON c.nic = f.nic
+               WHERE f.nic = ? AND f.estado IN ('descargada', 'descartada')
+               ORDER BY f.corte DESC, f.id DESC LIMIT 1""", (nic,)).fetchone()
+        if fila is None:
+            errores.append({"nic": nic, "error": "no tiene facturas para enviar"})
+            continue
+        filas.append(fila)
+    return filas, errores
+
+
+def reenviar_facturas(nics=None, chat_id: str | None = None, portales: dict | None = None,
+                      ids=None) -> dict:
+    """Manda OTRA VEZ facturas ya enviadas: por NIC (su ultima) o por `ids`.
 
     Es la accion manual del modulo "Reenviar": sirve cuando el envio anterior
-    fallo, cuando el mensaje se borro del grupo o cuando hay que reenviarlo.
+    fallo, cuando el mensaje se borro del grupo o cuando hay que mandar una
+    factura anterior (no la ultima). No consulta la marca `enviada` a proposito:
+    deduplicar aca anularia la funcion.
     El PDF se sirve desde disco, desde Telegram o pidiendoselo al portal, y no
     se deja ninguna copia en el servidor.
     """
@@ -699,24 +746,16 @@ def reenviar_facturas(nics, chat_id: str | None = None, portales: dict | None = 
             res["errores"].append({"proveedor": nombre, "error": str(exc)[:160]})
 
     with db.sesion() as conn:
-        for nic in nics:
-            nic = str(nic).strip()
-            if not nic:
-                continue
-            fila = conn.execute(
-                """SELECT f.*, COALESCE(c.proveedor, 'edenorte') AS proveedor,
-                          COALESCE(c.razon_social, '') AS razon_social
-                   FROM facturas f JOIN contratos c ON c.nic = f.nic
-                   WHERE f.nic = ? AND f.estado IN ('descargada', 'descartada')
-                   ORDER BY f.corte DESC, f.id DESC LIMIT 1""", (nic,)).fetchone()
-            if fila is None:
-                res["errores"].append({"nic": nic, "error": "no tiene facturas para enviar"})
-                continue
+        objetivos, errores = _facturas_a_reenviar(conn, nics=nics, ids=ids)
+        res["errores"].extend(errores)
 
+        for fila in objetivos:
+            nic = str(fila["nic"])
             portal = activos.get(str(fila["proveedor"]))
             contenido = _bytes_pdf(conn, dict(fila), portal)
             if not contenido:
-                res["errores"].append({"nic": nic, "error": "el PDF no está disponible"})
+                res["errores"].append({"nic": nic, "corte": fila["corte"],
+                                       "error": "el PDF no está disponible"})
                 _anotar(conn, "error", f"NIC {nic}: no se pudo reenviar", "PDF no disponible")
                 continue
 
@@ -733,7 +772,8 @@ def reenviar_facturas(nics, chat_id: str | None = None, portales: dict | None = 
                 destino.write_bytes(contenido)
                 respuesta = telegram.enviar_documento(destino, caption=texto, chat_id=chat_id)
             except telegram.TelegramError as exc:
-                res["errores"].append({"nic": nic, "error": str(exc)[:160]})
+                res["errores"].append({"nic": nic, "corte": fila["corte"],
+                                       "error": str(exc)[:160]})
                 _anotar(conn, "error", f"NIC {nic}: fallo el reenvio", str(exc)[:200])
                 continue
             finally:

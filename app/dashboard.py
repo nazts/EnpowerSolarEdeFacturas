@@ -1257,45 +1257,53 @@ def cotizaciones_eliminar(cotizacion_id: int, request: Request):
     return RedirectResponse("/cotizaciones?mensaje=eliminada", status_code=303)
 
 
+def _contexto_reenviar(conn) -> dict:
+    """Clientes + sus facturas anteriores para el despliegue del modulo."""
+    return {"clientes": db.clientes_con_ultima_factura(conn),
+            "historial": db.facturas_reenviables(conn)}
+
+
 @app.get("/reenviar")
 def reenviar_form(request: Request):
     """Modulo Reenviar: elegir clientes y volver a mandar su ultima factura."""
     requiere_operador(request)
     with db.sesion() as conn:
-        filas = db.clientes_con_ultima_factura(conn)
+        contexto = _contexto_reenviar(conn)
     return templates.TemplateResponse(request, "reenviar.html", {
-        "activo": "reenviar", "clientes": filas, "resultado": None,
-        "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
+        "activo": "reenviar", "resultado": None,
+        "chat_configurado": bool(config.TELEGRAM_CHAT_ID), **contexto,
     })
 
 
 @app.post("/reenviar")
 async def reenviar_accion(request: Request,
                           nics: list[str] = Form(default=[]),
+                          ids: list[str] = Form(default=[]),
                           todos: str = Form(default="")):
     """Manda otra vez la ultima factura de los clientes elegidos (aunque ya se envio)."""
     requiere_operador(request)
     from . import runner
 
-    if todos == "1":
+    if todos == "1" and not ids:
         with db.sesion() as conn:
             nics = [f["nic"] for f in db.clientes_con_ultima_factura(conn) if f["factura_id"]]
     nics = [str(n).strip() for n in nics if str(n).strip()]
-    if not nics:
+    ids = [str(i).strip() for i in ids if str(i).strip()]
+    if not nics and not ids:
         with db.sesion() as conn:
-            filas = db.clientes_con_ultima_factura(conn)
+            contexto = _contexto_reenviar(conn)
         return templates.TemplateResponse(request, "reenviar.html", {
-            "activo": "reenviar", "clientes": filas,
+            "activo": "reenviar", **contexto,
             "resultado": {"enviados": [], "errores": [], "aviso": "No elegiste ningún cliente"},
             "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
         }, status_code=400)
 
-    resultado = runner.reenviar_facturas(nics)
+    resultado = runner.reenviar_facturas(nics, ids=ids)
     with db.sesion() as conn:
-        filas = db.clientes_con_ultima_factura(conn)
+        contexto = _contexto_reenviar(conn)
     return templates.TemplateResponse(request, "reenviar.html", {
-        "activo": "reenviar", "clientes": filas, "resultado": resultado,
-        "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
+        "activo": "reenviar", "resultado": resultado,
+        "chat_configurado": bool(config.TELEGRAM_CHAT_ID), **contexto,
     })
 
 
@@ -1307,11 +1315,11 @@ def reenviar_correr(request: Request):
 
     resultado = runner.corrida(enviar=True)
     with db.sesion() as conn:
-        filas = db.clientes_con_ultima_factura(conn)
+        contexto = _contexto_reenviar(conn)
     return templates.TemplateResponse(request, "reenviar.html", {
-        "activo": "reenviar", "clientes": filas,
+        "activo": "reenviar",
         "resultado": {"corrida": resultado.como_dict(), "enviados": [], "errores": []},
-        "chat_configurado": bool(config.TELEGRAM_CHAT_ID),
+        "chat_configurado": bool(config.TELEGRAM_CHAT_ID), **contexto,
     })
 
 

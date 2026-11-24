@@ -47,6 +47,36 @@
   .resumen li{margin:3px 0}
   .resumen .malo{color:var(--bad)}
   .vacio{padding:26px 18px;text-align:center;color:var(--muted)}
+  tr.fila-hist{background:var(--card2)}
+  tr.fila-hist > td{padding:0}
+  details.anteriores{border-top:0}
+  details.anteriores > summary{cursor:pointer;list-style:none;display:flex;align-items:center;
+    gap:8px;padding:8px 12px;font-size:12.5px;color:var(--muted);user-select:none}
+  details.anteriores > summary::-webkit-details-marker{display:none}
+  details.anteriores > summary i{transition:transform .15s;font-size:11px}
+  details.anteriores[open] > summary i{transform:rotate(90deg)}
+  details.anteriores > summary:hover{color:var(--txt)}
+  .tabla-hist{padding:0 12px 12px}
+  .tabla-hist table{min-width:0;font-size:12.5px;border:1px solid var(--line);border-radius:10px;
+    overflow:hidden}
+  .tabla-hist th{font-size:10.5px;padding:7px 9px;background:var(--card)}
+  .tabla-hist td{padding:7px 9px}
+  .tabla-hist tbody tr:hover{background:var(--hover)}
+  .btn.mini{padding:5px 10px;font-size:12px}
+  @media(max-width:640px){
+    tr.fila-hist{display:block}
+    .tabla-hist{padding:0 6px 10px}
+    .tabla-hist table{min-width:0}
+    .tabla-hist thead{display:table-header-group}
+    .tabla-hist tr{display:table-row;border:0;padding:0}
+    .tabla-hist td{display:table-cell;padding:7px 5px;font-size:12px}
+    .tabla-hist td::before{content:none}
+    /* en el celular el período no entra: el corte ya lo dice */
+    .tabla-hist th:nth-child(2), .tabla-hist td:nth-child(2){display:none}
+    .tabla-hist .btn.mini{padding:6px 8px;justify-content:center}
+    /* `tr{display:block}` de arriba anula el atributo hidden */
+    #sinCoincide[hidden]{display:none}
+  }
   @media(max-width:640px){
     table{min-width:0}
     thead{display:none}
@@ -94,6 +124,8 @@
   <div class="resumen malo">No hay canal de Telegram configurado (TELEGRAM_CHAT_ID). No se puede enviar.</div>
   {% endif %}
 
+  <form id="formUna" method="post" action="/reenviar" style="display:none"></form>
+
   <form method="post" action="/reenviar" id="formReenviar">
     <section>
       <div class="barra">
@@ -121,7 +153,7 @@
           </tr></thead>
           <tbody>
           {% for c in clientes %}
-            <tr data-buscar="{{ c.nic }} {{ c.nombre_normalizado or '' }} {{ c.razon_social or '' }} {{ c.alias or '' }} {{ c.asesor or '' }} {{ c.proveedor or '' }}">
+            <tr class="fila-cliente" data-buscar="{{ c.nic }} {{ c.nombre_normalizado or '' }} {{ c.razon_social or '' }} {{ c.alias or '' }} {{ c.asesor or '' }} {{ c.proveedor or '' }}">
               <td class="sel" data-label="Enviar">
                 <input type="checkbox" name="nics" value="{{ c.nic }}"
                        aria-label="Reenviar a {{ c.nic }}"
@@ -137,6 +169,46 @@
                 {% if c.enviada %}<span class="pill ok">enviada</span>
                 {% elif c.factura_id %}<span class="pill info">sin enviar</span>
                 {% else %}<span class="pill warn">sin factura</span>{% endif %}
+              </td>
+            </tr>
+            {% set suyas = historial.get(c.nic, []) %}
+            <tr class="fila-hist" data-buscar="{{ c.nic }} {{ c.nombre_normalizado or '' }} {{ c.razon_social or '' }} {{ c.alias or '' }} {{ c.asesor or '' }} {{ c.proveedor or '' }}">
+              <td colspan="7">
+                <details class="anteriores">
+                  <summary>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    Facturas anteriores ({{ suyas|length }})
+                    {% if suyas|length > 1 %}<span class="muted">· podés reenviar cualquiera</span>{% endif %}
+                  </summary>
+                  {% if suyas %}
+                  <div class="tabla-hist">
+                    <table>
+                      <thead><tr><th>Corte</th><th>Período</th><th class="num">kWh</th>
+                        <th class="num">Pagar</th><th>Estado</th><th class="num"></th></tr></thead>
+                      <tbody>
+                      {% for f in suyas %}
+                        <tr>
+                          <td>{{ f.corte or "—" }}{% if loop.first %}<small>última</small>{% endif %}</td>
+                          <td>{{ f.periodo_ini or "—" }} <i class="bi bi-arrow-right" aria-hidden="true"></i> {{ f.periodo_fin or "—" }}</td>
+                          <td class="num">{{ f.kwh if f.kwh is not none else "—" }}</td>
+                          <td class="num">{% if f.facturado is not none %}RD$ {{ "{:,.2f}".format(f.facturado) }}{% else %}—{% endif %}</td>
+                          <td>{% if f.enviada %}<span class="pill ok">enviada</span>{% else %}<span class="pill info">sin enviar</span>{% endif %}</td>
+                          <td class="num">
+                            <button class="btn mini" type="submit" form="formUna" name="ids" value="{{ f.id }}"
+                                    title="Enviar esta factura al grupo"
+                                    onclick="return confirm('¿Enviar la factura del {{ f.corte }} del NIC {{ c.nic }} al grupo?')">
+                              <i class="bi bi-send-fill" aria-hidden="true"></i> <span class="txt">Enviar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  {% else %}
+                  <p class="muted" style="margin:0 12px 12px;font-size:12.5px">Todavía no hay facturas guardadas de este cliente.</p>
+                  {% endif %}
+                </details>
               </td>
             </tr>
           {% endfor %}
@@ -171,8 +243,8 @@
   var contador = document.getElementById('contador');
   var enviar = document.getElementById('btnEnviar');
   var buscar = document.getElementById('buscarCliente');
-  var filas = Array.prototype.slice.call(
-    document.querySelectorAll('tbody tr:not(#sinCoincide)'));
+  var filas = Array.prototype.slice.call(document.querySelectorAll('tr.fila-cliente'));
+  var extras = Array.prototype.slice.call(document.querySelectorAll('tr.fila-hist'));
   var TOTAL = filas.length;
 
   function plano(t){                       // minusculas y sin tildes
@@ -196,7 +268,7 @@
   }
   function filtrar(){
     var terminos = plano(buscar && buscar.value).split(/\s+/).filter(Boolean);
-    filas.forEach(function(tr){
+    filas.concat(extras).forEach(function(tr){
       var texto = plano(tr.getAttribute('data-buscar') || tr.textContent);
       var coincide = terminos.every(function(t){ return texto.indexOf(t) !== -1; });
       tr.classList.toggle('oculta', !coincide);
@@ -214,6 +286,12 @@
   var form = document.getElementById('formReenviar');
   if (form) form.addEventListener('submit', function(){
     if (enviar){ enviar.disabled = true; enviar.textContent = 'Enviando…'; }
+  });
+  var una = document.getElementById('formUna');
+  if (una) una.addEventListener('submit', function(){
+    // el boton viene del desplegable: se apaga el suyo y se avisa
+    var b = una.querySelector('button[form="formUna"]');
+    if (b){ b.disabled = true; b.innerHTML = 'Enviando…'; }
   });
   pintar();
 })();
