@@ -27,9 +27,11 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Table, TableStyle
+from reportlab.platypus import Paragraph, Table, TableStyle
+from xml.sax.saxutils import escape
 
 from . import config
 
@@ -190,18 +192,50 @@ def _encabezado(c: canvas.Canvas, cot: dict) -> None:
     c.line(MARGEN, Y_DIVISOR, derecha, Y_DIVISOR)
 
 
+def _estilos_descripcion() -> tuple[ParagraphStyle, ParagraphStyle]:
+    """Estilos de la celda de descripción: título y viñetas con sangría colgante."""
+    titulo = ParagraphStyle("desc-titulo", fontName="Archivo-Semi", fontSize=8.4, leading=11,
+                            spaceAfter=1.5, textColor=TEXTO)
+    vineta = ParagraphStyle("desc-vineta", fontName="Archivo", fontSize=8.2, leading=10.6,
+                            leftIndent=9, bulletIndent=1, bulletFontName="Archivo",
+                            bulletFontSize=8.2, textColor=TEXTO, spaceAfter=0.5)
+    return titulo, vineta
+
+
+def _celda_descripcion(texto: str) -> list:
+    """Convierte la descripción en párrafos: así envuelve y las viñetas alinean.
+
+    Un texto largo en una sola celda se veía apretado y las líneas que envolvían
+    quedaban pegadas al borde: con párrafos, la segunda línea de cada viñeta
+    arranca sangrada y el renglón respira.
+    """
+    titulo, vineta = _estilos_descripcion()
+    parrafos = []
+    for crudo in str(texto or "").splitlines():
+        linea = crudo.strip()
+        if not linea:
+            continue
+        if linea.startswith(("-", "•", "*")):
+            parrafos.append(Paragraph(escape(linea[1:].strip()), vineta, bulletText="•"))
+        else:
+            parrafos.append(Paragraph(escape(linea), titulo))
+    return parrafos or [Paragraph("", titulo)]
+
+
 def _tabla(datos: dict) -> Table:
     """Tabla de renglones lista para dibujar (con encabezado repetible)."""
     filas = [["Descripción", "Cantidad", "Precio unitario", "Itbis", "Importe"]]
     for item in datos["items"] or [{"descripcion": ""}]:
         filas.append([
-            item.get("descripcion") or "",
+            _celda_descripcion(item.get("descripcion") or ""),
             f"{item['cantidad']:g}" if item.get("cantidad") not in (None, "") else "",
             _dinero(item["precio"]) if item.get("precio") not in (None, "") else "",
             _dinero(item["itbis_monto"]) if item.get("itbis_monto") not in (None, "") else "",
             _dinero(item["importe"]) if item.get("importe") not in (None, "") else "",
         ])
-    tabla = Table(filas, colWidths=[222.3, 55, 78, 72, 85], repeatRows=1)
+    # splitInRow: un renglón muy alto con muchas viñetas se parte entre hojas
+    # en vez de dejar media hoja en blanco
+    tabla = Table(filas, colWidths=[248, 48, 76, 62, 78], repeatRows=1, splitInRow=1)
     tabla.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), VERDE),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -216,8 +250,8 @@ def _tabla(datos: dict) -> Table:
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 7),
         ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("GRID", (0, 0), (-1, -1), 0.6, BORDE),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, CREMA]),
     ]))
@@ -235,13 +269,13 @@ def _totales(c: canvas.Canvas, datos: dict, y_top: float) -> None:
     tabla = Table(filas, colWidths=[95, 120], rowHeights=[21, 21, 25])
     tabla.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, 1), "Archivo-Semi"),
-        ("FONTNAME", (1, 0), (1, 1), "Genos"),
+        ("FONTNAME", (1, 0), (1, 1), "Archivo"),
         ("FONTSIZE", (0, 0), (-1, 1), 9),
         ("TEXTCOLOR", (0, 0), (-1, 1), TEXTO),
         ("BACKGROUND", (0, 2), (-1, 2), VERDE),
         ("TEXTCOLOR", (0, 2), (-1, 2), colors.white),
         ("FONTNAME", (0, 2), (0, 2), "Archivo-Semi"),
-        ("FONTNAME", (1, 2), (1, 2), "Genos-Semi"),
+        ("FONTNAME", (1, 2), (1, 2), "Archivo-Semi"),
         ("FONTSIZE", (0, 2), (-1, 2), 11),
         ("ALIGN", (0, 0), (0, -1), "LEFT"),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
@@ -335,12 +369,16 @@ def generar(cot: dict) -> bytes:
     y = Y_TABLA_P1
 
     while True:
-        espacio = y - Y_TABLA_FIN
-        alto_resto = resto.wrapOn(capa, ancho_tabla, espacio)[1]
-        if alto_resto <= espacio:
+        # Primero se intenta cerrar aquí (dejando sitio a totales y firma).
+        espacio_cierre = y - Y_TABLA_FIN
+        alto_resto = resto.wrapOn(capa, ancho_tabla, espacio_cierre)[1]
+        if alto_resto <= espacio_cierre:
             resto.drawOn(capa, MARGEN, y - alto_resto)
             break
 
+        # No cabe con el cierre: la hoja se aprovecha entera hasta el pie y
+        # el bloque de cierre se va a la última hoja.
+        espacio = y - Y_LIMITE
         partes = resto.split(ancho_tabla, espacio)
         if not partes:                    # ni una fila entra: se corta igual
             alto_resto = resto.wrapOn(capa, ancho_tabla, espacio)[1]

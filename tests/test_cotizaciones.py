@@ -285,3 +285,50 @@ def test_la_migracion_agrega_firma_y_token_a_cotizaciones_existentes(tmp_path, m
     with db.sesion(db_path=ruta) as c:
         columnas = {f[1] for f in c.execute("PRAGMA table_info(cotizaciones)")}
     assert {"firma", "token"} <= columnas
+
+
+# ------------------------------- descripciones largas en una sola casilla
+DESCRIPCION_LARGA = ("Tercer Nivel:\n"
+                     "- Instalación de salidas para tomacorrientes en habitaciones y salidas para TV.\n"
+                     "- Instalación de salidas para tomacorrientes y distribución de luces en baños.\n"
+                     "- Previsión de líneas eléctricas para interruptores inteligentes.\n"
+                     "- Instalación de salidas para lámparas.\n"
+                     "- Conexiones Three-Way entre tercer y segundo nivel.\n"
+                     "- Instalación de salidas eléctricas y rieles en closets.")
+
+
+def _cotizacion_descriptiva():
+    cot = _cotizacion()
+    cot["items"] = [{"descripcion": DESCRIPCION_LARGA, "cantidad": 1,
+                     "precio": 135000, "itbis": 0}]
+    return cot
+
+
+def test_la_descripcion_larga_no_se_desborda_de_la_casilla():
+    """Envolvía sin sangría y se veía apretada: ahora cada viñeta va aparte."""
+    texto = _paginas(cotizacion_pdf.generar(_cotizacion_descriptiva()))[0]
+    assert "Tercer Nivel:" in texto
+    # la última viñeta sigue visible (no se sale de la hoja ni se corta)
+    assert "rieles en closets" in texto
+    # el título se separa de las viñetas y ninguna línea pierde el texto
+    assert "Previsión de líneas eléctricas" in texto
+
+
+def test_la_descripcion_se_parte_con_el_encabezado_repetido():
+    """Un concepto con muchas viñetas ocupa más de una hoja sin perder texto."""
+    cot = _cotizacion()
+    cot["items"] = [{"descripcion": DESCRIPCION_LARGA, "cantidad": 1,
+                     "precio": 50000 + i, "itbis": 0} for i in range(6)]
+    paginas = _paginas(cotizacion_pdf.generar(cot))
+    assert len(paginas) >= 2
+    for pagina in paginas:
+        assert "Descripción" in pagina or "Total DOP" in pagina
+    assert "Total DOP" in paginas[-1]
+    assert sum("Total DOP" in p for p in paginas) == 1
+
+
+def test_las_vinetas_se_reconocen_con_guion_o_punto():
+    """El texto que se pega desde el PDF original trae guiones y a veces •."""
+    assert cotizacion_pdf._celda_descripcion("- uno\n• dos\n* tres")
+    parrafos = cotizacion_pdf._celda_descripcion("Título:\n- detalle\n\n- otro")
+    assert len(parrafos) == 3            # las líneas vacías no generan renglón

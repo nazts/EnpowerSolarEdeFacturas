@@ -22,6 +22,8 @@
     text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
   table.items td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
   table.items input{padding:7px 9px;font-size:13px}
+  table.items textarea{padding:7px 9px;font-size:13px;resize:none;overflow:hidden;
+    min-height:34px;line-height:1.45;vertical-align:top}
   table.items .num input{text-align:right;font-variant-numeric:tabular-nums}
   table.items .imp{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
     padding-right:10px;white-space:nowrap}
@@ -117,6 +119,8 @@
       <button class="btn" type="button" id="btnAgregar">
         <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar renglón</button>
       <span class="ayuda" style="margin:0">El Itbis es 18% por defecto; ponlo en 0 si el producto no lleva.</span>
+      <span class="ayuda" style="margin:0">Cada renglón admite varias líneas: el título del
+        concepto y debajo los detalles con guion (-), uno por línea; salen como viñetas en el PDF.</span>
     </div>
   </section>
 
@@ -162,13 +166,14 @@
   function fila(desc, cant, precio, itbis){
     var tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><input name="descripcion" placeholder="panel, inversor, instalación…" value=""></td>' +
+      '<td><textarea name="descripcion" rows="1" ' +
+        'placeholder="panel, inversor, instalación…"></textarea></td>' +
       '<td class="num"><input name="cantidad" inputmode="decimal" value="1"></td>' +
       '<td class="num"><input name="precio" inputmode="decimal" value="0"></td>' +
       '<td class="num"><input name="itbis_item" inputmode="decimal" value="18"></td>' +
       '<td class="imp">RD$ 0.00</td>' +
       '<td><button class="quitar" type="button" aria-label="Quitar renglón">✕</button></td>';
-    var campos = tr.querySelectorAll('input');
+    var campos = tr.querySelectorAll('input, textarea');
     if (desc) campos[0].value = desc;
     if (cant !== undefined) campos[1].value = cant;
     if (precio !== undefined) campos[2].value = precio;
@@ -209,6 +214,12 @@
   });
   if (pct) pct.addEventListener('input', calcular);
 
+  // el textarea de descripción crece con el texto (varias viñetas)
+  function ajustar(t){ t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
+  document.getElementById('filas').addEventListener('input', function(ev){
+    if (ev.target.tagName === 'TEXTAREA') ajustar(ev.target);
+  });
+
   // un envío por vez: doble clic no debe guardar dos cotizaciones
   var form = document.getElementById('formCotiza');
   var btn = document.getElementById('btnGuardar');
@@ -217,7 +228,9 @@
     btn.innerHTML = 'Guardando…';
   });
 
-  filas.appendChild(fila());          // un renglón listo para escribir
+  var primera = fila();
+  filas.appendChild(primera);         // un renglón listo para escribir
+  ajustar(primera.querySelector('textarea'));
   filas.appendChild(fila());
   filas.appendChild(fila());
   calcular();
