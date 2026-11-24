@@ -155,6 +155,9 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     notas             TEXT NOT NULL DEFAULT '',
     firma             TEXT NOT NULL DEFAULT '',
     firma_id          INTEGER,
+    firma_x           DOUBLE PRECISION,
+    firma_y           DOUBLE PRECISION,
+    firma_ancho       DOUBLE PRECISION,
     token             TEXT,
     creado_por        TEXT NOT NULL DEFAULT '',
     created_at        TEXT NOT NULL DEFAULT ''

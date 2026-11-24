@@ -100,6 +100,9 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     notas             TEXT NOT NULL DEFAULT '',
     firma             TEXT NOT NULL DEFAULT '',
     firma_id          INTEGER,
+    firma_x           REAL,
+    firma_y           REAL,
+    firma_ancho       REAL,
     token             TEXT,
     creado_por        TEXT NOT NULL DEFAULT '',
     created_at        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -228,7 +231,8 @@ def migrar(conn: sqlite3.Connection) -> None:
         _asegurar_columnas(conn, "cotizaciones",
                            {"firma": "TEXT NOT NULL DEFAULT ''", "token": "TEXT",
                             "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'",
-                            "firma_id": "INTEGER"})
+                            "firma_id": "INTEGER", "firma_x": "REAL",
+                            "firma_y": "REAL", "firma_ancho": "REAL"})
         try:
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
                          " ON cotizaciones(token)")
@@ -256,7 +260,8 @@ def migrar(conn: sqlite3.Connection) -> None:
     columnas_cot = {r[1] for r in conn.execute("PRAGMA table_info(cotizaciones)")}
     for nombre, tipo in (("firma", "TEXT NOT NULL DEFAULT ''"), ("token", "TEXT"),
                          ("cliente_doc_tipo", "TEXT NOT NULL DEFAULT 'RNC'"),
-                         ("firma_id", "INTEGER")):
+                         ("firma_id", "INTEGER"), ("firma_x", "REAL"),
+                         ("firma_y", "REAL"), ("firma_ancho", "REAL")):
         if nombre not in columnas_cot:
             conn.execute(f"ALTER TABLE cotizaciones ADD COLUMN {nombre} {tipo}")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
@@ -539,6 +544,25 @@ def ubicar_firma(conn, firma_id: int, x: float, y: float, ancho: float) -> None:
 
 def eliminar_firma(conn, firma_id: int) -> None:
     conn.execute("UPDATE firmas SET activo = 0 WHERE id = ?", (int(firma_id),))
+    conn.commit()
+
+
+def firmar_cotizacion(conn, cotizacion_id: int, firma_id: int | None,
+                      x: float | None = None, y: float | None = None,
+                      ancho: float | None = None) -> None:
+    """Pone (o cambia) la firma de una cotización ya guardada.
+
+    La posición es de esa cotización: si se mueve la firma no se toca la de
+    las demás. Con `firma_id=None` se quita el sello y queda sólo la línea.
+    """
+    conn.execute("""UPDATE cotizaciones
+                    SET firma_id = ?, firma_x = ?, firma_y = ?, firma_ancho = ?
+                    WHERE id = ?""",
+                 (int(firma_id) if firma_id else None,
+                  float(x) if x is not None else None,
+                  float(y) if y is not None else None,
+                  float(ancho) if ancho is not None else None,
+                  int(cotizacion_id)))
     conn.commit()
 
 

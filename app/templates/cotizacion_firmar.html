@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block titulo %}Firmar cotización {{ cotizacion.numero }} · Enpower Solar{% endblock %}
+
+{% block estilos %}
+<style>
+  .volver{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);
+    text-decoration:none;margin-bottom:10px}
+  .volver:hover{color:var(--accent)}
+  .cabecera{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  .cabecera h1{margin:0;font-size:22px}
+  .cabecera .cliente{color:var(--muted);font-size:13.5px}
+  .cabecera .monto{margin-left:auto;font-size:15px;font-weight:700;color:var(--accent)}
+  .intro{margin:6px 0 16px;color:var(--muted);font-size:13px;max-width:760px;line-height:1.6}
+  .aviso{margin:0 0 14px;padding:11px 14px;border-radius:10px;font-size:13px;
+    background:var(--ok-bg);color:var(--ok);border:1px solid var(--line)}
+
+  .rejilla{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .panel > h2{margin:0;padding:12px 16px;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.7px;color:var(--muted);border-bottom:1px solid var(--line);
+    background:var(--card2);display:flex;align-items:center;gap:8px}
+  .cuerpo{padding:16px}
+
+  .hoja{position:relative;width:100%;max-width:520px;margin:0 auto;border:1px solid var(--line);
+    border-radius:8px;overflow:hidden;background:#fff;touch-action:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.08)}
+  .hoja .pagina{display:block;width:100%;height:auto;pointer-events:none;user-select:none}
+  .sello{position:absolute;cursor:grab;touch-action:none;user-select:none;
+    outline:1px dashed transparent;outline-offset:2px}
+  .sello:hover,.sello.arrastrando{outline-color:var(--accent)}
+  .sello.arrastrando{cursor:grabbing}
+  .sello[hidden]{display:none}
+
+  .opciones{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+  .opcion{display:flex;align-items:center;gap:10px;border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px;cursor:pointer;background:var(--card);
+    transition:border-color .15s ease,background .15s ease}
+  .opcion:hover{border-color:var(--accent)}
+  .opcion input{accent-color:var(--accent);flex:0 0 auto}
+  .opcion img{height:30px;max-width:70px;object-fit:contain;flex:0 0 auto}
+  .opcion .texto{display:flex;flex-direction:column;min-width:0}
+  .opcion .texto b{font-size:12.5px;font-weight:600}
+  .opcion .texto span{font-size:11.5px;color:var(--muted)}
+  .opcion.elegida{border-color:var(--accent);background:var(--ok-bg)}
+
+  .fila{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:12.5px;
+    padding:3px 0}
+  .fila b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .ayuda{font-size:11.5px;color:var(--muted);line-height:1.5;margin:8px 0}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+
+  .btn{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;
+    padding:9px 14px;background:var(--card2);color:var(--txt);text-decoration:none;
+    font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primario{background:var(--accent);color:var(--on-accent);border-color:var(--accent);
+    font-weight:600;width:100%}
+  .btn.primario[disabled]{opacity:.55;cursor:not-allowed}
+  .btn.peligro{color:var(--bad);width:100%}
+  .btn.peligro:hover{border-color:var(--bad);background:var(--bad-bg)}
+  @media(max-width:900px){ .rejilla{grid-template-columns:1fr} }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<a class="volver" href="/cotizaciones">
+  <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a cotizaciones</a>
+
+<div class="cabecera">
+  <h1>Firmar la cotización {{ cotizacion.numero }}</h1>
+  <span class="cliente">{{ cotizacion.cliente_nombre or 'Sin cliente' }}
+    · {{ cotizacion.fecha }}</span>
+  <span class="monto">RD$ {{ "{:,.2f}".format(cotizacion.total or 0) }}</span>
+</div>
+<p class="intro">Elegí la firma o el sello y arrastralo sobre la hoja. Se guarda <b>solo para
+  esta cotización</b>: las demás siguen con la posición general.</p>
+
+{% if mensaje == "firmada" %}<div class="aviso">Cotización firmada. Ya podés abrir el PDF.</div>{% endif %}
+
+<div class="rejilla">
+  <div class="panel">
+    <h2><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Última hoja de la cotización</h2>
+    <div class="cuerpo">
+      <div class="hoja" id="hoja">
+        <img class="pagina" src="/cotizaciones/{{ cotizacion.id }}/hoja.png"
+             alt="Hoja de la cotización {{ cotizacion.numero }}">
+        <img class="sello" id="sello" alt="" draggable="false" hidden>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><i class="bi bi-vector-pen" aria-hidden="true"></i> Firma o sello</h2>
+    <div class="cuerpo">
+      {% if firmas %}
+      <div class="opciones">
+        <label class="opcion{% if not cotizacion.firma_id %} elegida{% endif %}">
+          <input type="radio" name="firma" value=""{% if not cotizacion.firma_id %} checked{% endif %}>
+          <span class="texto"><b>Sin sello</b><span>solo la línea para firmar</span></span>
+        </label>
+        {% for f in firmas %}
+        <label class="opcion{% if cotizacion.firma_id == f.id %} elegida{% endif %}">
+          <input type="radio" name="firma" value="{{ f.id }}"
+                 data-archivo="{{ f.archivo }}" data-nombre="{{ f.nombre }}"
+                 data-x="{{ f.x if f.x is not none else '' }}"
+                 data-y="{{ f.y if f.y is not none else '' }}"
+                 data-ancho="{{ f.ancho or 160 }}"
+                 {% if cotizacion.firma_id == f.id %} checked{% endif %}>
+          <img src="/static/firmas/{{ f.archivo }}" alt="">
+          <span class="texto"><b>{{ f.nombre }}</b><span>{{ f.cargo or 'Sin cargo' }}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="fila"><span>Posición X</span><b id="px">—</b></div>
+      <div class="fila"><span>Posición Y</span><b id="py">—</b></div>
+      <div class="fila"><span>Ancho</span><b id="pw">—</b></div>
+      <input type="range" id="rango" min="40" max="300" step="2" aria-label="Tamaño de la firma">
+      <p class="ayuda">Arrastrá la imagen sobre la hoja; el imán la apoya en la línea de firma.</p>
+      <button class="btn primario" type="button" id="guardar" disabled>
+        <i class="bi bi-check2" aria-hidden="true"></i> Guardar firma</button>
+      <p></p>
+      <button class="btn peligro" type="button" id="quitar">
+        <i class="bi bi-eraser" aria-hidden="true"></i> Quitar la firma</button>
+      {% else %}
+      <p class="ayuda">No hay firmas guardadas todavía.</p>
+      <a class="btn primario" href="/firmas">Agregar una firma</a>
+      {% endif %}
+      <p class="ayuda"><a href="/cotizaciones/{{ cotizacion.id }}.pdf" target="_blank"
+        rel="noopener">Ver el PDF de esta cotización</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/editor_firma.js"></script>
+<script>
+(function(){
+  var ANCHO_HOJA = {{ ancho_hoja }}, ALTO_HOJA = {{ alto_hoja }};
+  var COTIZACION = {{ cotizacion.id }};
+  var GUARDADA = {{ (cotizacion.firma_id or '')|tojson }};
+  var hoja = document.getElementById('hoja');
+  var sello = document.getElementById('sello');
+  var rango = document.getElementById('rango');
+  var px = document.getElementById('px'), py = document.getElementById('py'), pw = document.getElementById('pw');
+  var boton = document.getElementById('guardar');
+  var botonQuitar = document.getElementById('quitar');
+  var editor = null;
+
+  function marcarElegida(){
+    Array.prototype.forEach.call(document.querySelectorAll('.opcion'), function(o){
+      var r = o.querySelector('input');
+      o.classList.toggle('elegida', r && r.checked);
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=firma]'), function(r){
+    r.addEventListener('change', function(){ marcarElegida(); aplicar(); });
+  });
+
+  function aplicar(){
+    var elegido = document.querySelector('input[name=firma]:checked');
+    if (!elegido || !elegido.value){
+      sello.hidden = true;
+      editor = null;
+      boton.disabled = false;
+      px.textContent = py.textContent = pw.textContent = '—';
+      return;
+    }
+    sello.hidden = false;
+    sello.src = '/static/firmas/' + elegido.dataset.archivo;
+    var x = elegido.dataset.x, y = elegido.dataset.y;
+    // si esta cotización ya tenía su propia posición, manda esa
+    {% if cotizacion.firma_x is not none and cotizacion.firma_y is not none %}
+    x = {{ cotizacion.firma_x }};
+    y = {{ cotizacion.firma_y }};
+    {% endif %}
+    var ancho = {{ cotizacion.firma_ancho or 'null' }} || elegido.dataset.ancho;
+    editor = EditorFirma.crear({
+      hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
+      x: x, y: y, ancho: ancho,
+      alCambiar: function(p){
+        px.textContent = Math.round(p.x) + ' pt';
+        py.textContent = Math.round(p.y) + ' pt';
+        pw.textContent = Math.round(p.ancho) + ' pt';
+        rango.value = Math.round(p.ancho);
+      }
+    });
+    rango.oninput = function(){ editor.tamano(rango.value); };
+    boton.disabled = false;
+  }
+
+  if (GUARDADA){ aplicar(); } else { marcarElegida(); }
+
+  function guardar(firmaId, datos){
+    boton.disabled = true;
+    return fetch('/cotizaciones/' + COTIZACION + '/firmar', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(datos)
+    }).then(function(r){
+      if (!r.ok) throw new Error('falló');
+      window.location.href = '/cotizaciones/{{ cotizacion.id }}/firmar?mensaje=firmada';
+    }).catch(function(){
+      boton.disabled = false;
+      boton.textContent = 'No se pudo guardar';
+    });
+  }
+
+  boton.addEventListener('click', function(){
+    var elegido = document.querySelector('input[name=firma]:checked');
+    if (!elegido || !elegido.value) return;
+    var p = editor ? editor.posicion() : {};
+    guardar(elegido.value, {firma_id: elegido.value, x: p.x, y: p.y, ancho: p.ancho});
+  });
+
+  botonQuitar.addEventListener('click', function(){
+    guardar('', {firma_id: null});
+  });
+})();
+</script>
+{% endblock %}

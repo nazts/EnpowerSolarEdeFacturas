@@ -23,6 +23,7 @@
   td b{display:block}
   small{display:block;color:var(--muted);font-size:11.5px}
   form.en-linea{display:inline}
+  .mini.firmada{color:var(--ok);border-color:var(--ok)}
   .mini{border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;
     padding:6px 10px;font-size:12.5px;cursor:pointer;text-decoration:none;display:inline-flex;
     align-items:center;gap:6px}
@@ -60,6 +61,8 @@
       · RD$ {{ "{:,.2f}".format(guardada.total or 0) }}</span>
     <a class="btn primario" href="/cotizaciones/{{ guardada.id }}.pdf" target="_blank" rel="noopener">
       <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Ver PDF</a>
+    <a class="btn" href="/cotizaciones/{{ guardada.id }}/firmar">
+      <i class="bi bi-vector-pen" aria-hidden="true"></i> Firmar</a>
     <a class="btn" href="/cotizaciones/nueva">Otra cotización</a>
   </div>
   {% endif %}
@@ -91,6 +94,10 @@
             <td data-label="">
               <a class="mini" href="/cotizaciones/{{ c.id }}.pdf" target="_blank" rel="noopener">
                 <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+              <a class="mini{% if c.firma_id %} firmada{% endif %}" href="/cotizaciones/{{ c.id }}/firmar"
+                 title="{% if c.firma_id %}Cambiar la firma{% else %}Firmar esta cotización{% endif %}">
+                <i class="bi bi-vector-pen" aria-hidden="true"></i>
+                {% if c.firma_id %}Firmada{% else %}Firmar{% endif %}</a>
               {% set u = request.state.usuario if request and request.state else None %}
               {% if u and u.es_admin %}
               <form class="en-linea" method="post" action="/cotizaciones/{{ c.id }}/eliminar"

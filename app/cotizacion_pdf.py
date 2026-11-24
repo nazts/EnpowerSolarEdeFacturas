@@ -306,53 +306,74 @@ def _alto_imagen(ruta: Path, ancho: float) -> float:
 def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> None:
     """Línea de firma y, si hay, la imagen (firma o sello) en la posición elegida.
 
-    `firma` viene de la tabla `firmas`: archivo, ancho, x e y en puntos PDF.
-    Sin x/y se usa la posición de siempre (sobre la línea, a la izquierda).
+    `firma` viene de la tabla `firmas`: archivo, nombre, cargo, ancho, x e y en
+    puntos PDF. Cuando hay imagen, el nombre y el cargo se imprimen **debajo de
+    la imagen**, centrados: si la firma se movió a la derecha o al pie, el texto
+    la acompaña en vez de quedar lejos. Sin firma, queda la línea para firmar a
+    mano con el nombre debajo.
     """
-    x0, ancho = MARGEN + 10, 160
+    x0, ancho_guia = MARGEN + 10, 160
     y_linea = Y_LIMITE + 30
-    centro = x0 + ancho / 2
     _registrar_fuentes()
 
     ruta = None
+    ancho = ancho_guia
+    x_img, y_img = x0, y_linea + 3
     if firma and firma.get("archivo"):
         candidata = RAIZ_STATIC / "firmas" / str(firma["archivo"])
         if candidata.exists():
-            ruta, ancho = candidata, float(firma.get("ancho") or 160)
+            ruta = candidata
+            ancho = float(firma.get("ancho") or ancho_guia)
+            if firma.get("x") is not None and firma.get("y") is not None:
+                x_img, y_img = float(firma["x"]), float(firma["y"])
     if ruta is None:
         por_defecto = Path(config.FIRMA_COTIZACION)
         ruta = por_defecto if por_defecto.exists() else None
 
+    alto = 0.0
     if ruta is not None:
         alto = _alto_imagen(ruta, ancho)
-        if firma and firma.get("x") is not None and firma.get("y") is not None:
-            x_img, y_img = float(firma["x"]), float(firma["y"])
-        else:
-            x_img, y_img = x0, y_linea + 3
         try:
             c.drawImage(ImageReader(str(ruta)), x_img, y_img, width=ancho, height=alto,
                         mask="auto", preserveAspectRatio=True, anchor="c")
         except Exception:  # noqa: BLE001 - una firma rota no debe tumbar la cotización
             pass
 
-    if not firma:
+    nombre = (nombre or "").strip()
+    if firma:
+        nombre = nombre or str(firma.get("nombre") or "").strip()
+    nombre = nombre or config.FIRMA_NOMBRE
+    cargo = (str(firma.get("cargo") or "").strip() if firma else "") or config.FIRMA_CARGO
+
+    if ruta is None:
+        # sin imagen: la línea clásica para firmar a mano
         c.setStrokeColor(TEXTO)
         c.setLineWidth(0.8)
-        c.line(x0 - 15, y_linea, x0 + ancho + 15, y_linea)
+        c.line(x0 - 15, y_linea, x0 + ancho_guia + 15, y_linea)
+        centro, y = x0 + ancho_guia / 2, y_linea - 13
+        if nombre:
+            c.setFillColor(TEXTO)
+            c.setFont("Archivo-Semi", 8.5)
+            c.drawCentredString(centro, y, nombre)
+            y -= 11
+        if cargo:
+            c.setFillColor(TENUE)
+            c.setFont("Archivo", 8)
+            c.drawCentredString(centro, y, cargo)
+        return
 
-    y = y_linea - 13
-    if firma:
-        nombre = str(firma.get("nombre") or "").strip() or nombre
-    nombre = (nombre or "").strip() or config.FIRMA_NOMBRE
+    # con imagen: el texto va debajo de la firma, centrado en ella
+    centro = x_img + ancho / 2
+    y = y_img - 11
     if nombre:
         c.setFillColor(TEXTO)
         c.setFont("Archivo-Semi", 8.5)
         c.drawCentredString(centro, y, nombre)
-        y -= 11
-    if config.FIRMA_CARGO:
+        y -= 10.5
+    if cargo:
         c.setFillColor(TENUE)
-        c.setFont("Archivo", 8)
-        c.drawCentredString(centro, y, config.FIRMA_CARGO)
+        c.setFont("Archivo", 7.8)
+        c.drawCentredString(centro, y, cargo)
 
 
 def _notas(c: canvas.Canvas, notas: str) -> None:
@@ -397,7 +418,12 @@ def _firma_elegida(cot: dict) -> dict | None:
 
 def generar(cot: dict) -> bytes:
     """Devuelve el PDF (una o más hojas) sobre la plantilla de la empresa."""
-    cot = {**cot, "firma_imagen": _firma_elegida(cot)}
+    imagen = _firma_elegida(cot)
+    if imagen and cot.get("firma_x") is not None and cot.get("firma_y") is not None:
+        # la cotización puede tener su propia posición (se firmó desde el listado)
+        imagen = {**imagen, "x": cot["firma_x"], "y": cot["firma_y"],
+                  "ancho": cot.get("firma_ancho") or imagen.get("ancho")}
+    cot = {**cot, "firma_imagen": imagen}
     datos = calcular(cot.get("items") or [], cot.get("comision_pct", 4.5))
     plantilla = PdfReader(str(config.PLANTILLA_COTIZACION))
     base = plantilla.pages[0]

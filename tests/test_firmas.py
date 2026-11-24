@@ -170,3 +170,97 @@ def test_solo_quien_opera_cambia_las_firmas(dueno):
     with pytest.raises(Exception) as error:
         _subir(asesor, _png())
     assert getattr(error.value, "status_code", None) == 403
+
+
+# ------------------------------- firmar una cotización ya guardada
+def _cotizacion_guardada(db_path):
+    datos = cotizacion_pdf.calcular(
+        [{"descripcion": "Instalación", "cantidad": 1, "precio": 100000, "itbis": 18}], 4.5)
+    with db.sesion() as conn:
+        return db.guardar_cotizacion(conn, {**datos, "numero": "000040", "fecha": "2026-11-24",
+                                            "cliente_nombre": "CLIENTE FIRMA"})
+
+
+def test_firmar_la_cotizacion_guarda_su_propia_posicion(dueno, db_path):
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    cot_id = _cotizacion_guardada(db_path)
+
+    respuesta = asyncio.run(dashboard.cotizaciones_firmar(
+        request=Peticion(usuario=dueno, json_={"firma_id": firma_id, "x": 300, "y": 200,
+                                               "ancho": 210}),
+        cotizacion_id=cot_id))
+    assert respuesta.status_code == 200
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cot_id)
+    assert cot["firma_id"] == firma_id
+    assert round(cot["firma_x"]) == 300 and round(cot["firma_y"]) == 200
+    assert round(cot["firma_ancho"]) == 210
+
+    # el PDF sale con la firma
+    from pypdf import PdfReader
+
+    pdf = cotizacion_pdf.generar(cot)
+    assert len(PdfReader(BytesIO(pdf)).pages[0].images) > 0
+
+
+def test_quitar_la_firma_deja_la_cotizacion_sin_sello(dueno, db_path):
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    cot_id = _cotizacion_guardada(db_path)
+    asyncio.run(dashboard.cotizaciones_firmar(
+        request=Peticion(usuario=dueno, json_={"firma_id": firma_id, "x": 70, "y": 130,
+                                               "ancho": 160}), cotizacion_id=cot_id))
+    asyncio.run(dashboard.cotizaciones_firmar(
+        request=Peticion(usuario=dueno, json_={"firma_id": None}), cotizacion_id=cot_id))
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cot_id)
+    assert cot["firma_id"] is None and cot["firma_x"] is None
+
+
+def test_la_hoja_de_la_cotizacion_se_dibuja_para_firmar(dueno, db_path):
+    cot_id = _cotizacion_guardada(db_path)
+    respuesta = dashboard.cotizaciones_hoja(cot_id, request=Peticion(usuario=dueno))
+    assert respuesta.media_type == "image/png"
+    assert respuesta.body.startswith(b"\x89PNG")
+
+
+def test_la_pantalla_de_firmar_se_arma_con_y_sin_firmas(dueno, db_path, monkeypatch):
+    from starlette.requests import Request
+
+    cot_id = _cotizacion_guardada(db_path)
+    ancho, alto = dashboard._medidas_hoja()
+
+    def pedir():
+        scope = {"type": "http", "method": "GET", "path": f"/cotizaciones/{cot_id}/firmar",
+                 "headers": [], "app": dashboard.app, "router": dashboard.app.router,
+                 "root_path": "", "scheme": "http", "server": ("127.0.0.1", 8000),
+                 "query_string": b""}
+        r = Request(scope)
+        r.state.usuario = dueno
+        return r
+
+    # sin firmas guardadas: ofrece agregar una
+    html = dashboard.templates.env.get_template("cotizacion_firmar.html").render(
+        request=pedir(), activo="cotizaciones", cotizacion={"id": cot_id, "numero": "000040",
+                                                           "cliente_nombre": "X", "fecha": "2026-11-24",
+                                                           "total": 118000, "firma_id": None,
+                                                           "firma_x": None, "firma_y": None,
+                                                           "firma_ancho": None},
+        firmas=[], ancho_hoja=ancho, alto_hoja=alto, mensaje="")
+    assert "Agregar una firma" in html
+
+    # con firmas: aparecen las opciones y el botón de guardar
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firmas = db.lista_firmas(conn)
+    html = dashboard.templates.env.get_template("cotizacion_firmar.html").render(
+        request=pedir(), activo="cotizaciones", cotizacion={"id": cot_id, "numero": "000040",
+                                                           "cliente_nombre": "X", "fecha": "2026-11-24",
+                                                           "total": 118000, "firma_id": None,
+                                                           "firma_x": None, "firma_y": None,
+                                                           "firma_ancho": None},
+        firmas=firmas, ancho_hoja=ancho, alto_hoja=alto, mensaje="")
+    assert "Guardar firma" in html and "editor_firma.js" in html

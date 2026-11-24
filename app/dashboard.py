@@ -1440,6 +1440,92 @@ def cotizaciones_pdf(cotizacion_id: int, request: Request):
                     headers={"Content-Disposition": f'inline; filename="{nombre}"'})
 
 
+@app.get("/cotizaciones/{cotizacion_id}/hoja.png")
+def cotizaciones_hoja(cotizacion_id: int, request: Request):
+    """La última hoja de esa cotización como imagen, para ubicar la firma."""
+    requiere_modulo(request, "cotizaciones")
+    from . import cotizacion_pdf
+
+    import io as _io
+    import pypdfium2 as pdfium
+
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cotizacion_id)
+    if not cot:
+        raise HTTPException(404, "Esa cotización no existe")
+    # sin firma: se muestra la hoja tal como quedaría para firmarla
+    pdf = cotizacion_pdf.generar({**cot, "firma_imagen": None,
+                                  "firma_x": None, "firma_y": None})
+    documento = pdfium.PdfDocument(pdf)
+    imagen = documento[len(documento) - 1].render(scale=1.5).to_pil()
+    salida = _io.BytesIO()
+    imagen.save(salida, format="PNG")
+    return Response(salida.getvalue(), media_type="image/png",
+                    headers={"Cache-Control": "no-store"})
+
+
+@app.get("/cotizaciones/{cotizacion_id}/firmar")
+def cotizaciones_firmar_form(request: Request, cotizacion_id: int):
+    """Pantalla para poner la firma sobre esa cotización y arrastrarla."""
+    requiere_modulo(request, "cotizaciones")
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cotizacion_id)
+        firmas = db.lista_firmas(conn)
+    if not cot:
+        raise HTTPException(404, "Esa cotización no existe")
+    ancho, alto = _medidas_hoja()
+    return templates.TemplateResponse(request, "cotizacion_firmar.html", {
+        "activo": "cotizaciones", "cotizacion": cot, "firmas": firmas,
+        "ancho_hoja": round(ancho, 1), "alto_hoja": round(alto, 1),
+        "mensaje": request.query_params.get("mensaje", ""),
+    })
+
+
+@app.post("/cotizaciones/{cotizacion_id}/firmar")
+async def cotizaciones_firmar(request: Request, cotizacion_id: int):
+    """Guarda la firma elegida y su posición para esa cotización."""
+    _puede_editar_firmas(request)
+    try:
+        cuerpo = await request.json()
+    except Exception:  # noqa: BLE001
+        raise HTTPException(400, "Datos de la firma inválidos")
+
+    firma_id = cuerpo.get("firma_id")
+    firma_id = int(firma_id) if firma_id else None
+    ancho_hoja, alto_hoja = _medidas_hoja()
+    x = y = ancho_img = None
+    if firma_id:
+        try:
+            x = float(cuerpo.get("x"))
+            y = float(cuerpo.get("y"))
+            ancho_img = float(cuerpo.get("ancho") or 160)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "Datos de la firma inválidos")
+        with db.sesion() as conn:
+            firma = db.obtener_firma(conn, firma_id)
+        if not firma:
+            raise HTTPException(404, "Esa firma no existe")
+        ancho_img = min(max(ancho_img, 40.0), ancho_hoja - 20)
+        from .cotizacion_pdf import _alto_imagen
+
+        ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
+        alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
+        x = min(max(x, 10.0), ancho_hoja - 20)
+        y = min(max(y, 10.0), max(alto_hoja - alto_img - 10, 10.0))
+
+    with db.sesion() as conn:
+        if not db.obtener_cotizacion(conn, cotizacion_id):
+            raise HTTPException(404, "Esa cotización no existe")
+        db.firmar_cotizacion(conn, cotizacion_id, firma_id, x, y, ancho_img)
+        db.log_evento(conn, "info",
+                      f"Cotización firmada" if firma_id else "Cotización sin firma",
+                      f"No. {cotizacion_id}")
+    return JSONResponse({"ok": True, "firma_id": firma_id,
+                         "x": round(x, 1) if x is not None else None,
+                         "y": round(y, 1) if y is not None else None,
+                         "ancho": round(ancho_img, 1) if ancho_img else None})
+
+
 @app.post("/cotizaciones/{cotizacion_id}/eliminar")
 def cotizaciones_eliminar(cotizacion_id: int, request: Request):
     requiere_modulo(request, "cotizaciones")
