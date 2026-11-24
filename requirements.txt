@@ -9,5 +9,8 @@ python-multipart>=0.0.9
 pytest>=8.0
 reportlab>=4.0
 pypdf>=4.0
+# Vista previa de la hoja para ubicar la firma (PDF -> PNG)
+pypdfium2>=4.0
+Pillow>=10.0
 # Solo para regenerar las fuentes del PDF: scripts/instanciar_fuentes.py
 fonttools>=4.50

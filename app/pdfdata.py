@@ -33,6 +33,60 @@ def _binario() -> str:
     )
 
 
+def pdf_a_png(datos: bytes, escala: float = 1.5, pagina: int | None = None) -> bytes:
+    """Convierte una hoja del PDF a PNG para verla en el navegador.
+
+    Primero con `pypdfium2` (sin programas externos); si no está instalado, cae a
+    `pdftoppm` de poppler, que ya hace falta para leer el texto de las facturas.
+    `pagina` es 1-based; sin valor, la última hoja.
+    """
+    try:
+        import io as _io
+
+        import pypdfium2 as pdfium
+
+        documento = pdfium.PdfDocument(datos)
+        indice = len(documento) - 1 if pagina is None else pagina - 1
+        imagen = documento[indice].render(scale=escala).to_pil()
+        salida = _io.BytesIO()
+        imagen.save(salida, format="PNG")
+        return salida.getvalue()
+    except Exception:  # noqa: BLE001 - se prueba por poppler
+        pass
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as carpeta:
+        origen = Path(carpeta) / "hoja.pdf"
+        origen.write_bytes(datos)
+        destino = Path(carpeta) / "hoja.png"
+        numero = str(pagina or 1)
+        subprocess.run([_pdftoppm(), "-png", "-r", str(int(72 * escala)), "-f", numero,
+                        "-l", numero, "-singlefile", str(origen), str(destino)],
+                       check=True, capture_output=True)
+        return destino.read_bytes()
+
+
+def _pdftoppm() -> str:
+    """Ruta de pdftoppm: el hermano de PDFTOTEXT_BIN, el PATH o las rutas conocidas."""
+    import os
+
+    elegido = os.environ.get("PDFTOTEXT_BIN", "").strip()
+    if elegido:
+        hermano = Path(elegido).with_name("pdftoppm" + Path(elegido).suffix)
+        if hermano.exists():
+            return str(hermano)
+    for candidato in ("pdftoppm", "/usr/bin/pdftoppm", "/usr/local/bin/pdftoppm",
+                      r"C:\Program Files\Git\mingw64\bin\pdftoppm.exe",
+                      r"C:\Program Files\Git\usr\bin\pdftoppm.exe"):
+        ruta = shutil.which(candidato) or (candidato if Path(candidato).exists() else None)
+        if ruta:
+            return ruta
+    raise RuntimeError(
+        "No se pudo dibujar el PDF: instalá pypdfium2 (pip install pypdfium2) o "
+        "poppler-utils (sudo apt install poppler-utils).")
+
+
 def texto_pdf(path: str | Path) -> str:
     """Texto del PDF tal cual (el archivo no se modifica).
 

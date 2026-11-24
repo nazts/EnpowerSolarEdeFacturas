@@ -4,6 +4,7 @@ Las rutas se prueban llamándolas directamente (como el resto del panel) para no
 agregar httpx: la de subida es `async` y recibe el `UploadFile` de FastAPI.
 """
 import asyncio
+from pathlib import Path
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -264,3 +265,13 @@ def test_la_pantalla_de_firmar_se_arma_con_y_sin_firmas(dueno, db_path, monkeypa
                                                            "firma_ancho": None},
         firmas=firmas, ancho_hoja=ancho, alto_hoja=alto, mensaje="")
     assert "Guardar firma" in html and "editor_firma.js" in html
+
+
+def test_la_hoja_se_conviete_a_png_con_el_conversor_comun():
+    """El endpoint no depende de pypdfium2: hay respaldo con pdftoppm."""
+    from app import config, pdfdata
+
+    datos = Path(config.PLANTILLA_COTIZACION).read_bytes()
+    png = pdfdata.pdf_a_png(datos, escala=1.0, pagina=1)
+    assert png.startswith(b"\x89PNG")
+    assert len(png) > 5000

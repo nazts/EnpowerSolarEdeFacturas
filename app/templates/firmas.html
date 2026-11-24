@@ -182,7 +182,13 @@
     </header>
     <div class="contenido">
       <div class="hoja" id="hojaModal">
-        <img class="pagina" src="/firmas/hoja.png" alt="Hoja de ejemplo de la cotización">
+        <img class="pagina" src="/firmas/hoja.png" alt="Hoja de ejemplo de la cotización"
+             onerror="this.hidden=true;document.getElementById('sinHoja').hidden=false;">
+        <div id="sinHoja" hidden style="padding:28px 20px;text-align:center;color:var(--muted);
+             font-size:13px;line-height:1.6">
+          No se pudo dibujar la hoja.<br>Revisá que el servidor tenga
+          <code>pypdfium2</code> o <code>poppler-utils</code>.
+        </div>
         <img class="sello" id="selloModal" alt="" draggable="false">
       </div>
       <div class="lado">

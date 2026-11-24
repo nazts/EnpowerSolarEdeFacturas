@@ -83,7 +83,14 @@
     <div class="cuerpo">
       <div class="hoja" id="hoja">
         <img class="pagina" src="/cotizaciones/{{ cotizacion.id }}/hoja.png"
-             alt="Hoja de la cotización {{ cotizacion.numero }}">
+             alt="Hoja de la cotización {{ cotizacion.numero }}"
+             onerror="this.hidden=true;document.getElementById('sinHoja').hidden=false;">
+        <div id="sinHoja" hidden style="padding:28px 20px;text-align:center;color:var(--muted);
+             font-size:13px;line-height:1.6">
+          No se pudo dibujar la hoja de la cotización.<br>
+          <a href="/cotizaciones/{{ cotizacion.id }}.pdf" target="_blank" rel="noopener">
+            Abrir el PDF en otra pestaña</a>
+        </div>
         <img class="sello" id="sello" alt="" draggable="false" hidden>
       </div>
     </div>

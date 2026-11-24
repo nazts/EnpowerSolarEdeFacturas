@@ -1295,12 +1295,9 @@ def firmas_hoja(request: Request):
     plantilla vacía: así se ve exactamente dónde cae la firma.
     """
     requiere_modulo(request, "cotizaciones")
-    import io as _io
     import time as _time
 
-    import pypdfium2 as pdfium
-
-    from . import cotizacion_pdf
+    from . import cotizacion_pdf, pdfdata
 
     ahora = _time.time()
     if _HOJA_MUESTRA.get("png") and ahora - _HOJA_MUESTRA.get("momento", 0) < 3600:
@@ -1320,11 +1317,12 @@ def firmas_hoja(request: Request):
         "comision_pct": 4.5, "notas": "Precios válidos por 15 días.", "firma": "Ing. Luis",
     }
     pdf = cotizacion_pdf.generar(muestra)
-    imagen = pdfium.PdfDocument(pdf)[0].render(scale=1.5).to_pil()
-    salida = _io.BytesIO()
-    imagen.save(salida, format="PNG")
-    _HOJA_MUESTRA.update({"png": salida.getvalue(), "momento": ahora})
-    return Response(salida.getvalue(), media_type="image/png",
+    try:
+        png = pdfdata.pdf_a_png(pdf, escala=1.5, pagina=1)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"No se pudo dibujar la hoja: {exc}")
+    _HOJA_MUESTRA.update({"png": png, "momento": ahora})
+    return Response(png, media_type="image/png",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
@@ -1444,24 +1442,20 @@ def cotizaciones_pdf(cotizacion_id: int, request: Request):
 def cotizaciones_hoja(cotizacion_id: int, request: Request):
     """La última hoja de esa cotización como imagen, para ubicar la firma."""
     requiere_modulo(request, "cotizaciones")
-    from . import cotizacion_pdf
-
-    import io as _io
-    import pypdfium2 as pdfium
+    from . import cotizacion_pdf, pdfdata
 
     with db.sesion() as conn:
         cot = db.obtener_cotizacion(conn, cotizacion_id)
     if not cot:
         raise HTTPException(404, "Esa cotización no existe")
-    # sin firma: se muestra la hoja tal como quedaría para firmarla
+    # sin firma: la hoja tal como quedaría para ubicarla encima
     pdf = cotizacion_pdf.generar({**cot, "firma_imagen": None,
                                   "firma_x": None, "firma_y": None})
-    documento = pdfium.PdfDocument(pdf)
-    imagen = documento[len(documento) - 1].render(scale=1.5).to_pil()
-    salida = _io.BytesIO()
-    imagen.save(salida, format="PNG")
-    return Response(salida.getvalue(), media_type="image/png",
-                    headers={"Cache-Control": "no-store"})
+    try:
+        png = pdfdata.pdf_a_png(pdf, escala=1.5)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"No se pudo dibujar la hoja: {exc}")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/cotizaciones/{cotizacion_id}/firmar")
