@@ -1266,6 +1266,14 @@ def _medidas_hoja() -> tuple[float, float]:
         return 612.0, 791.0
 
 
+def _puede_editar_firmas(request: Request) -> None:
+    """El listado lo ve el módulo; subir, mover y borrar, sólo quien opera."""
+    requiere_modulo(request, "cotizaciones")
+    usuario = usuario_actual(request)
+    if not usuario or not usuario.puede_operar:
+        raise HTTPException(403, "Tu usuario no puede cambiar las firmas")
+
+
 @app.get("/firmas")
 def firmas_lista(request: Request):
     requiere_modulo(request, "cotizaciones")
@@ -1323,15 +1331,18 @@ def firmas_hoja(request: Request):
 @app.post("/firmas")
 async def firmas_subir(request: Request, nombre: str = Form(""), cargo: str = Form(""),
                        archivo: UploadFile = File(None)):
-    requiere_modulo(request, "cotizaciones")
+    _puede_editar_firmas(request)
     if archivo is None or not archivo.filename:
         return RedirectResponse("/firmas?mensaje=sin-archivo", status_code=303)
 
     extension = TIPOS_IMAGEN.get((archivo.content_type or "").lower())
     if not extension:
         return RedirectResponse("/firmas?mensaje=tipo", status_code=303)
-    datos = await archivo.read()
-    if not datos or len(datos) > 5 * 1024 * 1024:
+    # se lee de a 5 MB + 1: un archivo enorme no llega a llenar la memoria
+    datos = await archivo.read(5 * 1024 * 1024 + 1)
+    if not datos:
+        return RedirectResponse("/firmas?mensaje=sin-archivo", status_code=303)
+    if len(datos) > 5 * 1024 * 1024:
         return RedirectResponse("/firmas?mensaje=tamano", status_code=303)
 
     # se valida abriéndola: un archivo renombrado no pasa
@@ -1361,8 +1372,11 @@ async def firmas_subir(request: Request, nombre: str = Form(""), cargo: str = Fo
 @app.post("/firmas/{firma_id}/posicion")
 async def firmas_posicion(request: Request, firma_id: int):
     """Guarda dónde va la firma en la hoja (x, y, ancho en puntos PDF)."""
-    requiere_modulo(request, "cotizaciones")
-    cuerpo = await request.json()
+    _puede_editar_firmas(request)
+    try:
+        cuerpo = await request.json()
+    except Exception:  # noqa: BLE001 - cuerpo que no es JSON
+        raise HTTPException(400, "Posición inválida")
     ancho, alto = _medidas_hoja()
     try:
         x = float(cuerpo.get("x"))
@@ -1370,10 +1384,20 @@ async def firmas_posicion(request: Request, firma_id: int):
         ancho_img = float(cuerpo.get("ancho") or 160)
     except (TypeError, ValueError):
         raise HTTPException(400, "Posición inválida")
-    # dentro de la hoja
-    x = min(max(x, 10.0), ancho - 20)
-    y = min(max(y, 10.0), alto - 20)
+
+    with db.sesion() as conn:
+        firma = db.obtener_firma(conn, firma_id)
+    if not firma:
+        raise HTTPException(404, "Esa firma no existe")
+
     ancho_img = min(max(ancho_img, 40.0), ancho - 2 * 10)
+    # la Y es la base de la imagen: se descuenta su alto para que no se salga
+    from .cotizacion_pdf import _alto_imagen
+
+    ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
+    alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
+    x = min(max(x, 10.0), ancho - 20)
+    y = min(max(y, 10.0), max(alto - alto_img - 10, 10.0))
     with db.sesion() as conn:
         db.ubicar_firma(conn, firma_id, x, y, ancho_img)
     return JSONResponse({"ok": True, "x": round(x, 1), "y": round(y, 1),
@@ -1382,7 +1406,7 @@ async def firmas_posicion(request: Request, firma_id: int):
 
 @app.post("/firmas/{firma_id}/eliminar")
 def firmas_eliminar(request: Request, firma_id: int):
-    requiere_modulo(request, "cotizaciones")
+    _puede_editar_firmas(request)
     with db.sesion() as conn:
         db.eliminar_firma(conn, firma_id)
     return RedirectResponse("/firmas?mensaje=eliminada", status_code=303)

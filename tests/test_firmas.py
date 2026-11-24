@@ -128,3 +128,45 @@ def test_la_cotizacion_recuerda_la_firma_elegida(db_path):
                                              "firma_id": firma_id})
         cot = db.obtener_cotizacion(conn, nuevo)
     assert cot["firma_id"] == firma_id
+
+
+def test_la_firma_no_se_sale_por_arriba_de_la_hoja(dueno):
+    """La Y es la base de la imagen: se descuenta su alto."""
+    _subir(dueno, _png(300, 120))
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    _, alto_hoja = dashboard._medidas_hoja()
+    asyncio.run(dashboard.firmas_posicion(
+        request=Peticion(usuario=dueno, json_={"x": 70, "y": 10 ** 6, "ancho": 200}),
+        firma_id=firma_id))
+    with db.sesion() as conn:
+        firma = db.obtener_firma(conn, firma_id)
+    alto_imagen = firma["ancho"] * 120 / 300       # la proporción del PNG de prueba
+    assert firma["y"] + alto_imagen <= alto_hoja
+
+
+def test_un_cuerpo_que_no_es_json_devuelve_400(dueno):
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+
+    class Roto(Peticion):
+        async def json(self):
+            raise ValueError("no es json")
+
+    with pytest.raises(Exception) as error:
+        asyncio.run(dashboard.firmas_posicion(request=Roto(usuario=dueno), firma_id=firma_id))
+    assert getattr(error.value, "status_code", None) == 400
+
+
+def test_solo_quien_opera_cambia_las_firmas(dueno):
+    """Un asesor que sólo consulta no sube ni mueve firmas."""
+    from app import auth
+
+    with db.sesion() as conn:
+        auth.crear_usuario(conn, "asesor", "ClaveSegura123", nombre="Asesor", rol="asesor",
+                           modulos="cotizaciones")
+        asesor = auth.autenticar(conn, "asesor", "ClaveSegura123")
+    with pytest.raises(Exception) as error:
+        _subir(asesor, _png())
+    assert getattr(error.value, "status_code", None) == 403
