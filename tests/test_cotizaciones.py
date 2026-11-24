@@ -203,3 +203,85 @@ def test_la_firma_png_es_opcional(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "FIRMA_COTIZACION", firma)
     con_firma = cotizacion_pdf.generar(_cotizacion())
     assert len(con_firma) > len(pdf)          # lleva la imagen adentro
+
+
+# ------------------------------- una cotización no se guarda dos veces
+def test_el_token_evita_guardar_la_misma_cotizacion_dos_veces(db_path):
+    """Doble clic o volver atrás: el segundo envío no crea otra fila."""
+    from app import cotizacion_pdf, db
+
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        token = "abc123"
+        primero = db.guardar_cotizacion(c, {**datos, "numero": "000013",
+                                           "fecha": "2026-11-17", "token": token,
+                                           "cliente_nombre": "CLIENTE X"})
+        previa = db.cotizacion_por_token(c, token)
+        assert previa is not None and previa["id"] == primero
+
+        # el índice único impide el duplicado aunque se llame dos veces
+        import pytest as _pytest
+        with _pytest.raises(Exception):
+            db.guardar_cotizacion(c, {**datos, "numero": "000014",
+                                      "fecha": "2026-11-17", "token": token})
+        total = c.execute("SELECT COUNT(*) AS n FROM cotizaciones").fetchone()["n"]
+    assert total == 1
+
+
+def test_sin_token_se_pueden_guardar_varias(db_path):
+    """Dos cotizaciones distintas (sin token) siguen siendo válidas."""
+    from app import cotizacion_pdf, db
+
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        db.guardar_cotizacion(c, {**datos, "numero": "000013", "fecha": "2026-11-17"})
+        db.guardar_cotizacion(c, {**datos, "numero": "000014", "fecha": "2026-11-18"})
+        total = c.execute("SELECT COUNT(*) AS n FROM cotizaciones").fetchone()["n"]
+    assert total == 2
+
+
+def test_la_firma_se_guarda_y_sale_impresa_en_el_pdf(db_path):
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    from app import cotizacion_pdf, db
+
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        nuevo_id = db.guardar_cotizacion(c, {**datos, "numero": "000013",
+                                             "fecha": "2026-11-17",
+                                             "cliente_nombre": "CLIENTE X",
+                                             "firma": "Ing. Luis"})
+        cot = db.obtener_cotizacion(c, nuevo_id)
+
+    assert cot["firma"] == "Ing. Luis"
+    texto = PdfReader(BytesIO(cotizacion_pdf.generar(cot))).pages[0].extract_text()
+    assert "Ing. Luis" in texto
+
+
+def test_la_migracion_agrega_firma_y_token_a_cotizaciones_existentes(tmp_path, monkeypatch):
+    """Una base vieja (sin firma ni token) se actualiza al arrancar."""
+    import sqlite3
+
+    from app import config, db
+
+    ruta = tmp_path / "vieja.db"
+    conn = sqlite3.connect(ruta)
+    conn.execute("""CREATE TABLE cotizaciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT NOT NULL, fecha TEXT NOT NULL,
+        cliente_nombre TEXT NOT NULL DEFAULT '', cliente_rnc TEXT NOT NULL DEFAULT '',
+        cliente_direccion TEXT NOT NULL DEFAULT '', moneda TEXT NOT NULL DEFAULT '',
+        items TEXT NOT NULL DEFAULT '[]', subtotal REAL DEFAULT 0, itbis REAL DEFAULT 0,
+        comision_pct REAL DEFAULT 4.5, comision REAL DEFAULT 0, total REAL DEFAULT 0,
+        notas TEXT NOT NULL DEFAULT '', creado_por TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT '')""")
+    conn.execute("INSERT INTO cotizaciones (numero, fecha) VALUES ('000007', '2026-01-01')")
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(config, "DB_PATH", ruta)
+    monkeypatch.setattr(config, "DATABASE_URL", "")
+    with db.sesion(db_path=ruta) as c:
+        columnas = {f[1] for f in c.execute("PRAGMA table_info(cotizaciones)")}
+    assert {"firma", "token"} <= columnas

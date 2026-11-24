@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     comision          REAL NOT NULL DEFAULT 0,
     total             REAL NOT NULL DEFAULT 0,
     notas             TEXT NOT NULL DEFAULT '',
+    firma             TEXT NOT NULL DEFAULT '',
+    token             TEXT,
     creado_por        TEXT NOT NULL DEFAULT '',
     created_at        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -142,6 +144,42 @@ CREATE TABLE IF NOT EXISTS eventos (
 
 
 # columnas agregadas despues de la v1 (se crean con ALTER TABLE si faltan)
+def _deshacer(conn) -> None:
+    """Cierra la transacción en curso tras un error.
+
+    En Postgres un SELECT fallido deja la transacción abortada y el ALTER
+    siguiente falla en silencio: sin rollback, la columna nunca se creaba.
+    """
+    for metodo in ("rollback", "commit"):
+        funcion = getattr(conn, metodo, None)
+        if callable(funcion):
+            try:
+                funcion()
+                return
+            except Exception:  # noqa: BLE001
+                continue
+
+
+def _asegurar_columnas(conn, tabla: str, columnas: dict[str, str]) -> None:
+    """Agrega columnas que falten sin romper en SQLite ni en Postgres.
+
+    `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` no existe en SQLite y el
+    try/except se tragaba el error, así que la columna nunca se creaba.
+    """
+    for columna, tipo in columnas.items():
+        try:
+            conn.execute(f"SELECT {columna} FROM {tabla} LIMIT 1")
+            continue                      # ya existe
+        except Exception:  # noqa: BLE001 - todavía no está
+            _deshacer(conn)               # en Postgres la transacción queda abortada
+        try:
+            conn.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {tipo}")
+            conn.commit()
+        except Exception:  # noqa: BLE001 - otro proceso la creó
+            _deshacer(conn)
+    conn.commit()
+
+
 COLUMNAS_NUEVAS = {
     "proveedor": "TEXT NOT NULL DEFAULT 'edenorte'",
     "direccion": "TEXT NOT NULL DEFAULT ''",
@@ -172,9 +210,13 @@ def migrar(conn: sqlite3.Connection) -> None:
                 conn.execute(f"ALTER TABLE contratos ADD COLUMN IF NOT EXISTS {columna} {tipo}")
             except Exception:  # noqa: BLE001
                 pass
+        _asegurar_columnas(conn, "usuarios", {"modulos": "TEXT NOT NULL DEFAULT ''"})
+        _asegurar_columnas(conn, "cotizaciones", {"firma": "TEXT NOT NULL DEFAULT ''",
+                                                  "token": "TEXT"})
         try:
-            conn.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS modulos TEXT NOT NULL DEFAULT ''")
-        except Exception:  # noqa: BLE001
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
+                         " ON cotizaciones(token)")
+        except Exception:  # noqa: BLE001 - se crea en la próxima inicialización
             pass
         for columna in ("tg_file_id", "tg_message_id"):
             try:
@@ -194,6 +236,13 @@ def migrar(conn: sqlite3.Connection) -> None:
     columnas_usuarios = {r[1] for r in conn.execute("PRAGMA table_info(usuarios)")}
     if "modulos" not in columnas_usuarios:
         conn.execute("ALTER TABLE usuarios ADD COLUMN modulos TEXT NOT NULL DEFAULT ''")
+    # cotizaciones: firma de quien firma y token anti-duplicado
+    columnas_cot = {r[1] for r in conn.execute("PRAGMA table_info(cotizaciones)")}
+    for nombre, tipo in (("firma", "TEXT NOT NULL DEFAULT ''"), ("token", "TEXT")):
+        if nombre not in columnas_cot:
+            conn.execute(f"ALTER TABLE cotizaciones ADD COLUMN {nombre} {tipo}")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
+                 " ON cotizaciones(token)")
     conn.commit()
 
 
@@ -391,8 +440,9 @@ def guardar_cotizacion(conn, datos: dict) -> int:
     cur = conn.execute(
         """INSERT INTO cotizaciones
            (numero, fecha, cliente_nombre, cliente_rnc, cliente_direccion, moneda, items,
-            subtotal, itbis, comision_pct, comision, total, notas, creado_por, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            subtotal, itbis, comision_pct, comision, total, notas, firma, token,
+            creado_por, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (str(datos.get("numero") or ""), str(datos.get("fecha") or hoy()),
          str(datos.get("cliente_nombre") or ""), str(datos.get("cliente_rnc") or ""),
          str(datos.get("cliente_direccion") or ""),
@@ -400,6 +450,7 @@ def guardar_cotizacion(conn, datos: dict) -> int:
          float(datos.get("subtotal") or 0), float(datos.get("itbis") or 0),
          float(datos.get("comision_pct") or 0), float(datos.get("comision") or 0),
          float(datos.get("total") or 0), str(datos.get("notas") or ""),
+         str(datos.get("firma") or ""), (str(datos.get("token") or "").strip() or None),
          str(datos.get("creado_por") or ""), ahora()))
     conn.commit()
     return int(cur.lastrowid or 0)
@@ -420,6 +471,15 @@ def lista_cotizaciones(conn, limite: int = 200) -> list[dict]:
     filas = conn.execute(
         """SELECT * FROM cotizaciones ORDER BY id DESC LIMIT ?""", (limite,)).fetchall()
     return [_cotizacion_dict(f) for f in filas]
+
+
+def cotizacion_por_token(conn, token: str) -> dict | None:
+    """Busca la cotización guardada con ese envío (evita duplicados)."""
+    token = (token or "").strip()
+    if not token:
+        return None
+    fila = conn.execute("SELECT * FROM cotizaciones WHERE token = ?", (token,)).fetchone()
+    return _cotizacion_dict(fila) if fila else None
 
 
 def obtener_cotizacion(conn, cotizacion_id: int) -> dict | None:

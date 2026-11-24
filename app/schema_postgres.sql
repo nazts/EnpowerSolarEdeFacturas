@@ -141,6 +141,8 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     comision          DOUBLE PRECISION NOT NULL DEFAULT 0,
     total             DOUBLE PRECISION NOT NULL DEFAULT 0,
     notas             TEXT NOT NULL DEFAULT '',
+    firma             TEXT NOT NULL DEFAULT '',
+    token             TEXT,
     creado_por        TEXT NOT NULL DEFAULT '',
     created_at        TEXT NOT NULL DEFAULT ''
 );

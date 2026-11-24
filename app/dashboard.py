@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import time
+import uuid
 from datetime import datetime
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -1161,9 +1162,14 @@ def cotizaciones_lista(request: Request):
     with db.sesion() as conn:
         filas = db.lista_cotizaciones(conn)
         numero = db.siguiente_numero_cotizacion(conn)
+        try:
+            id_guardada = int(request.query_params.get("guardada") or 0)
+        except (TypeError, ValueError):
+            id_guardada = 0
+        guardada = db.obtener_cotizacion(conn, id_guardada) if id_guardada else None
     return templates.TemplateResponse(request, "cotizaciones.html", {
         "activo": "cotizaciones", "cotizaciones": filas, "siguiente": numero,
-        "mensaje": request.query_params.get("mensaje", ""),
+        "mensaje": request.query_params.get("mensaje", ""), "guardada": guardada,
     })
 
 
@@ -1176,6 +1182,8 @@ def cotizaciones_nueva(request: Request):
     return templates.TemplateResponse(request, "cotizacion_nueva.html", {
         "activo": "cotizaciones", "numero": numero, "hoy": db.hoy(),
         "clientes": clientes, "comision_pct": 4.5,
+        # marca de este formulario: si se envía dos veces no se duplica
+        "token": uuid.uuid4().hex, "firma_sugerida": config.FIRMA_NOMBRE,
     })
 
 
@@ -1207,7 +1215,13 @@ async def cotizaciones_guardar(request: Request):
 
     comision_pct = _num(form.get("comision_pct")) or 4.5
     datos = cotizacion_pdf.calcular(items, comision_pct)
+    token = str(form.get("token") or "").strip()
     with db.sesion() as conn:
+        # mismo envío repetido (doble clic o volver atrás): se devuelve la que ya existe
+        previa = db.cotizacion_por_token(conn, token)
+        if previa:
+            return RedirectResponse(f"/cotizaciones?guardada={previa['id']}",
+                                    status_code=303)
         numero = (str(form.get("numero") or "").strip()
                   or db.siguiente_numero_cotizacion(conn))
         cotizacion_id = db.guardar_cotizacion(conn, {
@@ -1222,11 +1236,13 @@ async def cotizaciones_guardar(request: Request):
             "comision_pct": datos["comision_pct"], "comision": datos["comision"],
             "total": datos["total"],
             "notas": str(form.get("notas") or "").strip(),
+            "firma": str(form.get("firma") or "").strip(),
+            "token": token,
             "creado_por": usuario.usuario if usuario else "",
         })
         db.log_evento(conn, "info", f"Cotización {numero} creada",
                       f"total RD${datos['total']:,.2f}")
-    return RedirectResponse(f"/cotizaciones/{cotizacion_id}.pdf", status_code=303)
+    return RedirectResponse(f"/cotizaciones?guardada={cotizacion_id}", status_code=303)
 
 
 @app.get("/cotizaciones/{cotizacion_id}.pdf")

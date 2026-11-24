@@ -52,6 +52,7 @@
 {% block contenido %}
 <div class="pagina">
 <form method="post" action="/cotizaciones" id="formCotiza">
+  <input type="hidden" name="token" value="{{ token }}">
 
   <section>
     <h2>Datos de la cotización</h2>
@@ -127,6 +128,13 @@
         <textarea id="notas" name="notas" rows="3"
                   placeholder="Forma de pago, tiempo de entrega, validez…"></textarea>
       </div>
+      <div class="campo c6" style="margin-bottom:14px">
+        <label for="firma">Firma (nombre de quien firma)</label>
+        <input id="firma" name="firma" placeholder="Ing. Luis" value="{{ firma_sugerida or '' }}"
+               autocomplete="off">
+        <p class="ayuda">Va impreso debajo de la línea de firma. El sello y la firma
+          entran como imagen si está el PNG en el servidor.</p>
+      </div>
       <div class="totales">
         <div><span>Sub. Total</span><b id="tSub">RD$ 0.00</b></div>
         <div><span>Itbis</span><b id="tItbis">RD$ 0.00</b></div>
@@ -135,7 +143,7 @@
       </div>
     </div>
     <div class="barra">
-      <button class="btn primario" type="submit">
+      <button class="btn primario" type="submit" id="btnGuardar">
         <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Guardar y generar PDF</button>
       <a class="btn" href="/cotizaciones">Cancelar</a>
     </div>
@@ -200,6 +208,14 @@
     calcular();
   });
   if (pct) pct.addEventListener('input', calcular);
+
+  // un envío por vez: doble clic no debe guardar dos cotizaciones
+  var form = document.getElementById('formCotiza');
+  var btn = document.getElementById('btnGuardar');
+  if (form && btn) form.addEventListener('submit', function(){
+    btn.disabled = true;
+    btn.innerHTML = 'Guardando…';
+  });
 
   filas.appendChild(fila());          // un renglón listo para escribir
   filas.appendChild(fila());

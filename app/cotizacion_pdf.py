@@ -254,8 +254,8 @@ def _totales(c: canvas.Canvas, datos: dict, y_top: float) -> None:
     tabla.drawOn(c, derecha - tot_w, y_top - alto)
 
 
-def _firma(c: canvas.Canvas) -> None:
-    """Línea de firma y, si existe, la imagen PNG y los datos del firmante."""
+def _firma(c: canvas.Canvas, nombre: str = "") -> None:
+    """Línea de firma, la imagen PNG si existe y el nombre de quien firma."""
     x0, ancho = MARGEN + 10, 160
     y_linea = Y_LIMITE + 30
     centro = x0 + ancho / 2
@@ -274,10 +274,11 @@ def _firma(c: canvas.Canvas) -> None:
     c.line(x0 - 15, y_linea, x0 + ancho + 15, y_linea)
 
     y = y_linea - 13
-    if config.FIRMA_NOMBRE:
+    nombre = (nombre or "").strip() or config.FIRMA_NOMBRE
+    if nombre:
         c.setFillColor(TEXTO)
         c.setFont("Archivo-Semi", 8.5)
-        c.drawCentredString(centro, y, config.FIRMA_NOMBRE)
+        c.drawCentredString(centro, y, nombre)
         y -= 11
     if config.FIRMA_CARGO:
         c.setFillColor(TENUE)
@@ -304,7 +305,7 @@ def _notas(c: canvas.Canvas, notas: str) -> None:
 def _cierre(c: canvas.Canvas, cot: dict, datos: dict) -> None:
     """Totales, firma y notas, siempre en el mismo lugar del pie de la hoja."""
     _totales(c, datos, Y_CIERRE)
-    _firma(c)
+    _firma(c, str(cot.get("firma") or ""))
     _notas(c, cot.get("notas") or "")
 
 
