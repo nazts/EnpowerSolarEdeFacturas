@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     fecha             TEXT NOT NULL,
     cliente_nombre    TEXT NOT NULL DEFAULT '',
     cliente_rnc       TEXT NOT NULL DEFAULT '',
+    cliente_doc_tipo  TEXT NOT NULL DEFAULT 'RNC',
     cliente_direccion TEXT NOT NULL DEFAULT '',
     moneda            TEXT NOT NULL DEFAULT 'Pesos Dominicanos',
     items             TEXT NOT NULL DEFAULT '[]',
@@ -211,8 +212,9 @@ def migrar(conn: sqlite3.Connection) -> None:
             except Exception:  # noqa: BLE001
                 pass
         _asegurar_columnas(conn, "usuarios", {"modulos": "TEXT NOT NULL DEFAULT ''"})
-        _asegurar_columnas(conn, "cotizaciones", {"firma": "TEXT NOT NULL DEFAULT ''",
-                                                  "token": "TEXT"})
+        _asegurar_columnas(conn, "cotizaciones",
+                           {"firma": "TEXT NOT NULL DEFAULT ''", "token": "TEXT",
+                            "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'"})
         try:
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
                          " ON cotizaciones(token)")
@@ -238,7 +240,8 @@ def migrar(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE usuarios ADD COLUMN modulos TEXT NOT NULL DEFAULT ''")
     # cotizaciones: firma de quien firma y token anti-duplicado
     columnas_cot = {r[1] for r in conn.execute("PRAGMA table_info(cotizaciones)")}
-    for nombre, tipo in (("firma", "TEXT NOT NULL DEFAULT ''"), ("token", "TEXT")):
+    for nombre, tipo in (("firma", "TEXT NOT NULL DEFAULT ''"), ("token", "TEXT"),
+                         ("cliente_doc_tipo", "TEXT NOT NULL DEFAULT 'RNC'")):
         if nombre not in columnas_cot:
             conn.execute(f"ALTER TABLE cotizaciones ADD COLUMN {nombre} {tipo}")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
@@ -432,6 +435,17 @@ def siguiente_numero_cotizacion(conn) -> str:
     return f"{max(ultimo, NUMERO_INICIAL_COTIZACION) + 1:06d}"
 
 
+TIPOS_DOCUMENTO = ("RNC", "Cédula")
+
+
+def _tipo_documento(valor) -> str:
+    """Normaliza el tipo de documento: RNC o Cédula (por defecto RNC)."""
+    texto = str(valor or "").strip().lower()
+    if texto.startswith(("ced", "céd", "ci")):
+        return "Cédula"
+    return "RNC"
+
+
 def guardar_cotizacion(conn, datos: dict) -> int:
     """Inserta la cotizacion (los renglones van como JSON) y devuelve su id."""
     import json as _json
@@ -439,12 +453,13 @@ def guardar_cotizacion(conn, datos: dict) -> int:
     items = _json.dumps(datos.get("items") or [], ensure_ascii=False)
     cur = conn.execute(
         """INSERT INTO cotizaciones
-           (numero, fecha, cliente_nombre, cliente_rnc, cliente_direccion, moneda, items,
-            subtotal, itbis, comision_pct, comision, total, notas, firma, token,
+           (numero, fecha, cliente_nombre, cliente_rnc, cliente_doc_tipo, cliente_direccion,
+            moneda, items, subtotal, itbis, comision_pct, comision, total, notas, firma, token,
             creado_por, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (str(datos.get("numero") or ""), str(datos.get("fecha") or hoy()),
          str(datos.get("cliente_nombre") or ""), str(datos.get("cliente_rnc") or ""),
+         _tipo_documento(datos.get("cliente_doc_tipo")),
          str(datos.get("cliente_direccion") or ""),
          str(datos.get("moneda") or "Pesos Dominicanos"), items,
          float(datos.get("subtotal") or 0), float(datos.get("itbis") or 0),

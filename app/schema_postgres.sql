@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     fecha             TEXT NOT NULL,
     cliente_nombre    TEXT NOT NULL DEFAULT '',
     cliente_rnc       TEXT NOT NULL DEFAULT '',
+    cliente_doc_tipo  TEXT NOT NULL DEFAULT 'RNC',
     cliente_direccion TEXT NOT NULL DEFAULT '',
     moneda            TEXT NOT NULL DEFAULT 'Pesos Dominicanos',
     items             TEXT NOT NULL DEFAULT '[]',

@@ -145,8 +145,10 @@ def _encabezado(c: canvas.Canvas, cot: dict) -> None:
     c.setFont("Archivo-Semi", 9)
     c.drawString(MARGEN + 11, Y_CAJAS_ARRIBA - 17, "DATOS DEL CLIENTE")
 
+    tipo_doc = ("Cédula" if str(cot.get("cliente_doc_tipo") or "").strip().lower()
+                .startswith(("ced", "céd")) else "RNC")
     filas = (("Nombre:", cot.get("cliente_nombre") or ""),
-             ("RNC:", cot.get("cliente_rnc") or ""),
+             (f"{tipo_doc}:", cot.get("cliente_rnc") or ""),
              ("Dirección:", cot.get("cliente_direccion") or ""))
     for i, (etiqueta, valor) in enumerate(filas):
         y = Y_CAJAS_ARRIBA - 35 - i * 18

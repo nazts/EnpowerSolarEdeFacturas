@@ -332,3 +332,77 @@ def test_las_vinetas_se_reconocen_con_guion_o_punto():
     assert cotizacion_pdf._celda_descripcion("- uno\n• dos\n* tres")
     parrafos = cotizacion_pdf._celda_descripcion("Título:\n- detalle\n\n- otro")
     assert len(parrafos) == 3            # las líneas vacías no generan renglón
+
+
+# ------------------------------- RNC o Cédula
+def test_el_tipo_de_documento_se_normaliza():
+    from app import db
+
+    assert db._tipo_documento("Cédula") == "Cédula"
+    assert db._tipo_documento("cedula") == "Cédula"
+    assert db._tipo_documento("CED") == "Cédula"
+    assert db._tipo_documento("RNC") == "RNC"
+    assert db._tipo_documento("") == "RNC"
+    assert db._tipo_documento(None) == "RNC"
+
+
+def test_la_cotizacion_con_cedula_lo_dice_en_el_pdf(db_path):
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    from app import cotizacion_pdf, db
+
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        con_rnc = db.guardar_cotizacion(c, {**datos, "numero": "000020", "fecha": "2026-11-24",
+                                            "cliente_nombre": "PERSONA FISICA",
+                                            "cliente_rnc": "001-1234567-8",
+                                            "cliente_doc_tipo": "Cédula"})
+        cot = db.obtener_cotizacion(c, con_rnc)
+
+    assert cot["cliente_doc_tipo"] == "Cédula"
+    texto = PdfReader(BytesIO(cotizacion_pdf.generar(cot))).pages[0].extract_text()
+    assert "Cédula:" in texto and "001-1234567-8" in texto
+    # el único "RNC:" que queda es el de la empresa en el pie de la plantilla
+    assert texto.count("RNC:") == 1
+
+
+def test_por_defecto_el_documento_es_rnc(db_path):
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    from app import cotizacion_pdf, db
+
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        nuevo = db.guardar_cotizacion(c, {**datos, "numero": "000021", "fecha": "2026-11-24",
+                                          "cliente_nombre": "EMPRESA SRL",
+                                          "cliente_rnc": "1-33-77201-9"})
+        cot = db.obtener_cotizacion(c, nuevo)
+
+    assert cot["cliente_doc_tipo"] == "RNC"
+    texto = PdfReader(BytesIO(cotizacion_pdf.generar(cot))).pages[0].extract_text()
+    assert "RNC:" in texto and "Cédula" not in texto
+
+
+# ------------------------------- sin Itbis
+def test_una_cotizacion_sin_itbis_no_cobra_impuesto():
+    """El interruptor «Lleva Itbis» pone todos los renglones en 0."""
+    cot = _cotizacion()
+    cot["items"] = [{"descripcion": "Instalación eléctrica", "cantidad": 1,
+                     "precio": 100000, "itbis": 0}]
+    datos = cotizacion_pdf.calcular(cot["items"], 4.5)
+    assert datos["itbis"] == 0
+    assert datos["total"] == datos["subtotal"] == 100000
+
+
+def test_el_formulario_tiene_el_interruptor_de_itbis_y_el_tipo_de_documento():
+    from pathlib import Path
+
+    html = (Path(__file__).resolve().parent.parent / "app" / "templates"
+            / "cotizacion_nueva.html").read_text(encoding="utf-8")
+    assert 'id="llevaItbis"' in html and "Lleva Itbis" in html
+    assert 'value="Cédula"' in html and 'value="RNC"' in html
+    assert "aplicarItbis" in html          # al apagarlo pone 0 en los renglones

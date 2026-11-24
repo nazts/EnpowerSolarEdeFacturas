@@ -1229,6 +1229,7 @@ async def cotizaciones_guardar(request: Request):
             "fecha": str(form.get("fecha") or db.hoy()),
             "cliente_nombre": str(form.get("cliente_nombre") or "").strip(),
             "cliente_rnc": str(form.get("cliente_rnc") or "").strip(),
+            "cliente_doc_tipo": str(form.get("cliente_doc_tipo") or "RNC").strip(),
             "cliente_direccion": str(form.get("cliente_direccion") or "").strip(),
             "moneda": str(form.get("moneda") or "Pesos Dominicanos"),
             "items": datos["items"],

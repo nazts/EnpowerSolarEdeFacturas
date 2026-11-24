@@ -10,6 +10,7 @@
   input,select,textarea{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--input-bd);
     background:var(--input-bg);color:var(--txt);font:inherit;font-size:13.5px}
   input:focus,select:focus,textarea:focus{outline:2px solid var(--focus);outline-offset:1px}
+  .c2{grid-column:span 2}
   .c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}
   .c6{grid-column:span 6}.c8{grid-column:span 8}.c12{grid-column:1/-1}
   section{background:var(--card);border:1px solid var(--line);border-radius:14px;
@@ -27,6 +28,19 @@
   table.items .num input{text-align:right;font-variant-numeric:tabular-nums}
   table.items .imp{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
     padding-right:10px;white-space:nowrap}
+  .interruptor{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;
+    font-weight:600;color:var(--txt);user-select:none}
+  .interruptor input{position:absolute;opacity:0;width:0;height:0}
+  .interruptor .pista{width:38px;height:21px;border-radius:11px;background:var(--input-bd);
+    position:relative;transition:background .18s ease;flex:0 0 auto}
+  .interruptor .pista::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;
+    border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .18s ease}
+  .interruptor input:checked + .pista{background:var(--accent)}
+  .interruptor input:checked + .pista::after{transform:translateX(17px)}
+  .interruptor input:focus-visible + .pista{outline:2px solid var(--focus);outline-offset:2px}
+  table.items input[name=itbis_item]{text-align:right;font-variant-numeric:tabular-nums;
+    color:var(--muted);background:var(--card2);cursor:default}
+  table.items input.apagado{color:var(--muted);background:var(--card2);opacity:.65}
   .quitar{border:1px solid var(--line);background:var(--card2);color:var(--bad);border-radius:8px;
     width:30px;height:30px;cursor:pointer;font-size:14px;line-height:1}
   .quitar:hover{background:var(--bad-bg);border-color:var(--bad)}
@@ -45,7 +59,7 @@
     font-weight:700;font-size:15px;color:var(--accent)}
   .ayuda{font-size:12px;color:var(--muted);margin:6px 0 0}
   @media(max-width:860px){
-    .c3,.c4,.c5,.c6,.c8{grid-column:1/-1}
+    .c2,.c3,.c4,.c5,.c6,.c8{grid-column:1/-1}
     .totales{margin:0;min-width:0;width:100%}
   }
 </style>
@@ -84,7 +98,7 @@
   <section>
     <h2>Cliente</h2>
     <div class="cuerpo rejilla">
-      <div class="campo c6">
+      <div class="campo c4">
         <label for="cliente_nombre">Nombre</label>
         <input id="cliente_nombre" name="cliente_nombre" list="listaClientes"
                placeholder="nombre o razón social" autocomplete="off">
@@ -92,9 +106,17 @@
           {% for c in clientes %}<option value="{{ c.razon_social or c.nombre_normalizado }}">{{ c.nic }}</option>{% endfor %}
         </datalist>
       </div>
+      <div class="campo c2">
+        <label for="cliente_doc_tipo">Documento</label>
+        <select id="cliente_doc_tipo" name="cliente_doc_tipo">
+          <option value="RNC" selected>RNC</option>
+          <option value="Cédula">Cédula</option>
+        </select>
+      </div>
       <div class="campo c3">
-        <label for="cliente_rnc">RNC / Cédula</label>
-        <input id="cliente_rnc" name="cliente_rnc" placeholder="1-33-77201-9">
+        <label for="cliente_rnc" id="etiquetaDoc">RNC</label>
+        <input id="cliente_rnc" name="cliente_rnc" placeholder="1-33-77201-9"
+               inputmode="numeric">
       </div>
       <div class="campo c3">
         <label for="cliente_direccion">Dirección</label>
@@ -118,7 +140,13 @@
     <div class="barra">
       <button class="btn" type="button" id="btnAgregar">
         <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar renglón</button>
-      <span class="ayuda" style="margin:0">El Itbis es 18% por defecto; ponlo en 0 si el producto no lleva.</span>
+      <label class="interruptor" for="llevaItbis">
+        <input type="checkbox" id="llevaItbis" checked>
+        <span class="pista" aria-hidden="true"></span>
+        <span>Lleva Itbis (18%)</span>
+      </label>
+      <span class="ayuda" style="margin:0">El Itbis es 18% fijo; apagá el interruptor
+        si la cotización no lo lleva.</span>
       <span class="ayuda" style="margin:0">Cada renglón admite varias líneas: el título del
         concepto y debajo los detalles con guion (-), uno por línea; salen como viñetas en el PDF.</span>
     </div>
@@ -162,6 +190,7 @@
   var filas = document.getElementById('filas');
   var btn = document.getElementById('btnAgregar');
   var pct = document.getElementById('comision_pct');
+  var llevaItbis = document.getElementById('llevaItbis');
 
   function fila(desc, cant, precio, itbis){
     var tr = document.createElement('tr');
@@ -170,20 +199,35 @@
         'placeholder="panel, inversor, instalación…"></textarea></td>' +
       '<td class="num"><input name="cantidad" inputmode="decimal" value="1"></td>' +
       '<td class="num"><input name="precio" inputmode="decimal" value="0"></td>' +
-      '<td class="num"><input name="itbis_item" inputmode="decimal" value="18"></td>' +
+      '<td class="num"><input name="itbis_item" value="' +
+        (llevaItbis && !llevaItbis.checked ? '0' : '18') +
+        '" readonly tabindex="-1" title="El Itbis es 18% (o 0 si la cotización no lo lleva)"></td>' +
       '<td class="imp">RD$ 0.00</td>' +
       '<td><button class="quitar" type="button" aria-label="Quitar renglón">✕</button></td>';
-    var campos = tr.querySelectorAll('input, textarea');
-    if (desc) campos[0].value = desc;
-    if (cant !== undefined) campos[1].value = cant;
-    if (precio !== undefined) campos[2].value = precio;
-    if (itbis !== undefined) campos[3].value = itbis;
-    campos.forEach(function(c){ c.addEventListener('input', calcular); });
+    if (desc) tr.querySelector('textarea[name=descripcion]').value = desc;
+    if (cant !== undefined) tr.querySelector('input[name=cantidad]').value = cant;
+    if (precio !== undefined) tr.querySelector('input[name=precio]').value = precio;
+    if (itbis !== undefined) tr.querySelector('input[name=itbis_item]').value = itbis;
+    Array.prototype.forEach.call(tr.querySelectorAll('input, textarea'), function(c){
+      c.addEventListener('input', calcular);
+    });
     tr.querySelector('.quitar').addEventListener('click', function(){
       tr.remove(); calcular();
     });
     return tr;
   }
+
+  // ¿lleva Itbis? → pone 18 en todos los renglones o los deja en 0
+  function aplicarItbis(){
+    var on = !llevaItbis || llevaItbis.checked;
+    Array.prototype.forEach.call(filas.querySelectorAll('input[name=itbis_item]'), function(i){
+      i.value = on ? 18 : 0;      // siempre 18: no se escribe a mano
+      i.readOnly = true;
+      i.classList.toggle('apagado', !on);
+    });
+    calcular();
+  }
+  if (llevaItbis) llevaItbis.addEventListener('change', aplicarItbis);
 
   function num(v){ var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
   function dinero(v){ return 'RD$ ' + (v || 0).toLocaleString('es-DO', {minimumFractionDigits: 2,
@@ -192,9 +236,9 @@
   function calcular(){
     var sub = 0, itb = 0;
     Array.prototype.forEach.call(filas.rows, function(tr){
-      var c = tr.querySelectorAll('input');
-      var base = num(c[1].value) * num(c[2].value);
-      var impuesto = base * num(c[3].value) / 100;
+      var base = num(tr.querySelector('input[name=cantidad]').value) *
+                 num(tr.querySelector('input[name=precio]').value);
+      var impuesto = base * num(tr.querySelector('input[name=itbis_item]').value) / 100;
       sub += base; itb += impuesto;
       tr.querySelector('.imp').textContent = dinero(base + impuesto);
     });
@@ -214,6 +258,18 @@
   });
   if (pct) pct.addEventListener('input', calcular);
 
+  // tipo de documento: la etiqueta y el formato del ejemplo cambian
+  var tipoDoc = document.getElementById('cliente_doc_tipo');
+  var etiquetaDoc = document.getElementById('etiquetaDoc');
+  var numeroDoc = document.getElementById('cliente_rnc');
+  function ajustarDoc(){
+    var esCedula = tipoDoc.value === 'Cédula';
+    etiquetaDoc.textContent = esCedula ? 'Cédula' : 'RNC';
+    numeroDoc.placeholder = esCedula ? '001-1234567-8' : '1-33-77201-9';
+    numeroDoc.maxLength = esCedula ? 13 : 11;
+  }
+  if (tipoDoc) { tipoDoc.addEventListener('change', ajustarDoc); ajustarDoc(); }
+
   // el textarea de descripción crece con el texto (varias viñetas)
   function ajustar(t){ t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
   document.getElementById('filas').addEventListener('input', function(ev){
@@ -231,6 +287,7 @@
   var primera = fila();
   filas.appendChild(primera);         // un renglón listo para escribir
   ajustar(primera.querySelector('textarea'));
+  aplicarItbis();
   filas.appendChild(fila());
   filas.appendChild(fila());
   calcular();
