@@ -361,3 +361,19 @@ def test_la_firma_cae_exactamente_donde_se_ubico(tmp_path, monkeypatch):
     assert b"250" in contenidos or b"250.0" in contenidos
     # y el PDF abre bien
     assert pdf.pages[0].mediabox.width > 500
+
+
+def test_la_linea_se_apoya_donde_termina_la_tinta(tmp_path):
+    """Si el PNG trae aire abajo, la línea no queda flotando por encima."""
+    from PIL import Image, ImageDraw
+
+    from app.cotizacion_pdf import _borde_inferior_tinta
+
+    ruta = tmp_path / "con-aire.png"
+    imagen = Image.new("RGBA", (400, 200), (0, 0, 0, 0))       # 200 px de alto
+    ImageDraw.Draw(imagen).rectangle([20, 20, 380, 120], fill=(10, 30, 90, 255))
+    imagen.save(ruta)
+
+    borde = _borde_inferior_tinta(ruta)      # la tinta termina a 121 px de 200
+    assert 0.55 < borde < 0.65
+    assert _borde_inferior_tinta(tmp_path / "no-existe.png") == 1.0

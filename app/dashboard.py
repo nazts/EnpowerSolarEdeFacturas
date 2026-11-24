@@ -1274,11 +1274,23 @@ def _puede_editar_firmas(request: Request) -> None:
         raise HTTPException(403, "Tu usuario no puede cambiar las firmas")
 
 
+def _con_borde(firmas: list[dict]) -> list[dict]:
+    """Agrega a cada firma dónde termina su tinta (para dibujar la línea guía)."""
+    from .cotizacion_pdf import _borde_inferior_tinta
+
+    salida = []
+    for firma in firmas:
+        ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
+        salida.append({**firma,
+                       "borde": _borde_inferior_tinta(ruta) if ruta.exists() else 1.0})
+    return salida
+
+
 @app.get("/firmas")
 def firmas_lista(request: Request):
     requiere_modulo(request, "cotizaciones")
     with db.sesion() as conn:
-        firmas = db.lista_firmas(conn)
+        firmas = _con_borde(db.lista_firmas(conn))
     ancho, alto = _medidas_hoja()
     return templates.TemplateResponse(request, "firmas.html", {
         "activo": "firmas", "firmas": firmas, "ancho_hoja": round(ancho, 1),
@@ -1499,7 +1511,7 @@ def cotizaciones_firmar_form(request: Request, cotizacion_id: int):
     requiere_modulo(request, "cotizaciones")
     with db.sesion() as conn:
         cot = db.obtener_cotizacion(conn, cotizacion_id)
-        firmas = db.lista_firmas(conn)
+        firmas = _con_borde(db.lista_firmas(conn))
     if not cot:
         raise HTTPException(404, "Esa cotización no existe")
     ancho, alto = _medidas_hoja()

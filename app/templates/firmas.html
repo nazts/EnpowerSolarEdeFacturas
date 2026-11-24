@@ -166,7 +166,8 @@
                   data-archivo="{{ f.archivo }}" data-nombre="{{ f.nombre }}"
                   data-x="{{ f.x if f.x is not none else '' }}"
                   data-y="{{ f.y if f.y is not none else '' }}"
-                  data-ancho="{{ f.ancho or 160 }}">
+                  data-ancho="{{ f.ancho or 160 }}"
+                  data-borde="{{ f.borde|default(1) }}">
             <i class="bi bi-arrows-move" aria-hidden="true"></i> Ubicar</button>
           <form method="post" action="/firmas/{{ f.id }}/eliminar"
                 onsubmit="return confirm('¿Quitar esta firma del listado?');">
@@ -279,6 +280,7 @@
     editor = EditorFirma.crear({
       hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
       x: boton.dataset.x, y: boton.dataset.y, ancho: boton.dataset.ancho, techo: 214,
+      borde: boton.dataset.borde,
       alCambiar: function(p){
         mx.textContent = Math.round(p.x) + ' pt';
         my.textContent = Math.round(p.y) + ' pt';

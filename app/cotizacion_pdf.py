@@ -303,6 +303,34 @@ def _alto_imagen(ruta: Path, ancho: float) -> float:
         return ancho * 0.35
 
 
+_CAJA_TINTA: dict[str, tuple[float, float]] = {}      # ruta -> (mtime, borde)
+
+
+def _borde_inferior_tinta(ruta: Path) -> float:
+    """Fracción del alto donde termina la tinta de la imagen (0 = arriba, 1 = abajo).
+
+    Un PNG puede traer transparencia de sobra: si la línea se dibuja en el borde
+    del archivo, la firma queda «flotando» arriba de la línea. Con esto la línea
+    se apoya en la última marca de tinta.
+    """
+    try:
+        marca = ruta.stat().st_mtime
+        guardado = _CAJA_TINTA.get(str(ruta))
+        if guardado and guardado[0] == marca:
+            return guardado[1]
+
+        from PIL import Image
+
+        with Image.open(ruta) as imagen:
+            caja = imagen.convert("RGBA").getchannel("A").getbbox()
+            alto = imagen.height or 1
+        borde = (caja[3] / alto) if caja else 1.0
+        _CAJA_TINTA[str(ruta)] = (marca, borde)
+        return borde
+    except Exception:  # noqa: BLE001 - sin imagen legible, borde del archivo
+        return 1.0
+
+
 def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> None:
     """Línea de firma y, si hay, la imagen (firma o sello) en la posición elegida.
 
@@ -364,10 +392,12 @@ def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> Non
             c.drawCentredString(centro, y, cargo)
         return
 
-    # con imagen: la línea guía va debajo de la firma y el texto más abajo,
-    # así la firma se apoya en la línea como en un documento firmado a mano
+    # con imagen: la línea guía se apoya en la última tinta de la firma (no en el
+    # borde del archivo, que puede traer transparencia de sobra) y el nombre va
+    # debajo de la línea, como en un documento firmado a mano
     centro = x_img + ancho / 2
-    y_linea_img = y_img - 2
+    bajo = _borde_inferior_tinta(ruta) if ruta else 1.0
+    y_linea_img = y_img + alto * (1 - bajo) + 0.5
     c.setStrokeColor(TEXTO)
     c.setLineWidth(0.8)
     c.line(x_img - 12, y_linea_img, x_img + ancho + 12, y_linea_img)

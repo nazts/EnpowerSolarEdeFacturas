@@ -19,6 +19,8 @@
     var alCambiar = opciones.alCambiar || function () {};
     // hasta dónde puede subir: arriba están los totales y las notas
     var techo = Number(opciones.techo) || 0;
+    // dónde termina la tinta de la imagen (1 = borde del archivo)
+    var borde = Number(opciones.borde) || 1;
 
     var ancho = Number(opciones.ancho) || 160;
     var x = Number(opciones.x);
@@ -45,7 +47,7 @@
       if (guia) {
         guia.style.left = ((x - 12) * k) + 'px';
         guia.style.width = ((ancho + 24) * k) + 'px';
-        guia.style.top = ((altoHoja - (y - 2)) * k) + 'px';
+        guia.style.top = ((altoHoja - (y + altoPt() * (1 - borde) + 0.5)) * k) + 'px';
       }
       alCambiar({x: x, y: y, ancho: ancho});
     }

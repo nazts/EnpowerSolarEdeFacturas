@@ -15,7 +15,7 @@ from typing import Any
 from PIL import Image
 
 UMBRAL_BLANCO = 232      # desde este valor (0-255) se considera fondo
-MARGEN = 4               # píxeles que se dejan alrededor al recortar
+MARGEN = 2               # píxeles que se dejan alrededor al recortar
 
 
 def _es_fondo(pixel: tuple[int, int, int, int], umbral: int) -> bool:
