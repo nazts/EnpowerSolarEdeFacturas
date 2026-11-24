@@ -542,6 +542,12 @@ def ubicar_firma(conn, firma_id: int, x: float, y: float, ancho: float) -> None:
     conn.commit()
 
 
+def cambiar_archivo_firma(conn, firma_id: int, archivo: str) -> None:
+    """Reemplaza la imagen de una firma (por ejemplo al quitarle el fondo)."""
+    conn.execute("UPDATE firmas SET archivo = ? WHERE id = ?", (str(archivo), int(firma_id)))
+    conn.commit()
+
+
 def eliminar_firma(conn, firma_id: int) -> None:
     conn.execute("UPDATE firmas SET activo = 0 WHERE id = ?", (int(firma_id),))
     conn.commit()

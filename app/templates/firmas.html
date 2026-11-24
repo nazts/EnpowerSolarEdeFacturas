@@ -104,14 +104,17 @@
   <span class="cuenta">{{ firmas|length }} guardada{{ '' if firmas|length == 1 else 's' }}</span>
 </div>
 <p class="intro">Subí la firma o el sello en <b>PNG con fondo transparente</b> y ubicalo una vez:
-  queda guardado en puntos del PDF y cada cotización lo toma en ese lugar. También podés
-  firmar una cotización puntual desde <b>Cotizaciones → Firmar</b>.</p>
+  queda guardado en puntos del PDF y cada cotización lo toma en ese lugar. Al subirla se le
+  quita el fondo blanco y se recorta sola (las que ya estaban subidas, con el botón
+  <i class="bi bi-magic" aria-hidden="true"></i>). También podés firmar una cotización
+  puntual desde <b>Cotizaciones → Firmar</b>.</p>
 
 {% if mensaje == "guardada" %}<div class="aviso">Firma agregada. Ahora ubicala en la hoja.</div>{% endif %}
 {% if mensaje == "eliminada" %}<div class="aviso">Firma quitada.</div>{% endif %}
 {% if mensaje == "tipo" %}<div class="aviso malo">El archivo tiene que ser una imagen PNG, JPG o WEBP de verdad.</div>{% endif %}
 {% if mensaje == "tamano" %}<div class="aviso malo">La imagen está vacía o pasa de 5 MB.</div>{% endif %}
 {% if mensaje == "sin-archivo" %}<div class="aviso malo">Elegí un archivo antes de subir.</div>{% endif %}
+{% if mensaje == "limpiada" %}<div class="aviso">Listo: se le quitó el fondo blanco y se recortó.</div>{% endif %}
 
 <div class="panel">
   <h2><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Agregar una firma o sello</h2>
@@ -154,6 +157,11 @@
           <span class="sub">{{ f.cargo or 'Sin cargo' }} · {{ (f.ancho or 160) | round | int }} pt</span>
         </div>
         <div class="pie-tarjeta">
+          <form method="post" action="/firmas/{{ f.id }}/limpiar" style="display:contents">
+            <button class="btn icono" type="submit" title="Quitar el fondo blanco y recortar"
+                    aria-label="Quitar fondo">
+              <i class="bi bi-magic" aria-hidden="true"></i></button>
+          </form>
           <button class="btn ubicar" type="button" data-id="{{ f.id }}"
                   data-archivo="{{ f.archivo }}" data-nombre="{{ f.nombre }}"
                   data-x="{{ f.x if f.x is not none else '' }}"

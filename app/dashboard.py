@@ -1348,9 +1348,16 @@ async def firmas_subir(request: Request, nombre: str = Form(""), cargo: str = Fo
     if imagen is None:
         return RedirectResponse("/firmas?mensaje=tipo", status_code=303)
 
+    # se guarda siempre PNG con transparencia y recortado: así no tapa lo de atrás
+    from .firmas_imagen import preparar_firma
+
+    try:
+        listo = preparar_firma(datos)
+    except Exception:  # noqa: BLE001 - si no se puede procesar, se guarda tal cual
+        listo = datos
     CARPETA_FIRMAS.mkdir(parents=True, exist_ok=True)
-    guardado = f"{uuid.uuid4().hex}{extension}"
-    (CARPETA_FIRMAS / guardado).write_bytes(datos)
+    guardado = f"{uuid.uuid4().hex}.png"
+    (CARPETA_FIRMAS / guardado).write_bytes(listo)
     ancho_pt = 160.0
     try:
         proporcion = imagen.size[1] / imagen.size[0]
@@ -1401,6 +1408,33 @@ async def firmas_posicion(request: Request, firma_id: int):
         db.ubicar_firma(conn, firma_id, x, y, ancho_img)
     return JSONResponse({"ok": True, "x": round(x, 1), "y": round(y, 1),
                          "ancho": round(ancho_img, 1)})
+
+
+@app.post("/firmas/{firma_id}/limpiar")
+def firmas_limpiar(request: Request, firma_id: int):
+    """Vuelve a procesar una firma subida antes: le quita el fondo y la recorta."""
+    _puede_editar_firmas(request)
+    from .firmas_imagen import preparar_firma
+
+    with db.sesion() as conn:
+        firma = db.obtener_firma(conn, firma_id)
+    if not firma:
+        raise HTTPException(404, "Esa firma no existe")
+    ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
+    if not ruta.exists():
+        return RedirectResponse("/firmas?mensaje=sin-archivo", status_code=303)
+    try:
+        limpio = preparar_firma(ruta.read_bytes())
+    except Exception:  # noqa: BLE001
+        return RedirectResponse("/firmas?mensaje=tipo", status_code=303)
+
+    nuevo = f"{uuid.uuid4().hex}.png"
+    (CARPETA_FIRMAS / nuevo).write_bytes(limpio)
+    with db.sesion() as conn:
+        db.cambiar_archivo_firma(conn, firma_id, nuevo)
+        db.log_evento(conn, "info", f"Firma procesada: {firma.get('nombre')}",
+                      "fondo transparente y recorte")
+    return RedirectResponse("/firmas?mensaje=limpiada", status_code=303)
 
 
 @app.post("/firmas/{firma_id}/eliminar")

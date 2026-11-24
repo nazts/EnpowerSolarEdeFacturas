@@ -288,5 +288,76 @@ def test_la_firma_no_se_guarda_encima_de_los_totales(dueno, db_path):
                                                "ancho": 200}), cotizacion_id=cot_id))
     with db.sesion() as conn:
         cot = db.obtener_cotizacion(conn, cot_id)
-    alto_imagen = 200 * 120 / 300
+        firma = db.obtener_firma(conn, firma_id)
+    # el alto real lo manda la imagen ya recortada, no el tamaño original
+    alto_imagen = cotizacion_pdf._alto_imagen(
+        dashboard.CARPETA_FIRMAS / firma["archivo"], cot["firma_ancho"])
     assert cot["firma_y"] + alto_imagen <= 214.5
+
+
+# ------------------------------- imagen: fondo, recorte y posición exacta
+def test_la_firma_escaneada_pierde_el_fondo_blanco():
+    """Un JPEG sobre papel blanco taparía los totales: se le quita el fondo."""
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    from app.firmas_imagen import preparar_firma
+
+    papel = Image.new("RGB", (400, 150), (255, 255, 255))
+    ImageDraw.Draw(papel).line([(30, 120), (370, 30)], fill=(15, 30, 90), width=6)
+    buffer = BytesIO()
+    papel.save(buffer, format="JPEG", quality=92)
+
+    png = preparar_firma(buffer.getvalue())
+    imagen = Image.open(BytesIO(png))
+    assert imagen.format == "PNG"
+    alfa = imagen.convert("RGBA").getchannel("A")
+    assert alfa.getextrema()[0] == 0           # hay zonas transparentes
+    assert imagen.width < 400                   # se recortó el aire de alrededor
+
+
+def test_un_sello_con_blanco_adentro_no_se_perfora():
+    """El blanco del centro es parte del diseño: sólo se limpia el fondo de afuera."""
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    from app.firmas_imagen import preparar_firma
+
+    sello = Image.new("RGB", (300, 300), (255, 255, 255))
+    dibujo = ImageDraw.Draw(sello)
+    dibujo.ellipse([30, 30, 270, 270], outline=(30, 70, 45), width=10)
+    dibujo.ellipse([110, 110, 190, 190], fill=(255, 255, 255))
+    buffer = BytesIO()
+    sello.save(buffer, format="PNG")
+
+    imagen = Image.open(BytesIO(preparar_firma(buffer.getvalue()))).convert("RGBA")
+    assert imagen.getpixel((1, 1))[3] == 0                      # esquina transparente
+    assert imagen.getpixel((imagen.width // 2, imagen.height // 2))[3] == 255
+
+
+def test_la_firma_cae_exactamente_donde_se_ubico(tmp_path, monkeypatch):
+    """(x, y) es la esquina inferior izquierda: antes se dibujaba centrada."""
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    from app import cotizacion_pdf
+
+    (tmp_path / "firmas").mkdir()
+    (tmp_path / "firmas" / "prueba_posicion.png").write_bytes(_png(400, 100))
+    monkeypatch.setattr(cotizacion_pdf, "RAIZ_STATIC", tmp_path)
+
+    cot = {"numero": "000050", "fecha": "2026-11-24", "cliente_nombre": "X",
+           "items": [{"descripcion": "A", "cantidad": 1, "precio": 1000, "itbis": 18}],
+           "comision_pct": 4.5, "notas": "", "firma_id": None,
+           "firma_imagen": {"archivo": "prueba_posicion.png", "nombre": "t", "cargo": "",
+                            "x": 250.0, "y": 150.0, "ancho": 100.0}}
+    pdf = PdfReader(BytesIO(cotizacion_pdf.generar(cot)))
+
+    # la imagen se dibuja con su esquina inferior izquierda en (x, y)
+    contenidos = b"".join(pagina.get_contents().get_data() for pagina in pdf.pages)
+    assert b"250" in contenidos or b"250.0" in contenidos
+    # y el PDF abre bien
+    assert pdf.pages[0].mediabox.width > 500
