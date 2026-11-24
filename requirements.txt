@@ -7,6 +7,7 @@ psycopg[binary]>=3.1
 psycopg_pool>=3.2
 python-multipart>=0.0.9
 pytest>=8.0
-fpdf2
+reportlab>=4.0
+pypdf>=4.0
 # Solo para regenerar las fuentes del PDF: scripts/instanciar_fuentes.py
 fonttools>=4.50

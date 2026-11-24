@@ -50,8 +50,8 @@ def test_el_pdf_se_genera_y_es_un_pdf():
     assert len(pdf) > 1000
 
 
-def test_el_pdf_no_lleva_la_firma():
-    """La plantilla original trae la firma del coordinador: aquí no va."""
+def test_el_pdf_no_lleva_la_firma_impresa():
+    """Queda la línea para firmar, pero sin nombres impresos en el código."""
     pdf = cotizacion_pdf.generar(_cotizacion())
     texto = pdf.decode("latin-1", "ignore")
     for palabra in ("Emmanuel", "Coordinador", "Coord.", "DEP. PRESUPUESTO", "Firma"):
@@ -136,3 +136,70 @@ def test_inicio_para_lleva_al_primer_modulo():
     assert dashboard.inicio_para(u) == "/cotizaciones"
     jefe = auth.Usuario(id=7, usuario="a", nombre="A", rol="admin", activo=1)
     assert dashboard.inicio_para(jefe) == "/"
+
+
+# ------------------------------------ PDF sobre la plantilla de la empresa
+def _paginas(pdf: bytes) -> list[str]:
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    return [p.extract_text() or "" for p in PdfReader(BytesIO(pdf)).pages]
+
+
+def test_el_pdf_usa_la_plantilla_de_la_empresa():
+    """El fondo es PIE DE PÁGINA.pdf: logo, marca de agua y pie del diseñador."""
+    pdf = cotizacion_pdf.generar(_cotizacion())
+    paginas = _paginas(pdf)
+    assert len(paginas) == 1
+    # datos que sólo están en la plantilla (pie de página)
+    assert "33-77201-9" in paginas[0]
+    assert "Santiago" in paginas[0]
+
+
+def test_el_pdf_dibuja_los_datos_de_la_cotizacion():
+    pdf = cotizacion_pdf.generar(_cotizacion())
+    texto = _paginas(pdf)[0]
+    assert "000001" in texto
+    assert "CLIENTE DE PRUEBA SRL" in texto
+    assert "Panel solar 590W" in texto
+    assert "Total DOP" in texto
+
+
+def test_una_cotizacion_corta_entra_en_una_hoja():
+    assert len(_paginas(cotizacion_pdf.generar(_cotizacion()))) == 1
+
+
+def test_una_cotizacion_larga_pasa_a_la_segunda_hoja():
+    """Si los renglones no caben, la tabla sigue en otra hoja con la plantilla."""
+    cot = _cotizacion()
+    cot["items"] = [{"descripcion": f"Panel número {i}", "cantidad": 1,
+                     "precio": 1000 + i, "itbis": 18} for i in range(40)]
+    pdf = cotizacion_pdf.generar(cot)
+
+    paginas = _paginas(pdf)
+    assert len(paginas) >= 2
+    # el encabezado de la tabla se repite en la continuación
+    assert "Descripción" in paginas[0] and "Descripción" in paginas[1]
+    # el cierre (totales y firma) va una sola vez, en la última hoja
+    assert sum("Total DOP" in p for p in paginas) == 1
+
+
+def test_la_firma_png_es_opcional(tmp_path, monkeypatch):
+    from PIL import Image, ImageDraw
+
+    from app import config
+
+    # sin PNG: se genera igual (queda la línea para firmar a mano)
+    monkeypatch.setattr(config, "FIRMA_COTIZACION", tmp_path / "no-existe.png")
+    pdf = cotizacion_pdf.generar(_cotizacion())
+    assert pdf.startswith(b"%PDF")
+
+    # con PNG: se incrusta la imagen
+    firma = tmp_path / "firma.png"
+    imagen = Image.new("RGBA", (200, 80), (0, 0, 0, 0))
+    ImageDraw.Draw(imagen).line([(10, 40), (190, 20)], fill=(10, 30, 70, 255), width=4)
+    imagen.save(firma)
+    monkeypatch.setattr(config, "FIRMA_COTIZACION", firma)
+    con_firma = cotizacion_pdf.generar(_cotizacion())
+    assert len(con_firma) > len(pdf)          # lleva la imagen adentro

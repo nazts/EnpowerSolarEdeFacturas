@@ -84,11 +84,19 @@ def test_los_archivos_de_fuente_estan_en_el_repo():
 # -------------------------------------------------------------------- PDF
 def test_la_cotizacion_usa_la_paleta_y_las_fuentes_de_marca():
     codigo = (RAIZ / "app" / "cotizacion_pdf.py").read_text(encoding="utf-8")
-    assert "VERDE = (38, 65, 45)" in codigo
-    assert "DORADO = (187, 137, 76)" in codigo
-    assert "CREMA = (250, 243, 233)" in codigo
+    assert 'VERDE = colors.HexColor("#26412D")' in codigo
+    assert 'DORADO = colors.HexColor("#BB894C")' in codigo
+    assert 'CREMA = colors.HexColor("#FAF3E9")' in codigo
     assert "Archivo-Regular.ttf" in codigo and "Genos-Light.ttf" in codigo
     assert "Helvetica" not in codigo
+
+
+def test_la_cotizacion_usa_la_plantilla_de_la_empresa():
+    """El PDF se arma sobre el archivo del diseñador, no desde cero."""
+    codigo = (RAIZ / "app" / "cotizacion_pdf.py").read_text(encoding="utf-8")
+    assert "config.PLANTILLA_COTIZACION" in codigo
+    assert "merge_page" in codigo
+    assert (RAIZ / "app" / "static" / "plantillas" / "cotizacion.pdf").exists()
 
 
 def test_las_fuentes_del_pdf_existen():

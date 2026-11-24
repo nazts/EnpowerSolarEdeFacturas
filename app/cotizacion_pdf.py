@@ -1,51 +1,67 @@
-"""PDF de cotización con el formato de Enpower Solar (sin la firma).
+"""PDF de cotización sobre la plantilla de la empresa (PIE DE PÁGINA.pdf).
 
-Replica la plantilla de la empresa: encabezado con el logo a la izquierda y los
-datos de Genpower Solar a la derecha, bloque del cliente, tabla de productos con
-Cantidad / Precio Uni / Itbis / Importe, y los totales con la banda roja del
-Total DOP. La firma y el sello del coordinador NO se incluyen.
+El documento se arma en dos capas: la plantilla (logo, marca de agua y pie con
+los datos de contacto) queda de fondo y encima se dibuja el contenido con
+reportlab; pypdf fusiona las capas. Ventajas frente a dibujar todo a mano:
+
+- la marca (logo, isotipo, pie) se mantiene **idéntica** al archivo del diseñador;
+- si la cotización tiene muchos renglones, la tabla continúa en otra hoja con la
+  misma plantilla y el encabezado de columnas repetido;
+- la firma es opcional: si hay un PNG con fondo transparente se coloca sobre la
+  línea, y si no, la hoja queda con la línea para firmar a mano (el nombre y el
+  cargo se toman del `.env`, nunca escritos en el código).
+
+Configuración (`.env`, opcional):
+
+    COTIZACION_PLANTILLA=app/static/plantillas/cotizacion.pdf
+    COTIZACION_FIRMA=app/static/plantillas/firma.png
+    COTIZACION_FIRMA_NOMBRE=Nombre Apellido
+    COTIZACION_FIRMA_CARGO=Cargo
 """
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
-from fpdf import FPDF
+from pypdf import PdfReader, PdfWriter
+from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader, simpleSplit
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
 
-# Paleta del Manual de Marca 2026: verde #26412D, dorado #BB894C, crema #FAF3E9
-VERDE = (38, 65, 45)         # encabezado, bandas y títulos
-DORADO = (187, 137, 76)      # acentos
-CREMA = (250, 243, 233)      # relleno alterno de las filas
-GRIS = (90, 90, 90)
+from . import config
 
-# Tipografía de marca: Archivo (títulos y texto) y Genos (cifras)
+# Paleta del Manual de Marca 2026
+VERDE = colors.HexColor("#26412D")
+DORADO = colors.HexColor("#BB894C")
+CREMA = colors.HexColor("#FAF3E9")
+BORDE = colors.HexColor("#BFC8C2")
+TEXTO = colors.HexColor("#1F2922")
+TENUE = colors.HexColor("#5A665E")
+
 FUENTES = Path(__file__).resolve().parent / "static" / "fonts" / "pdf"
 
-EMPRESA = {
-    "nombre": "ENPOWER SOLAR",
-    "ciudad": "SANTIAGO, REP. DOM.",
-    "rnc": "RNC: 1-33-77201-9",
-    "correo": "info@enpowersolarrd.com",
-}
-
-
-def _registrar_fuentes(pdf: FPDF) -> None:
-    """Carga Archivo y Genos desde `app/static/fonts/pdf` (sin CDN)."""
-    pdf.add_font("Archivo", "", str(FUENTES / "Archivo-Regular.ttf"))
-    pdf.add_font("Archivo", "B", str(FUENTES / "Archivo-SemiBold.ttf"))
-    pdf.add_font("Genos", "", str(FUENTES / "Genos-Light.ttf"))
-    pdf.add_font("Genos", "B", str(FUENTES / "Genos-SemiBold.ttf"))
-
-
-def _t(texto) -> str:
-    """fpdf con fuentes core solo maneja latin-1: se limpia lo que no entre."""
-    return str(texto if texto is not None else "").encode("latin-1", "replace").decode("latin-1")
+# Medidas de la plantilla (carta 612 x 791 pt): el logo ocupa la esquina
+# superior izquierda y el pie llega hasta y ≈ 84 pt.
+MARGEN = 50
+Y_CAJAS_ARRIBA = 630        # cajas de cliente y documento
+ALTO_CAJA = 84
+Y_DIVISOR = 536
+Y_TABLA_P1 = 528            # debajo de las cajas
+Y_TABLA_CONT = 620          # continuaciones: debajo del logo
+Y_LIMITE = 100              # no bajar de aquí (empieza el pie de la plantilla)
+ALTO_CIERRE = 118           # totales + firma + notas, siempre al pie de la hoja
+Y_CIERRE = Y_LIMITE + ALTO_CIERRE   # 218: fin de la tabla y arriba del cierre
+Y_TABLA_FIN = Y_CIERRE      # la tabla nunca invade el bloque de cierre
 
 
 def _dinero(valor) -> str:
     try:
-        return f"${float(valor or 0):,.2f}"
+        return f"RD$ {float(valor or 0):,.2f}"
     except (TypeError, ValueError):
-        return "$0.00"
+        return "RD$ 0.00"
 
 
 def _fecha(valor: str | None) -> str:
@@ -71,11 +87,11 @@ def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
         except (TypeError, ValueError):
             precio = 0.0
         try:
-            tasa = float(item.get("itbis") if item.get("itbis") not in (None, "") else 18)
+            tasa = float(item.get("itbis") if item.get("itbis") is not None else 18)
         except (TypeError, ValueError):
             tasa = 18.0
-        base = round(cantidad * precio, 2)
-        impuesto = round(base * tasa / 100, 2)
+        base = cantidad * precio
+        impuesto = base * tasa / 100
         subtotal += base
         itbis += impuesto
         limpios.append({
@@ -84,152 +100,276 @@ def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
             "itbis_monto": impuesto,
             "importe": round(base + impuesto, 2),
         })
-    total = round(subtotal + itbis, 2)
-    comision = round(total * (float(comision_pct or 0) / 100), 2)
-    return {"items": limpios, "subtotal": round(subtotal, 2), "itbis": round(itbis, 2),
-            "total": total, "comision_pct": float(comision_pct or 0), "comision": comision}
+    total = subtotal + itbis
+    comision = total * (comision_pct or 0) / 100
+    return {
+        "items": limpios,
+        "subtotal": round(subtotal, 2),
+        "itbis": round(itbis, 2),
+        "comision_pct": comision_pct,
+        "comision": round(comision, 2),
+        "total": round(total, 2),
+    }
 
 
-class CotizacionPDF(FPDF):
-    """Sin pie de página: el documento queda limpio para escribirlo a mano."""
+# --------------------------------------------------------------------- fuentes
+def _registrar_fuentes() -> None:
+    """Registra Archivo y Genos para reportlab (una sola vez por proceso)."""
+    nombres = pdfmetrics.getRegisteredFontNames()
+    if "Archivo" not in nombres:
+        pdfmetrics.registerFont(TTFont("Archivo", str(FUENTES / "Archivo-Regular.ttf")))
+        pdfmetrics.registerFont(TTFont("Archivo-Semi", str(FUENTES / "Archivo-SemiBold.ttf")))
+    if "Genos" not in nombres:
+        pdfmetrics.registerFont(TTFont("Genos", str(FUENTES / "Genos-Light.ttf")))
+        pdfmetrics.registerFont(TTFont("Genos-Semi", str(FUENTES / "Genos-SemiBold.ttf")))
 
 
+# ------------------------------------------------------------------ contenido
+def _encabezado(c: canvas.Canvas, cot: dict) -> None:
+    """Título del documento y cajas de cliente / datos."""
+    ancho, _ = c._pagesize
+    derecha = ancho - MARGEN
+    _registrar_fuentes()
+
+    # --- caja del cliente (izquierda)
+    caja_w, caja_h = 295, ALTO_CAJA
+    y0 = Y_CAJAS_ARRIBA - caja_h
+    c.setFillColor(colors.Color(0.98, 0.99, 0.98, alpha=0.92))
+    c.setStrokeColor(BORDE)
+    c.setLineWidth(0.7)
+    c.roundRect(MARGEN, y0, caja_w, caja_h, 5, stroke=1, fill=1)
+
+    c.setFillColor(VERDE)
+    c.setFont("Archivo-Semi", 9)
+    c.drawString(MARGEN + 11, Y_CAJAS_ARRIBA - 17, "DATOS DEL CLIENTE")
+
+    filas = (("Nombre:", cot.get("cliente_nombre") or ""),
+             ("RNC:", cot.get("cliente_rnc") or ""),
+             ("Dirección:", cot.get("cliente_direccion") or ""))
+    for i, (etiqueta, valor) in enumerate(filas):
+        y = Y_CAJAS_ARRIBA - 35 - i * 18
+        c.setFillColor(TEXTO)
+        c.setFont("Archivo-Semi", 8.5)
+        c.drawString(MARGEN + 11, y, etiqueta)
+        texto = str(valor)
+        # se recorta lo que no entra en la caja (una dirección larga)
+        while texto and pdfmetrics.stringWidth(texto, "Archivo", 8.5) > caja_w - 78:
+            texto = texto[:-2]
+        c.setFont("Archivo", 8.5)
+        c.drawString(MARGEN + 62, y, texto)
+
+    # --- caja del documento (derecha)
+    doc_w = 205
+    doc_x = derecha - doc_w
+    c.setFillColor(colors.Color(0.98, 0.99, 0.98, alpha=0.92))
+    c.setStrokeColor(BORDE)
+    c.roundRect(doc_x, y0, doc_w, caja_h, 5, stroke=1, fill=1)
+
+    c.setFillColor(VERDE)
+    c.setFont("Archivo-Semi", 12)
+    c.drawString(doc_x + 11, Y_CAJAS_ARRIBA - 18, "COTIZACIÓN")
+    c.setFillColor(DORADO)
+    c.setFont("Archivo-Semi", 9.5)
+    c.drawRightString(doc_x + doc_w - 11, Y_CAJAS_ARRIBA - 18,
+                      f"No. {cot.get('numero') or ''}")
+
+    datos = (("No. de documento:", str(cot.get("numero") or "")),
+             ("Fecha:", _fecha(cot.get("fecha"))),
+             ("Moneda:", str(cot.get("moneda") or "Pesos Dominicanos")))
+    for i, (etiqueta, valor) in enumerate(datos):
+        y = Y_CAJAS_ARRIBA - 37 - i * 17
+        c.setFillColor(TEXTO)
+        c.setFont("Archivo-Semi", 8)
+        c.drawString(doc_x + 11, y, etiqueta)
+        c.setFont("Archivo", 8)
+        c.drawRightString(doc_x + doc_w - 11, y, valor)
+
+    # --- divisor dorado
+    c.setStrokeColor(DORADO)
+    c.setLineWidth(1.4)
+    c.line(MARGEN, Y_DIVISOR, derecha, Y_DIVISOR)
+
+
+def _tabla(datos: dict) -> Table:
+    """Tabla de renglones lista para dibujar (con encabezado repetible)."""
+    filas = [["Descripción", "Cantidad", "Precio unitario", "Itbis", "Importe"]]
+    for item in datos["items"] or [{"descripcion": ""}]:
+        filas.append([
+            item.get("descripcion") or "",
+            f"{item['cantidad']:g}" if item.get("cantidad") not in (None, "") else "",
+            _dinero(item["precio"]) if item.get("precio") not in (None, "") else "",
+            _dinero(item["itbis_monto"]) if item.get("itbis_monto") not in (None, "") else "",
+            _dinero(item["importe"]) if item.get("importe") not in (None, "") else "",
+        ])
+    tabla = Table(filas, colWidths=[222.3, 55, 78, 72, 85], repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), VERDE),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Archivo-Semi"),
+        ("FONTSIZE", (0, 0), (-1, 0), 8.5),
+        ("FONTNAME", (0, 1), (-1, -1), "Archivo"),
+        ("FONTSIZE", (0, 1), (-1, -1), 8.5),
+        ("TEXTCOLOR", (0, 1), (-1, -1), TEXTO),
+        ("ALIGN", (0, 0), (0, -1), "LEFT"),
+        ("ALIGN", (1, 0), (1, -1), "CENTER"),
+        ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("GRID", (0, 0), (-1, -1), 0.6, BORDE),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, CREMA]),
+    ]))
+    return tabla
+
+
+def _totales(c: canvas.Canvas, datos: dict, y_top: float) -> None:
+    """Dibuja el cuadro de totales a la derecha."""
+    ancho, _ = c._pagesize
+    derecha = ancho - MARGEN
+    tot_w = 215
+    filas = [["Sub. Total", _dinero(datos["subtotal"])],
+             ["Itbis", _dinero(datos["itbis"])],
+             ["Total DOP", _dinero(datos["total"])]]
+    tabla = Table(filas, colWidths=[95, 120], rowHeights=[21, 21, 25])
+    tabla.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, 1), "Archivo-Semi"),
+        ("FONTNAME", (1, 0), (1, 1), "Genos"),
+        ("FONTSIZE", (0, 0), (-1, 1), 9),
+        ("TEXTCOLOR", (0, 0), (-1, 1), TEXTO),
+        ("BACKGROUND", (0, 2), (-1, 2), VERDE),
+        ("TEXTCOLOR", (0, 2), (-1, 2), colors.white),
+        ("FONTNAME", (0, 2), (0, 2), "Archivo-Semi"),
+        ("FONTNAME", (1, 2), (1, 2), "Genos-Semi"),
+        ("FONTSIZE", (0, 2), (-1, 2), 11),
+        ("ALIGN", (0, 0), (0, -1), "LEFT"),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("GRID", (0, 0), (-1, -1), 0.6, BORDE),
+    ]))
+    _, alto = tabla.wrapOn(c, tot_w, 200)
+    tabla.drawOn(c, derecha - tot_w, y_top - alto)
+
+
+def _firma(c: canvas.Canvas) -> None:
+    """Línea de firma y, si existe, la imagen PNG y los datos del firmante."""
+    x0, ancho = MARGEN + 10, 160
+    y_linea = Y_LIMITE + 30
+    centro = x0 + ancho / 2
+    _registrar_fuentes()
+
+    ruta = Path(config.FIRMA_COTIZACION)
+    if ruta.exists():
+        try:
+            c.drawImage(ImageReader(str(ruta)), x0, y_linea + 3, width=ancho, height=55,
+                        mask="auto", preserveAspectRatio=True, anchor="c")
+        except Exception:  # noqa: BLE001 - una firma rota no debe tumbar la cotización
+            pass
+
+    c.setStrokeColor(TEXTO)
+    c.setLineWidth(0.8)
+    c.line(x0 - 15, y_linea, x0 + ancho + 15, y_linea)
+
+    y = y_linea - 13
+    if config.FIRMA_NOMBRE:
+        c.setFillColor(TEXTO)
+        c.setFont("Archivo-Semi", 8.5)
+        c.drawCentredString(centro, y, config.FIRMA_NOMBRE)
+        y -= 11
+    if config.FIRMA_CARGO:
+        c.setFillColor(TENUE)
+        c.setFont("Archivo", 8)
+        c.drawCentredString(centro, y, config.FIRMA_CARGO)
+
+
+def _notas(c: canvas.Canvas, notas: str) -> None:
+    """Notas del pie: a la derecha, debajo de los totales (no pisan la firma)."""
+    if not notas:
+        return
+    ancho, _ = c._pagesize
+    x = ancho - MARGEN - 215
+    y = Y_CIERRE - 78
+    c.setFillColor(TEXTO)
+    c.setFont("Archivo-Semi", 8)
+    c.drawString(x, y, "Notas")
+    c.setFont("Archivo", 8)
+    c.setFillColor(TENUE)
+    for i, linea in enumerate(simpleSplit(str(notas), "Archivo", 8, 215)[:3]):
+        c.drawString(x, y - 11 - i * 9.5, linea)
+
+
+def _cierre(c: canvas.Canvas, cot: dict, datos: dict) -> None:
+    """Totales, firma y notas, siempre en el mismo lugar del pie de la hoja."""
+    _totales(c, datos, Y_CIERRE)
+    _firma(c)
+    _notas(c, cot.get("notas") or "")
+
+
+# ------------------------------------------------------------------- generar
 def generar(cot: dict) -> bytes:
-    """Devuelve el PDF en bytes. `cot` es el dict guardado en la base."""
+    """Devuelve el PDF (una o más hojas) sobre la plantilla de la empresa."""
     datos = calcular(cot.get("items") or [], cot.get("comision_pct", 4.5))
-    pdf = CotizacionPDF(orientation="P", unit="mm", format="A4")
-    _registrar_fuentes(pdf)
-    pdf.set_auto_page_break(auto=True, margin=22)
-    pdf.set_margins(12, 12, 12)
-    pdf.add_page()
+    plantilla = PdfReader(str(config.PLANTILLA_COTIZACION))
+    base = plantilla.pages[0]
+    ancho = float(base.mediabox.width)
+    alto = float(base.mediabox.height)
+    ruta_plantilla = str(config.PLANTILLA_COTIZACION)
+    ancho_tabla = ancho - 2 * MARGEN
 
-    # ------------------------------------------------ encabezado: logo y empresa
-    x_logo, y_logo = 14, 16
-    pdf.set_xy(x_logo, y_logo)
-    pdf.set_font("Archivo", "B", 26)
-    pdf.set_text_color(*VERDE)
-    pdf.cell(70, 10, _t("ENPOWER"), 0, 2, "L")
-    pdf.set_x(x_logo + 12)
-    pdf.set_font("Archivo", "", 17)
-    pdf.cell(60, 9, _t("SOLAR"), 0, 2, "L")
-    pdf.set_x(x_logo + 12)
-    pdf.set_font("Genos", "", 10)
-    pdf.cell(60, 6, _t("¡Del sol a tu favor!"), 0, 2, "L")
+    capas: list[tuple[canvas.Canvas, io.BytesIO]] = []
 
-    pdf.set_xy(120, y_logo)
-    for i, (texto, fuente) in enumerate(((EMPRESA["nombre"], "B"),
-                                         (EMPRESA["ciudad"], "B"),
-                                         (EMPRESA["rnc"], "B"))):
-        pdf.set_font("Archivo", fuente, 9)
-        pdf.set_text_color(0, 0, 0)
-        pdf.cell(78, 5, _t(texto), 0, 2, "C")
-    pdf.set_font("Archivo", "", 9)
-    pdf.set_text_color(*VERDE)
-    pdf.cell(78, 5, _t(EMPRESA["correo"]), 0, 2, "C")
+    def nueva_pagina(con_encabezado: bool) -> canvas.Canvas:
+        buffer = io.BytesIO()
+        capa = canvas.Canvas(buffer, pagesize=(ancho, alto))
+        if con_encabezado:
+            _encabezado(capa, cot)
+        capas.append((capa, buffer))
+        return capa
 
-    # ------------------------------------------------ título y datos del documento
-    pdf.ln(4)
-    pdf.set_font("Archivo", "B", 15)
-    pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 8, _t("Cotización"), 0, 1, "C")
-    pdf.set_font("Archivo", "B", 10)
-    pdf.cell(0, 5.5, _t(f"No. Documento: {cot.get('numero') or '000001'}"), 0, 1, "C")
-    pdf.cell(0, 5.5, _t(f"Fecha: {_fecha(cot.get('fecha'))}"), 0, 1, "C")
-    pdf.cell(0, 5.5, _t(f"Moneda: {cot.get('moneda') or 'Pesos Dominicanos'}"), 0, 1, "C")
+    capa = nueva_pagina(True)
+    resto = _tabla(datos)
+    y = Y_TABLA_P1
 
-    # ------------------------------------------------ bloque del cliente
-    pdf.ln(6)
-    pdf.set_fill_color(*VERDE)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Archivo", "B", 10)
-    pdf.cell(0, 7, _t("CLIENTE"), 0, 1, "C", True)
-    pdf.ln(1.5)
-    pdf.set_text_color(0, 0, 0)
-    for etiqueta, valor in (("NOMBRE", cot.get("cliente_nombre")),
-                            ("RNC", cot.get("cliente_rnc")),
-                            ("DIRECCION", cot.get("cliente_direccion"))):
-        pdf.set_x(pdf.l_margin)
-        pdf.set_font("Archivo", "B", 9)
-        pdf.cell(24, 5.5, _t(f"{etiqueta}:"), 0, 0, "L")
-        pdf.set_font("Archivo", "", 9)
-        pdf.multi_cell(0, 5.5, _t(valor or ""), 0, "L")
-        pdf.set_x(pdf.l_margin)
+    while True:
+        espacio = y - Y_TABLA_FIN
+        alto_resto = resto.wrapOn(capa, ancho_tabla, espacio)[1]
+        if alto_resto <= espacio:
+            resto.drawOn(capa, MARGEN, y - alto_resto)
+            break
 
-    # ------------------------------------------------ tabla de productos
-    pdf.ln(4)
-    columnas = (("Descripción", 80, "L"), ("Cantidad", 20, "C"),
-                ("Precio Uni", 28, "R"), ("Itbis", 28, "R"), ("Importe", 30, "R"))
-    pdf.set_font("Archivo", "B", 9)
-    pdf.set_fill_color(*VERDE)
-    pdf.set_text_color(255, 255, 255)
-    for titulo, ancho, alineacion in columnas:
-        pdf.cell(ancho, 7, _t(titulo), 0, 0, alineacion, True)
-    pdf.ln()
+        partes = resto.split(ancho_tabla, espacio)
+        if not partes:                    # ni una fila entra: se corta igual
+            alto_resto = resto.wrapOn(capa, ancho_tabla, espacio)[1]
+            resto.drawOn(capa, MARGEN, y - alto_resto)
+            break
+        parte = partes[0]
+        resto = partes[1] if len(partes) > 1 else None
+        alto_parte = parte.wrapOn(capa, ancho_tabla, espacio)[1]
+        parte.drawOn(capa, MARGEN, y - alto_parte)
 
-    pdf.set_text_color(0, 0, 0)
-    renglones = datos["items"] or [{"descripcion": "", "cantidad": "", "precio": "",
-                                    "itbis_pct": "", "itbis_monto": "", "importe": ""}]
-    for i, item in enumerate(renglones):
-        alto = 7
-        if pdf.get_y() > 250:                      # salto de pagina antes de cortar
-            pdf.add_page()
-            pdf.set_font("Archivo", "B", 9)
-            pdf.set_fill_color(*VERDE)
-            pdf.set_text_color(255, 255, 255)
-            for titulo, ancho, alineacion in columnas:
-                pdf.cell(ancho, 7, _t(titulo), 0, 0, alineacion, True)
-            pdf.ln()
-            pdf.set_text_color(0, 0, 0)
-        fondo = i % 2 == 0
-        pdf.set_fill_color(*CREMA)
-        pdf.set_font("Archivo", "", 9)
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(80, alto, _t(item["descripcion"]), 0, 0, "L", fondo)
-        pdf.cell(20, alto, _t(f"{item['cantidad']:g}" if item["cantidad"] != "" else ""),
-                 0, 0, "C", fondo)
-        pdf.cell(28, alto, _t(_dinero(item["precio"]) if item["precio"] != "" else ""),
-                 0, 0, "R", fondo)
-        # Itbis en dinero (el porcentaje se aplica al calcular)
-        pdf.cell(28, alto, _t(_dinero(item["itbis_monto"]) if item["itbis_monto"] != "" else ""),
-                 0, 0, "R", fondo)
-        pdf.cell(30, alto, _t(_dinero(item["importe"]) if item["importe"] != "" else ""),
-                 0, 0, "R", fondo)
-        pdf.ln()
+        if resto is None:
+            break
 
-    # relleno hasta completar el alto de la plantilla (10 renglones)
-    for i in range(len(renglones), 10):
-        pdf.set_fill_color(*CREMA)
-        fondo = i % 2 == 0
-        pdf.set_x(pdf.l_margin)
-        for _, ancho, alineacion in columnas:
-            pdf.cell(ancho, 7, "", 0, 0, alineacion, fondo)
-        pdf.ln()
+        capa.showPage()
+        capa = nueva_pagina(False)
+        y = Y_TABLA_CONT
 
-    # ------------------------------------------------ totales (sin color, con margen)
-    pdf.ln(4)
-    ancho_total = 86
-    x_totales = pdf.w - pdf.r_margin - ancho_total - 4      # 4 mm de aire al borde
-    pdf.set_draw_color(200, 200, 200)
-    for etiqueta, valor, fuerte in (("Sub. Total", datos["subtotal"], False),
-                                    ("Itbis", datos["itbis"], False),
-                                    ("Total DOP", datos["total"], True)):
-        pdf.set_x(x_totales)
-        pdf.set_font("Archivo", "B", 10 if fuerte else 9.5)
-        pdf.cell(44, 7, _t(etiqueta), 0, 0, "R")
-        # las cifras van en Genos, la tipografía de números de la marca
-        pdf.set_font("Genos", "B" if fuerte else "", 13 if fuerte else 11)
-        pdf.cell(30, 7, _t(_dinero(valor)), 0, 1, "R")
-    pdf.set_x(x_totales)
-    pdf.cell(ancho_total, 0, "", "T", 1, "R")
+    _cierre(capa, cot, datos)
 
-    if cot.get("notas"):
-        pdf.ln(6)
-        pdf.set_x(pdf.l_margin)
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Archivo", "B", 9)
-        pdf.cell(0, 6, _t("Notas"), 0, 1, "L")
-        pdf.set_font("Archivo", "", 9)
-        pdf.multi_cell(0, 5.5, _t(cot["notas"]), 0, "L")
+    # fusionar cada capa sobre una copia de la plantilla.
+    # pypdf 7 exige que la página pertenezca a un writer: se agrega la plantilla
+    # al documento y recién ahí se le superpone la capa.
+    escritor = PdfWriter()
+    for capa, buffer in capas:
+        capa.showPage()
+        capa.save()
+        buffer.seek(0)
+        escritor.append(PdfReader(ruta_plantilla))
+        escritor.pages[-1].merge_page(PdfReader(buffer).pages[0])
 
-    # el resto de la hoja queda en blanco, para completarlo a mano si hace falta
-    return bytes(pdf.output())
+    salida = io.BytesIO()
+    escritor.write(salida)
+    return salida.getvalue()

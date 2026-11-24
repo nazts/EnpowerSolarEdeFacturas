@@ -15,6 +15,7 @@ data/
 exports/
 *.pdf
 *.xlsx
+!app/static/plantillas/*.pdf
 
 # sistema
 .DS_Store
