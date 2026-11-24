@@ -13,7 +13,7 @@
   .mp-head .mp-chips{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
   .mp-chip{padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600;background:var(--ok-bg);color:var(--ok);border:1px solid var(--line)}
   .mp-chip.n{background:var(--card2);color:var(--muted)}
-  .mp-cuerpo{display:grid;grid-template-columns:300px minmax(0,1fr) 330px;gap:14px;height:calc(100vh - 170px);min-height:520px}
+  .mp-cuerpo{display:grid;grid-template-columns:275px minmax(0,1fr) 300px;gap:12px;height:calc(100vh - 168px);min-height:560px}
   .mp-lista,.mp-ficha{background:var(--card);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
   .mp-lista h2,.mp-ficha h2{margin:0;padding:12px 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
   .mp-busca{padding:10px 12px;border-bottom:1px solid var(--line)}
@@ -60,19 +60,19 @@
   .mp-ctl button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font:inherit;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.18)}
   .mp-ctl button:hover{border-color:var(--accent);color:var(--accent)}
   .mp-ctl button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-  .mp-vistas{margin-top:6px;display:flex;flex-direction:column;gap:4px;width:132px}
-  .mp-vistas button{width:100%;height:34px;font-size:12.5px;display:flex;align-items:center;
-    justify-content:flex-start;gap:8px;padding:0 10px;border-radius:9px;border:1px solid var(--line);
-    background:var(--card);color:var(--txt);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-  .mp-vistas button i{font-size:14px;line-height:1}
+  .mp-vistas{display:flex;gap:4px}
+  .mp-vistas button{height:28px;font-size:11.5px;display:flex;align-items:center;justify-content:center;
+    gap:6px;padding:0 9px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card);color:var(--txt);cursor:pointer;font-family:inherit}
+  .mp-vistas button i{font-size:12px;line-height:1}
   .mp-vistas button:hover{border-color:var(--accent);color:var(--accent)}
   .mp-vistas button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
     color:var(--on-accent);font-weight:600}
   .mp-vistas button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   @media(max-width:720px){
-    .mp-vistas{width:auto;flex-direction:row}
-    .mp-vistas button{width:38px;height:38px;justify-content:center;padding:0}
+    .mp-vistas button{height:26px;padding:0 8px;font-size:11px}
     .mp-vistas button span{display:none}
+    .mp-vistas button i{font-size:13px}
   }
   .mp-attr{position:absolute;right:0;bottom:0;z-index:10;background:rgba(255,255,255,.88);color:#222;font-size:11px;padding:2px 8px;border-radius:8px 0 0 0}
   .mp-attr a{color:var(--brand)}
@@ -149,6 +149,14 @@
       <p>Ubicación y equipo instalado de cada cliente.</p>
     </div>
     <div class="mp-chips">
+      <div class="mp-vistas" role="group" aria-label="Vista del mapa">
+        <button type="button" data-estilo="calles" aria-pressed="true" title="Mapa">
+          <i class="bi bi-map" aria-hidden="true"></i><span>Mapa</span></button>
+        <button type="button" data-estilo="satelite" aria-pressed="false" title="Satélite">
+          <i class="bi bi-globe-americas" aria-hidden="true"></i><span>Satélite</span></button>
+        <button type="button" data-estilo="relieve" aria-pressed="false" title="Relieve">
+          <i class="bi bi-triangle" aria-hidden="true"></i><span>Relieve</span></button>
+      </div>
       <span class="mp-chip" id="chipUbic">{{ con_ubicacion|length }} ubicados</span>
       <span class="mp-chip n" id="chipTotal">{{ clientes|length }} clientes</span>
       <span class="mp-chip n" id="chipKw"></span>
@@ -169,14 +177,6 @@
         <button type="button" id="zin" aria-label="Acercar" title="Acercar"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
         <button type="button" id="zout" aria-label="Alejar" title="Alejar"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>
         <button type="button" id="zfit" aria-label="Ver todos" title="Ver todos"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></button>
-        <div class="mp-vistas" role="group" aria-label="Vista del mapa">
-          <button type="button" data-estilo="calles" aria-pressed="true" title="Mapa">
-            <i class="bi bi-map" aria-hidden="true"></i><span>Mapa</span></button>
-          <button type="button" data-estilo="satelite" aria-pressed="false" title="Satélite">
-            <i class="bi bi-globe-americas" aria-hidden="true"></i><span>Satélite</span></button>
-          <button type="button" data-estilo="relieve" aria-pressed="false" title="Relieve">
-            <i class="bi bi-triangle" aria-hidden="true"></i><span>Relieve</span></button>
-        </div>
       </div>
       <div class="mp-attr" id="mp-attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
       <div class="mp-vacio" id="vacio">
