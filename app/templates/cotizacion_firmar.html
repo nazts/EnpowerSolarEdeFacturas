@@ -60,6 +60,8 @@
   .btn.primario[disabled]{opacity:.55;cursor:not-allowed}
   .btn.peligro{color:var(--bad);width:100%}
   .btn.peligro:hover{border-color:var(--bad);background:var(--bad-bg)}
+  .error-caja{margin:10px 0 0;padding:10px 12px;border-radius:9px;background:var(--bad-bg);
+    color:var(--bad);border:1px solid var(--bad-bd);font-size:12.5px;line-height:1.5}
   @media(max-width:900px){ .rejilla{grid-template-columns:1fr} }
 </style>
 {% endblock %}
@@ -77,7 +79,19 @@
 <p class="intro">Elegí la firma o el sello y arrastralo sobre la hoja. Se guarda <b>solo para
   esta cotización</b>: las demás siguen con la posición general.</p>
 
-{% if mensaje == "firmada" %}<div class="aviso">Cotización firmada. Ya podés abrir el PDF.</div>{% endif %}
+{% if mensaje == "firmada" %}
+<div class="aviso">
+  <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+  {% if cotizacion.firma_id %}
+  Firma guardada en esta cotización: <b>x {{ '%g'|format(cotizacion.firma_x or 0) }}</b>,
+  <b>y {{ '%g'|format(cotizacion.firma_y or 0) }}</b>,
+  ancho <b>{{ '%g'|format(cotizacion.firma_ancho or 0) }} pt</b>.
+  <a href="/cotizaciones/{{ cotizacion.id }}.pdf" target="_blank" rel="noopener">Ver el PDF</a>
+  {% else %}
+  Se quitó la firma: la cotización vuelve a salir con la línea para firmar.
+  {% endif %}
+</div>
+{% endif %}
 
 <div class="rejilla">
   <div class="panel">
@@ -134,6 +148,7 @@
       <p class="ayuda">No hay firmas guardadas todavía.</p>
       <a class="btn primario" href="/firmas">Agregar una firma</a>
       {% endif %}
+      <p class="error-caja" id="avisoFirma" hidden></p>
       <p class="ayuda"><a href="/cotizaciones/{{ cotizacion.id }}.pdf" target="_blank"
         rel="noopener">Ver el PDF de esta cotización</a></p>
     </div>
@@ -175,6 +190,14 @@
       px.textContent = py.textContent = pw.textContent = '—';
       return;
     }
+    // el editor anterior quedaría escuchando sobre el mismo <img>: se clona
+    var viejo = document.getElementById('sello');
+    var nuevo = viejo.cloneNode(false);
+    viejo.parentNode.replaceChild(nuevo, viejo);
+    Array.prototype.forEach.call(hoja.querySelectorAll('.guia-firma'), function(g){
+      g.parentNode.removeChild(g);
+    });
+    sello = nuevo;
     sello.hidden = false;
     sello.src = '/static/firmas/' + elegido.dataset.archivo;
     var x = elegido.dataset.x, y = elegido.dataset.y;
@@ -201,17 +224,29 @@
 
   if (GUARDADA){ aplicar(); } else { marcarElegida(); }
 
+  var aviso = document.getElementById('avisoFirma');
+  function avisar(texto){
+    if (!aviso) return;
+    aviso.textContent = texto || '';
+    aviso.hidden = !texto;
+  }
+
   function guardar(firmaId, datos){
     boton.disabled = true;
+    avisar('');
     return fetch('/cotizaciones/' + COTIZACION + '/firmar', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(datos)
     }).then(function(r){
-      if (!r.ok) throw new Error('falló');
+      if (!r.ok){
+        return r.text().then(function(t){
+          throw new Error('Error ' + r.status + ': ' + (t || r.statusText));
+        });
+      }
       window.location.href = '/cotizaciones/{{ cotizacion.id }}/firmar?mensaje=firmada';
-    }).catch(function(){
+    }).catch(function(err){
       boton.disabled = false;
-      boton.textContent = 'No se pudo guardar';
+      avisar('No se guardó. ' + err.message);
     });
   }
 

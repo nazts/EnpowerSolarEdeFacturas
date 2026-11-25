@@ -63,6 +63,8 @@
   .datos .nombre{font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap}
   .datos .sub{font-size:12px;color:var(--muted)}
+  .datos .coords{font-variant-numeric:tabular-nums;color:var(--txt)}
+  .datos .coords.sin{color:var(--bad);font-weight:600}
   .pie-tarjeta{display:flex;gap:8px;align-items:center;padding:0 13px 12px;margin-top:auto}
   .pie-tarjeta .btn{flex:1;justify-content:center}
   .vacio{padding:30px 18px;text-align:center;color:var(--muted);font-size:13.5px}
@@ -91,6 +93,8 @@
   .lado .fila b{color:var(--txt);font-variant-numeric:tabular-nums}
   .lado .ayuda{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0}
   input[type=range]{width:100%;accent-color:var(--accent)}
+  .error-caja{margin:0;padding:10px 12px;border-radius:9px;background:var(--bad-bg);
+    color:var(--bad);border:1px solid var(--bad-bd);font-size:12.5px;line-height:1.5}
   @media(max-width:860px){
     .subida{grid-template-columns:1fr}
     .caja .contenido{grid-template-columns:1fr}
@@ -116,6 +120,15 @@
 {% if mensaje == "tamano" %}<div class="aviso malo">La imagen está vacía o pasa de 5 MB.</div>{% endif %}
 {% if mensaje == "sin-archivo" %}<div class="aviso malo">Elegí un archivo antes de subir.</div>{% endif %}
 {% if mensaje == "limpiada" %}<div class="aviso">Listo: se le quitó el fondo blanco y se recortó.</div>{% endif %}
+{% if mensaje == "ubicada" and ubicada %}
+<div class="aviso">
+  <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+  Posición guardada en la base para <b>{{ ubicada.nombre }}</b>:
+  <b>x {{ '%g'|format(ubicada.x or 0) }}</b>,
+  <b>y {{ '%g'|format(ubicada.y or 0) }}</b>,
+  ancho <b>{{ '%g'|format(ubicada.ancho or 0) }} pt</b>.
+</div>
+{% endif %}
 
 <div class="panel">
   <h2><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Agregar una firma o sello</h2>
@@ -157,6 +170,11 @@
         <div class="datos">
           <span class="nombre">{{ f.nombre }}</span>
           <span class="sub">{{ f.cargo or 'Sin cargo' }} · {{ (f.ancho or 160) | round | int }} pt</span>
+          {% if f.x is not none and f.y is not none %}
+          <span class="sub coords">x {{ '%g'|format(f.x) }} · y {{ '%g'|format(f.y) }}</span>
+          {% else %}
+          <span class="sub coords sin">sin ubicar</span>
+          {% endif %}
         </div>
         <div class="pie-tarjeta">
           <form method="post" action="/firmas/{{ f.id }}/limpiar" style="display:contents">
@@ -214,6 +232,7 @@
         </label>
         <button class="btn primario" type="button" id="guardarPos">
           <i class="bi bi-check2" aria-hidden="true"></i> Guardar posición</button>
+        <p class="error-caja" id="avisoModal" hidden></p>
         <p class="ayuda">Arrastrá la imagen. El imán la apoya sobre la línea de firma.
           Se guarda para todas las cotizaciones.</p>
       </div>
@@ -274,10 +293,33 @@
   var mx = document.getElementById('mx'), my = document.getElementById('my');
   var mw = document.getElementById('mw');
   var editor = null, firmaId = null;
+  var inicial = null;                       // para saber si se movió algo
+  var aviso = document.getElementById('avisoModal');
+
+  function avisar(texto){
+    if (!aviso) return;
+    aviso.textContent = texto || '';
+    aviso.hidden = !texto;
+  }
+
+  // Cada apertura dejaba el editor anterior escuchando sobre los mismos nodos:
+  // se clona el <img> (sin listeners) y se borran las líneas guía viejas.
+  function selloLimpio(){
+    var viejo = document.getElementById('selloModal');
+    var nuevo = viejo.cloneNode(false);
+    viejo.parentNode.replaceChild(nuevo, viejo);
+    Array.prototype.forEach.call(hoja.querySelectorAll('.guia-firma'), function(g){
+      g.parentNode.removeChild(g);
+    });
+    sello = nuevo;
+    return nuevo;
+  }
 
   function abrir(boton){
     firmaId = boton.dataset.id;
     document.getElementById('modalTitulo').textContent = 'Ubicar: ' + boton.dataset.nombre;
+    sello = selloLimpio();
+    sello.hidden = false;
     sello.src = '/static/firmas/' + boton.dataset.archivo;
     // primero se muestra el modal: si la hoja está oculta mide 0 y todo queda en 0
     modal.classList.add('abierto');
@@ -295,17 +337,30 @@
     rango.oninput = function(){ editor.tamano(rango.value); };
     editor.refrescar();                    // ya visible: se mide de verdad
     requestAnimationFrame(function(){ if (editor) editor.refrescar(); });
+    inicial = editor.posicion();
+    avisar('');
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.ubicar'), function(b){
     b.addEventListener('click', function(){ abrir(b); });
   });
-  document.getElementById('cerrar').addEventListener('click', function(){
+  function moverSido(){                     // ¿cambió algo desde que se abrió?
+    if (!editor || !inicial) return false;
+    var p = editor.posicion();
+    return Math.abs(p.x - inicial.x) > 0.5 || Math.abs(p.y - inicial.y) > 0.5 ||
+           Math.abs(p.ancho - inicial.ancho) > 0.5;
+  }
+  function cerrar(preguntar){
+    if (preguntar && moverSido() &&
+        !confirm('Moviste la firma y no guardaste la posición. ¿Cerrar igual?')) return;
     modal.classList.remove('abierto');
-    editor = null;
-  });
-  modal.addEventListener('click', function(e){
-    if (e.target === modal){ modal.classList.remove('abierto'); editor = null; }
+    editor = null; inicial = null;
+    avisar('');
+  }
+  document.getElementById('cerrar').addEventListener('click', function(){ cerrar(true); });
+  modal.addEventListener('click', function(e){ if (e.target === modal) cerrar(true); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && modal.classList.contains('abierto')) cerrar(true);
   });
 
   document.getElementById('guardarPos').addEventListener('click', function(ev){
@@ -313,15 +368,26 @@
     if (!editor) return;
     var p = editor.posicion();
     boton.disabled = true;
+    avisar('');
+    boton.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando…';
     fetch('/firmas/' + firmaId + '/posicion', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(p)
-    }).then(function(r){ return r.json(); }).then(function(){
-      boton.innerHTML = '<i class="bi bi-check2-all"></i> Guardado';
-      setTimeout(function(){ modal.classList.remove('abierto'); location.reload(); }, 700);
-    }).catch(function(){
+    }).then(function(r){
+      if (!r.ok){
+        return r.text().then(function(texto){
+          throw new Error('Error ' + r.status + ': ' + (texto || r.statusText));
+        });
+      }
+      return r.json();
+    }).then(function(d){
+      // se recarga mostrando lo que quedó guardado en la base, no lo de la pantalla
+      location.href = '/firmas?mensaje=ubicada&firma=' + firmaId +
+                      '#firma-' + firmaId;
+    }).catch(function(err){
       boton.disabled = false;
-      boton.textContent = 'No se pudo guardar';
+      boton.innerHTML = '<i class="bi bi-check2"></i> Guardar posición';
+      avisar('No se guardó. ' + err.message);
     });
   });
 })();

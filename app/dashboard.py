@@ -1266,11 +1266,22 @@ def _medidas_hoja() -> tuple[float, float]:
         return 612.0, 791.0
 
 
-def _puede_editar_firmas(request: Request) -> None:
-    """El listado lo ve el módulo; subir, mover y borrar, sólo quien opera."""
+def _puede_editar_firmas(request: Request, accion: str = "cambiar las firmas") -> None:
+    """El listado lo ve el módulo; subir, mover y borrar, sólo quien opera.
+
+    El rechazo se anota en `eventos`: antes se perdía y parecía que el botón
+    «no hacía nada».
+    """
     requiere_modulo(request, "cotizaciones")
     usuario = usuario_actual(request)
     if not usuario or not usuario.puede_operar:
+        try:
+            with db.sesion() as conn:
+                db.log_evento(conn, "aviso", f"Sin permiso para {accion}",
+                              f"usuario {getattr(usuario, 'usuario', '?')} "
+                              f"rol {getattr(usuario, 'rol', '?')}")
+        except Exception:  # noqa: BLE001 - el aviso nunca debe tumbar la petición
+            pass
         raise HTTPException(403, "Tu usuario no puede cambiar las firmas")
 
 
@@ -1291,11 +1302,16 @@ def firmas_lista(request: Request):
     requiere_modulo(request, "cotizaciones")
     with db.sesion() as conn:
         firmas = _con_borde(db.lista_firmas(conn))
+        try:
+            id_ubicada = int(request.query_params.get("firma") or 0)
+        except (TypeError, ValueError):
+            id_ubicada = 0
+        ubicada = db.obtener_firma(conn, id_ubicada) if id_ubicada else None
     ancho, alto = _medidas_hoja()
     return templates.TemplateResponse(request, "firmas.html", {
         "activo": "firmas", "firmas": firmas, "ancho_hoja": round(ancho, 1),
         "alto_hoja": round(alto, 1), "mensaje": request.query_params.get("mensaje", ""),
-        "nueva": request.query_params.get("nueva", ""),
+        "nueva": request.query_params.get("nueva", ""), "ubicada": ubicada,
     })
 
 
@@ -1389,7 +1405,7 @@ async def firmas_subir(request: Request, nombre: str = Form(""), cargo: str = Fo
 @app.post("/firmas/{firma_id}/posicion")
 async def firmas_posicion(request: Request, firma_id: int):
     """Guarda dónde va la firma en la hoja (x, y, ancho en puntos PDF)."""
-    _puede_editar_firmas(request)
+    _puede_editar_firmas(request, "ubicar una firma")
     try:
         cuerpo = await request.json()
     except Exception:  # noqa: BLE001 - cuerpo que no es JSON
@@ -1418,6 +1434,8 @@ async def firmas_posicion(request: Request, firma_id: int):
     y = min(max(y, 4.0), max(alto - alto_img - 4, 4.0))
     with db.sesion() as conn:
         db.ubicar_firma(conn, firma_id, x, y, ancho_img)
+        db.log_evento(conn, "info", f"Firma ubicada: {firma.get('nombre')}",
+                      f"x={x:.1f} y={y:.1f} ancho={ancho_img:.1f} pt")
     return JSONResponse({"ok": True, "x": round(x, 1), "y": round(y, 1),
                          "ancho": round(ancho_img, 1)})
 
@@ -1558,9 +1576,11 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
         if not db.obtener_cotizacion(conn, cotizacion_id):
             raise HTTPException(404, "Esa cotización no existe")
         db.firmar_cotizacion(conn, cotizacion_id, firma_id, x, y, ancho_img)
-        db.log_evento(conn, "info",
-                      f"Cotización firmada" if firma_id else "Cotización sin firma",
-                      f"No. {cotizacion_id}")
+        db.log_evento(
+            conn, "info",
+            "Cotización firmada" if firma_id else "Cotización sin firma",
+            (f"No. {cotizacion_id} · x={x:.1f} y={y:.1f} ancho={ancho_img:.1f} pt"
+             if firma_id else f"No. {cotizacion_id} (se quitó la firma)"))
     return JSONResponse({"ok": True, "firma_id": firma_id,
                          "x": round(x, 1) if x is not None else None,
                          "y": round(y, 1) if y is not None else None,

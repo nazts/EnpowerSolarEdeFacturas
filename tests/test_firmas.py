@@ -401,3 +401,66 @@ def test_el_editor_no_confunde_sin_posicion_con_cero():
           / "editor_firma.js").read_text(encoding="utf-8")
     assert "function numero(valor, porDefecto)" in js
     assert "numero(opciones.x, 60)" in js and "numero(opciones.y, LINEA_FIRMA)" in js
+
+
+# ------------------------------- visibilidad del guardado
+def test_guardar_la_posicion_deja_un_evento(dueno):
+    """Antes no quedaba rastro: no se podía saber si el POST había llegado."""
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    asyncio.run(dashboard.firmas_posicion(
+        request=Peticion(usuario=dueno, json_={"x": 200, "y": 150, "ancho": 150}),
+        firma_id=firma_id))
+    with db.sesion() as conn:
+        fila = conn.execute(
+            "SELECT mensaje, detalle FROM eventos WHERE mensaje LIKE 'Firma ubicada%' "
+            "ORDER BY id DESC LIMIT 1").fetchone()
+    assert fila is not None
+    assert "x=200" in fila["detalle"] and "ancho=150" in fila["detalle"]
+
+
+def test_un_usuario_sin_permiso_deja_el_rechazo_en_eventos(dueno):
+    from app import auth
+
+    with db.sesion() as conn:
+        auth.crear_usuario(conn, "asesor", "ClaveSegura123", nombre="Asesor", rol="asesor",
+                           modulos="cotizaciones")
+        asesor = auth.autenticar(conn, "asesor", "ClaveSegura123")
+    with pytest.raises(Exception):
+        _subir(asesor, _png())
+    with db.sesion() as conn:
+        fila = conn.execute(
+            "SELECT mensaje, detalle FROM eventos WHERE mensaje LIKE 'Sin permiso%' "
+            "ORDER BY id DESC LIMIT 1").fetchone()
+    assert fila is not None and "asesor" in fila["detalle"]
+
+
+def test_el_listado_muestra_lo_que_quedo_guardado(dueno):
+    """El aviso sale con los valores de la base, no con los de la pantalla."""
+    from starlette.requests import Request
+
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    asyncio.run(dashboard.firmas_posicion(
+        request=Peticion(usuario=dueno, json_={"x": 111, "y": 99, "ancho": 120}),
+        firma_id=firma_id))
+
+    def pedir():
+        scope = {"type": "http", "method": "GET", "path": "/firmas", "headers": [],
+                 "app": dashboard.app, "router": dashboard.app.router, "root_path": "",
+                 "scheme": "http", "server": ("127.0.0.1", 8000), "query_string": b""}
+        r = Request(scope)
+        r.state.usuario = dueno
+        return r
+
+    with db.sesion() as conn:
+        firmas = dashboard._con_borde(db.lista_firmas(conn))
+        ubicada = db.obtener_firma(conn, firma_id)
+    ancho, alto = dashboard._medidas_hoja()
+    html = dashboard.templates.env.get_template("firmas.html").render(
+        request=pedir(), activo="firmas", firmas=firmas, ancho_hoja=ancho, alto_hoja=alto,
+        mensaje="ubicada", nueva="", ubicada=ubicada)
+    assert "Posición guardada en la base" in html
+    assert "x 111" in html and "y 99" in html
