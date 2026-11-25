@@ -57,6 +57,8 @@
   .totales div{display:flex;justify-content:space-between;padding:5px 0}
   .totales .fuerte{border-top:1px solid var(--line);margin-top:6px;padding-top:9px;
     font-weight:700;font-size:15px;color:var(--accent)}
+  .totales .interno{opacity:.75;font-size:12px;border-top:1px dashed var(--line);
+    margin-top:4px;padding-top:6px}
   .ayuda{font-size:12px;color:var(--muted);margin:6px 0 0}
   @media(max-width:860px){
     .c2,.c3,.c4,.c5,.c6,.c8{grid-column:1/-1}
@@ -84,13 +86,19 @@
       <div class="campo c3">
         <label for="moneda">Moneda</label>
         <select id="moneda" name="moneda">
-          <option>Pesos Dominicanos</option>
-          <option>Dólares (USD)</option>
+          <option value="DOP" selected>Pesos (DOP)</option>
+          <option value="USD">Dólares (USD)</option>
         </select>
       </div>
+      <div class="campo c3" id="campoTasa" hidden>
+        <label for="tasa_cambio">Tasa del dólar (RD$ por US$ 1)</label>
+        <input id="tasa_cambio" name="tasa_cambio" value="{{ tasa or 60 }}" inputmode="decimal">
+      </div>
       <div class="campo c3">
-        <label for="comision_pct">Comisión (%)</label>
+        <label for="comision_pct">Comisión (%) · interno</label>
         <input id="comision_pct" name="comision_pct" value="{{ comision_pct }}" inputmode="decimal">
+        <p class="ayuda">Se guarda para el control de ventas. No se suma al total
+          ni aparece en el PDF.</p>
       </div>
     </div>
   </section>
@@ -181,8 +189,11 @@
       <div class="totales">
         <div><span>Sub. Total</span><b id="tSub">RD$ 0.00</b></div>
         <div><span>Itbis</span><b id="tItbis">RD$ 0.00</b></div>
-        <div class="fuerte"><span>Total</span><span id="tTotal">RD$ 0.00</span></div>
-        <div class="ayuda"><span>Comisión <span id="tPct">4.5</span>%</span> <b id="tComision">RD$ 0.00</b></div>
+        <div class="fuerte"><span>Total <span id="tMoneda">DOP</span></span><span id="tTotal">RD$ 0.00</span></div>
+        <div class="ayuda" id="lineaTasa" hidden><span>Tasa RD$ <span id="tTasa">0</span></span>
+          <b id="tEquiv">RD$ 0.00</b></div>
+        <div class="ayuda interno"><span>Comisión <span id="tPct">4.5</span>% (interno)</span>
+          <b id="tComision">RD$ 0.00</b></div>
       </div>
     </div>
     <div class="barra">
@@ -241,8 +252,26 @@
   if (llevaItbis) llevaItbis.addEventListener('change', aplicarItbis);
 
   function num(v){ var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
-  function dinero(v){ return 'RD$ ' + (v || 0).toLocaleString('es-DO', {minimumFractionDigits: 2,
-    maximumFractionDigits: 2}); }
+  var selMoneda = document.getElementById('moneda');
+  var campoTasa = document.getElementById('campoTasa');
+  var entTasa = document.getElementById('tasa_cambio');
+  var lineaTasa = document.getElementById('lineaTasa');
+
+  function esUsd(){ return selMoneda && selMoneda.value === 'USD'; }
+  function simbolo(){ return esUsd() ? 'US$ ' : 'RD$ '; }
+  function dinero(v){ return simbolo() + (v || 0).toLocaleString('es-DO',
+    {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
+  function ajustarMoneda(){
+    var usd = esUsd();
+    if (campoTasa) campoTasa.hidden = !usd;
+    if (lineaTasa) lineaTasa.hidden = !usd;
+    var rotulo = document.getElementById('tMoneda');
+    if (rotulo) rotulo.textContent = usd ? 'USD' : 'DOP';
+    calcular();
+  }
+  if (selMoneda) selMoneda.addEventListener('change', ajustarMoneda);
+  if (entTasa) entTasa.addEventListener('input', calcular);
 
   function calcular(){
     var sub = 0, itb = 0;
@@ -258,7 +287,15 @@
     document.getElementById('tItbis').textContent = dinero(itb);
     document.getElementById('tTotal').textContent = dinero(total);
     document.getElementById('tPct').textContent = pct.value || '0';
-    document.getElementById('tComision').textContent = dinero(total * num(pct.value) / 100);
+    // comisión interna: sobre el sub total y fuera del total que paga el cliente
+    document.getElementById('tComision').textContent = dinero(sub * num(pct.value) / 100);
+    var tasa = num(entTasa && entTasa.value) || 0;
+    var tTasa = document.getElementById('tTasa');
+    if (tTasa) tTasa.textContent = tasa.toLocaleString('es-DO', {minimumFractionDigits: 2,
+      maximumFractionDigits: 2});
+    var equiv = document.getElementById('tEquiv');
+    if (equiv) equiv.textContent = 'RD$ ' + (total * tasa).toLocaleString('es-DO',
+      {minimumFractionDigits: 2, maximumFractionDigits: 2});
   }
 
   if (btn) btn.addEventListener('click', function(){
@@ -299,6 +336,7 @@
   filas.appendChild(primera);         // un renglón listo para escribir
   ajustar(primera.querySelector('textarea'));
   aplicarItbis();
+  ajustarMoneda();
   filas.appendChild(fila());
   filas.appendChild(fila());
   calcular();

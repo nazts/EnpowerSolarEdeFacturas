@@ -51,6 +51,13 @@ def _coordenadas(texto: str | None) -> tuple[float | None, float | None]:
     return lat, lon
 
 
+def _fmt_dinero(valor, moneda="DOP") -> str:
+    """Formatea un monto con el símbolo de su moneda (RD$ o US$)."""
+    from .cotizacion_pdf import _dinero
+
+    return _dinero(valor, moneda)
+
+
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.auto_reload = True  # recarga plantillas sin reiniciar el servidor
 
@@ -550,6 +557,9 @@ async def _error_http(request: Request, exc: StarletteHTTPException):
                    if exc.status_code == 404 else "Intentá de nuevo en unos segundos.")},
         status_code=exc.status_code)
 
+
+templates.env.globals["dinero"] = _fmt_dinero
+templates.env.globals["moneda_nombre"] = db.nombre_moneda
 
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
@@ -1183,6 +1193,7 @@ def cotizaciones_nueva(request: Request):
     return templates.TemplateResponse(request, "cotizacion_nueva.html", {
         "activo": "cotizaciones", "numero": numero, "hoy": db.hoy(),
         "clientes": clientes, "comision_pct": 4.5, "firmas": firmas,
+        "tasa": config.TASA_DOLAR,
         # marca de este formulario: si se envía dos veces no se duplica
         "token": uuid.uuid4().hex, "firma_sugerida": config.FIRMA_NOMBRE,
     })
@@ -1215,6 +1226,12 @@ async def cotizaciones_guardar(request: Request):
         raise HTTPException(400, "Agrega al menos un producto a la cotización")
 
     comision_pct = _num(form.get("comision_pct")) or 4.5
+    moneda = db.codigo_moneda(form.get("moneda"))
+    tasa = _num(form.get("tasa_cambio")) or (config.TASA_DOLAR if moneda == "USD" else 1)
+    if moneda == "USD" and tasa <= 0:
+        tasa = config.TASA_DOLAR
+    if moneda == "DOP":
+        tasa = 1
     datos = cotizacion_pdf.calcular(items, comision_pct)
     token = str(form.get("token") or "").strip()
     with db.sesion() as conn:
@@ -1232,7 +1249,8 @@ async def cotizaciones_guardar(request: Request):
             "cliente_rnc": str(form.get("cliente_rnc") or "").strip(),
             "cliente_doc_tipo": str(form.get("cliente_doc_tipo") or "RNC").strip(),
             "cliente_direccion": str(form.get("cliente_direccion") or "").strip(),
-            "moneda": str(form.get("moneda") or "Pesos Dominicanos"),
+            "moneda": moneda,
+            "tasa_cambio": tasa,
             "items": datos["items"],
             "subtotal": datos["subtotal"], "itbis": datos["itbis"],
             "comision_pct": datos["comision_pct"], "comision": datos["comision"],

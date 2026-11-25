@@ -60,11 +60,31 @@ Y_CIERRE = Y_LIMITE + ALTO_CIERRE   # 218: fin de la tabla y arriba del cierre
 Y_TABLA_FIN = Y_CIERRE      # la tabla nunca invade el bloque de cierre
 
 
-def _dinero(valor) -> str:
+SIMBOLOS = {"DOP": "RD$", "USD": "US$"}
+
+
+def _codigo_moneda(valor) -> str:
+    """'DOP' o 'USD'. Acepta también el nombre viejo («Pesos Dominicanos»)."""
+    texto = str(valor or "").strip().lower()
+    if texto.startswith(("usd", "us$", "dolar", "dólar", "dolares", "dólares", "us")):
+        return "USD"
+    return "DOP"
+
+
+def _texto_moneda(cot: dict) -> str:
+    """«Pesos Dominicanos (DOP)» o «Dólares (USD) · RD$ 60.50»."""
+    if _codigo_moneda(cot.get("moneda")) != "USD":
+        return "Pesos Dominicanos (DOP)"
+    tasa = float(cot.get("tasa_cambio") or 0)
+    return f"Dólares (USD) · RD$ {tasa:,.2f}" if tasa > 0 else "Dólares (USD)"
+
+
+def _dinero(valor, moneda: str = "DOP") -> str:
+    simbolo = SIMBOLOS.get(_codigo_moneda(moneda), "RD$")
     try:
-        return f"RD$ {float(valor or 0):,.2f}"
+        return f"{simbolo} {float(valor or 0):,.2f}"
     except (TypeError, ValueError):
-        return "RD$ 0.00"
+        return f"{simbolo} 0.00"
 
 
 def _fecha(valor: str | None) -> str:
@@ -103,8 +123,10 @@ def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
             "itbis_monto": impuesto,
             "importe": round(base + impuesto, 2),
         })
+    # El total que paga el cliente es sub total + itbis. La comisión es un dato
+    # interno (se guarda para el control de ventas) y no se suma ni se imprime.
     total = subtotal + itbis
-    comision = total * (comision_pct or 0) / 100
+    comision = subtotal * (comision_pct or 0) / 100
     return {
         "items": limpios,
         "subtotal": round(subtotal, 2),
@@ -180,7 +202,7 @@ def _encabezado(c: canvas.Canvas, cot: dict) -> None:
 
     datos = (("No. de documento:", str(cot.get("numero") or "")),
              ("Fecha:", _fecha(cot.get("fecha"))),
-             ("Moneda:", str(cot.get("moneda") or "Pesos Dominicanos")))
+             ("Moneda:", _texto_moneda(cot)))
     for i, (etiqueta, valor) in enumerate(datos):
         y = Y_CAJAS_ARRIBA - 37 - i * 17
         c.setFillColor(TEXTO)
@@ -225,16 +247,16 @@ def _celda_descripcion(texto: str) -> list:
     return parrafos or [Paragraph("", titulo)]
 
 
-def _tabla(datos: dict) -> Table:
+def _tabla(datos: dict, moneda: str = "DOP") -> Table:
     """Tabla de renglones lista para dibujar (con encabezado repetible)."""
     filas = [["Descripción", "Cantidad", "Precio unitario", "Itbis", "Importe"]]
     for item in datos["items"] or [{"descripcion": ""}]:
         filas.append([
             _celda_descripcion(item.get("descripcion") or ""),
             f"{item['cantidad']:g}" if item.get("cantidad") not in (None, "") else "",
-            _dinero(item["precio"]) if item.get("precio") not in (None, "") else "",
-            _dinero(item["itbis_monto"]) if item.get("itbis_monto") not in (None, "") else "",
-            _dinero(item["importe"]) if item.get("importe") not in (None, "") else "",
+            _dinero(item["precio"], moneda) if item.get("precio") not in (None, "") else "",
+            _dinero(item["itbis_monto"], moneda) if item.get("itbis_monto") not in (None, "") else "",
+            _dinero(item["importe"], moneda) if item.get("importe") not in (None, "") else "",
         ])
     # splitInRow: un renglón muy alto con muchas viñetas se parte entre hojas
     # en vez de dejar media hoja en blanco
@@ -261,14 +283,20 @@ def _tabla(datos: dict) -> Table:
     return tabla
 
 
-def _totales(c: canvas.Canvas, datos: dict, y_top: float) -> None:
-    """Dibuja el cuadro de totales a la derecha."""
+def _totales(c: canvas.Canvas, datos: dict, y_top: float,
+             moneda: str = "DOP", tasa: float = 1) -> None:
+    """Cuadro de totales: sub total, itbis y total, en la moneda de la cotización.
+
+    La comisión es información interna del sistema: **no** se dibuja ni se suma.
+    Cuando la cotización es en dólares se indica la tasa usada y el equivalente.
+    """
     ancho, _ = c._pagesize
     derecha = ancho - MARGEN
     tot_w = 215
-    filas = [["Sub. Total", _dinero(datos["subtotal"])],
-             ["Itbis", _dinero(datos["itbis"])],
-             ["Total DOP", _dinero(datos["total"])]]
+    codigo = _codigo_moneda(moneda)
+    filas = [["Sub. Total", _dinero(datos["subtotal"], codigo)],
+             ["Itbis", _dinero(datos["itbis"], codigo)],
+             [f"Total {codigo}", _dinero(datos["total"], codigo)]]
     tabla = Table(filas, colWidths=[95, 120], rowHeights=[21, 21, 25])
     tabla.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, 1), "Archivo-Semi"),
@@ -289,6 +317,8 @@ def _totales(c: canvas.Canvas, datos: dict, y_top: float) -> None:
     ]))
     _, alto = tabla.wrapOn(c, tot_w, 200)
     tabla.drawOn(c, derecha - tot_w, y_top - alto)
+
+
 
 
 def _alto_imagen(ruta: Path, ancho: float) -> float:
@@ -434,7 +464,8 @@ def _notas(c: canvas.Canvas, notas: str) -> None:
 
 def _cierre(c: canvas.Canvas, cot: dict, datos: dict) -> None:
     """Totales, firma y notas, siempre en el mismo lugar del pie de la hoja."""
-    _totales(c, datos, Y_CIERRE)
+    _totales(c, datos, Y_CIERRE, cot.get("moneda") or "DOP",
+             float(cot.get("tasa_cambio") or 1))
     _firma(c, str(cot.get("firma") or ""), cot.get("firma_imagen"))
     _notas(c, cot.get("notas") or "")
 
@@ -483,7 +514,7 @@ def generar(cot: dict) -> bytes:
         return capa
 
     capa = nueva_pagina(True)
-    resto = _tabla(datos)
+    resto = _tabla(datos, cot.get("moneda") or "DOP")
     y = Y_TABLA_P1
 
     while True:

@@ -58,7 +58,7 @@
     <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
     <span>Cotización <b>{{ guardada.numero }}</b> guardada
       {% if guardada.cliente_nombre %}para {{ guardada.cliente_nombre }}{% endif %}
-      · RD$ {{ "{:,.2f}".format(guardada.total or 0) }}</span>
+      · {{ dinero(guardada.total, guardada.moneda) }}</span>
     <a class="btn primario" href="/cotizaciones/{{ guardada.id }}.pdf" target="_blank" rel="noopener">
       <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Ver PDF</a>
     <a class="btn" href="/cotizaciones/{{ guardada.id }}/firmar">
@@ -89,7 +89,7 @@
             <td data-label="Fecha">{{ c.fecha }}</td>
             <td data-label="Cliente">{{ c.cliente_nombre or "—" }}
               {% if c.cliente_rnc %}<small>{{ c.cliente_rnc }}</small>{% endif %}</td>
-            <td class="num" data-label="Total">RD$ {{ "{:,.2f}".format(c.total or 0) }}</td>
+            <td class="num" data-label="Total">{{ dinero(c.total, c.moneda) }}</td>
             <td data-label="Creada por">{{ c.creado_por or "—" }}</td>
             <td data-label="">
               <a class="mini" href="/cotizaciones/{{ c.id }}.pdf" target="_blank" rel="noopener">

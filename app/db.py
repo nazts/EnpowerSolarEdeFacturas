@@ -231,6 +231,7 @@ def migrar(conn: sqlite3.Connection) -> None:
         _asegurar_columnas(conn, "cotizaciones",
                            {"firma": "TEXT NOT NULL DEFAULT ''", "token": "TEXT",
                             "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'",
+                            "tasa_cambio": "REAL NOT NULL DEFAULT 1",
                             "firma_id": "INTEGER", "firma_x": "REAL",
                             "firma_y": "REAL", "firma_ancho": "REAL"})
         try:
@@ -260,6 +261,7 @@ def migrar(conn: sqlite3.Connection) -> None:
     columnas_cot = {r[1] for r in conn.execute("PRAGMA table_info(cotizaciones)")}
     for nombre, tipo in (("firma", "TEXT NOT NULL DEFAULT ''"), ("token", "TEXT"),
                          ("cliente_doc_tipo", "TEXT NOT NULL DEFAULT 'RNC'"),
+                         ("tasa_cambio", "REAL NOT NULL DEFAULT 1"),
                          ("firma_id", "INTEGER"), ("firma_x", "REAL"),
                          ("firma_y", "REAL"), ("firma_ancho", "REAL")):
         if nombre not in columnas_cot:
@@ -455,6 +457,22 @@ def siguiente_numero_cotizacion(conn) -> str:
     return f"{max(ultimo, NUMERO_INICIAL_COTIZACION) + 1:06d}"
 
 
+MONEDAS = ("DOP", "USD")
+
+
+def codigo_moneda(valor) -> str:
+    """Devuelve 'DOP' o 'USD'. Acepta el código o el nombre viejo guardado."""
+    texto = str(valor or "").strip().lower()
+    if texto.startswith(("usd", "us$", "dolar", "dólar", "dolares", "dólares", "us")):
+        return "USD"
+    return "DOP"
+
+
+def nombre_moneda(valor) -> str:
+    return ("Dólares (USD)" if codigo_moneda(valor) == "USD"
+            else "Pesos Dominicanos (DOP)")
+
+
 TIPOS_DOCUMENTO = ("RNC", "Cédula")
 
 
@@ -474,14 +492,15 @@ def guardar_cotizacion(conn, datos: dict) -> int:
     cur = conn.execute(
         """INSERT INTO cotizaciones
            (numero, fecha, cliente_nombre, cliente_rnc, cliente_doc_tipo, cliente_direccion,
-            moneda, items, subtotal, itbis, comision_pct, comision, total, notas, firma,
-            firma_id, token, creado_por, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            moneda, tasa_cambio, items, subtotal, itbis, comision_pct, comision, total,
+            notas, firma, firma_id, token, creado_por, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (str(datos.get("numero") or ""), str(datos.get("fecha") or hoy()),
          str(datos.get("cliente_nombre") or ""), str(datos.get("cliente_rnc") or ""),
          _tipo_documento(datos.get("cliente_doc_tipo")),
          str(datos.get("cliente_direccion") or ""),
-         str(datos.get("moneda") or "Pesos Dominicanos"), items,
+         codigo_moneda(datos.get("moneda")),
+         float(datos.get("tasa_cambio") or 1), items,
          float(datos.get("subtotal") or 0), float(datos.get("itbis") or 0),
          float(datos.get("comision_pct") or 0), float(datos.get("comision") or 0),
          float(datos.get("total") or 0), str(datos.get("notas") or ""),

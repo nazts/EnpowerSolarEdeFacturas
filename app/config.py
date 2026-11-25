@@ -50,6 +50,8 @@ PLANTILLA_COTIZACION = BASE_DIR / os.environ.get(
 FIRMA_COTIZACION = BASE_DIR / os.environ.get(
     "COTIZACION_FIRMA", "app/static/plantillas/firma.png")
 FIRMA_NOMBRE = os.environ.get("COTIZACION_FIRMA_NOMBRE", "")
+# Tasa del dólar por defecto para las cotizaciones en USD (se puede cambiar en el formulario)
+TASA_DOLAR = float(os.environ.get("TASA_DOLAR", "60") or 60)
 FIRMA_CARGO = os.environ.get("COTIZACION_FIRMA_CARGO", "")
 
 # --- servidor web (panel) ---

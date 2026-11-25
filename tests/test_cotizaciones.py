@@ -16,7 +16,7 @@ def test_calcula_subtotal_itbis_y_total():
     assert datos["subtotal"] == 20000.0
     assert datos["itbis"] == 1800.0            # solo el primero lleva itbis
     assert datos["total"] == 21800.0
-    assert datos["comision"] == 981.0          # 4.5% del total
+    assert datos["comision"] == 900.0          # 4.5% del SUB TOTAL (interno)
     assert datos["items"][0]["importe"] == 11800.0
 
 
@@ -406,3 +406,61 @@ def test_el_formulario_tiene_el_interruptor_de_itbis_y_el_tipo_de_documento():
     assert 'id="llevaItbis"' in html and "Lleva Itbis" in html
     assert 'value="Cédula"' in html and 'value="RNC"' in html
     assert "aplicarItbis" in html          # al apagarlo pone 0 en los renglones
+
+
+# ------------------------------------------------ moneda, tasa y comisión
+def test_la_comision_no_se_suma_al_total():
+    """Es dato interno: el cliente paga sub total + itbis, nada más."""
+    items = [{"descripcion": "Panel", "cantidad": 1, "precio": 100000, "itbis": 18}]
+    datos = cotizacion_pdf.calcular(items, comision_pct=10)
+    assert datos["subtotal"] == 100000
+    assert datos["itbis"] == 18000
+    assert datos["total"] == 118000                     # sin la comisión
+    assert datos["comision"] == 10000                    # 10% del sub total
+
+
+def test_la_comision_no_aparece_en_el_pdf():
+    cot = _cotizacion()
+    cot["comision_pct"] = 4.5
+    texto = " ".join(_paginas(cotizacion_pdf.generar(cot)))
+    assert "Comisión" not in texto and "Comision" not in texto
+
+
+def test_cotizacion_en_dolares_usa_su_simbolo_y_no_rd():
+    cot = _cotizacion()
+    cot["moneda"] = "USD"
+    cot["tasa_cambio"] = 60.5
+    cot["items"] = [{"descripcion": "Sistema 5 kW", "cantidad": 1, "precio": 9000, "itbis": 18}]
+    texto = " ".join(_paginas(cotizacion_pdf.generar(cot)))
+    assert "US$ 9,000.00" in texto
+    assert "Total USD" in texto
+    assert "Total DOP" not in texto
+    assert "Dólares (USD) · RD$ 60.50" in texto    # la tasa que se usó
+
+
+def test_cotizacion_en_pesos_dice_dop_y_no_dolares():
+    cot = _cotizacion()
+    cot["moneda"] = "DOP"
+    texto = " ".join(_paginas(cotizacion_pdf.generar(cot)))
+    assert "Total DOP" in texto and "Total USD" not in texto
+    assert "US$" not in texto
+
+
+def test_la_moneda_vieja_guardada_se_interpreta_bien():
+    from app import db
+
+    assert db.codigo_moneda("Pesos Dominicanos") == "DOP"
+    assert db.codigo_moneda("Dólares (USD)") == "USD"
+    assert db.codigo_moneda("USD") == "USD"
+    assert db.codigo_moneda("") == "DOP"
+    assert db.nombre_moneda("USD") == "Dólares (USD)"
+
+
+def test_la_tasa_se_guarda_con_la_cotizacion(db_path):
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        nuevo = db.guardar_cotizacion(c, {**datos, "numero": "000060", "fecha": "2026-11-24",
+                                          "cliente_nombre": "X", "moneda": "USD",
+                                          "tasa_cambio": 59.75})
+        cot = db.obtener_cotizacion(c, nuevo)
+    assert cot["moneda"] == "USD" and round(cot["tasa_cambio"], 2) == 59.75
