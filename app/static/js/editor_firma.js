@@ -22,11 +22,16 @@
     // dónde termina la tinta de la imagen (1 = borde del archivo)
     var borde = Number(opciones.borde) || 1;
 
-    var ancho = Number(opciones.ancho) || 160;
-    var x = Number(opciones.x);
-    var y = Number(opciones.y);
-    if (!isFinite(x)) x = 60;
-    if (!isFinite(y)) y = LINEA_FIRMA;
+    // ojo: Number('') da 0, no NaN. Sin posición guardada se arranca en el
+    // sitio de siempre (a la izquierda, sobre la línea), nunca en la esquina.
+    function numero(valor, porDefecto) {
+      if (valor === undefined || valor === null || valor === '') return porDefecto;
+      var n = Number(valor);
+      return isFinite(n) ? n : porDefecto;
+    }
+    var ancho = numero(opciones.ancho, 160);
+    var x = numero(opciones.x, 60);
+    var y = numero(opciones.y, LINEA_FIRMA);
     var proporcion = 0.35;                 // alto / ancho; se corrige al cargar
     var arrastrando = false;
     var inicio = null;

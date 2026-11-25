@@ -391,3 +391,13 @@ def test_subir_un_png_no_cambia_su_tamano(dueno):
     guardado = dashboard.CARPETA_FIRMAS / firma["archivo"]
     assert guardado.suffix == ".png"
     assert Image.open(guardado).size == Image.open(BytesIO(datos)).size
+
+
+def test_el_editor_no_confunde_sin_posicion_con_cero():
+    """`Number('')` da 0: sin este cuidado la firma arrancaba en la esquina (0,0)."""
+    from pathlib import Path
+
+    js = (Path(__file__).resolve().parent.parent / "app" / "static" / "js"
+          / "editor_firma.js").read_text(encoding="utf-8")
+    assert "function numero(valor, porDefecto)" in js
+    assert "numero(opciones.x, 60)" in js and "numero(opciones.y, LINEA_FIRMA)" in js

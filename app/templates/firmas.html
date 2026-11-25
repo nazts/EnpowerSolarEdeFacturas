@@ -279,6 +279,8 @@
     firmaId = boton.dataset.id;
     document.getElementById('modalTitulo').textContent = 'Ubicar: ' + boton.dataset.nombre;
     sello.src = '/static/firmas/' + boton.dataset.archivo;
+    // primero se muestra el modal: si la hoja está oculta mide 0 y todo queda en 0
+    modal.classList.add('abierto');
     editor = EditorFirma.crear({
       hoja: hoja, sello: sello, anchoHoja: ANCHO_HOJA, altoHoja: ALTO_HOJA,
       x: boton.dataset.x, y: boton.dataset.y, ancho: boton.dataset.ancho,
@@ -291,7 +293,8 @@
       }
     });
     rango.oninput = function(){ editor.tamano(rango.value); };
-    modal.classList.add('abierto');
+    editor.refrescar();                    // ya visible: se mide de verdad
+    requestAnimationFrame(function(){ if (editor) editor.refrescar(); });
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.ubicar'), function(b){
