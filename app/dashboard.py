@@ -500,6 +500,7 @@ def usuarios_estado(request: Request, usuario_id: int, activo: str = Form(...)):
 
 @app.post("/clientes/{nic}/proyectos")
 def proyectos_crear(request: Request, nic: str, nombre: str = Form(default=""),
+                    tipo: str = Form(default=""),
                     paneles: str = Form(default=""), capacidad_instalada: str = Form(default=""),
                     inversores: str = Form(default=""), bateria: str = Form(default=""),
                     capacidad_bateria: str = Form(default=""),
@@ -510,7 +511,8 @@ def proyectos_crear(request: Request, nic: str, nombre: str = Form(default=""),
         if db.obtener_contrato(conn, nic) is None:
             raise HTTPException(404, "Ese NIC no está registrado")
         db.crear_proyecto(conn, {
-            "nic": nic, "nombre": nombre.strip(), "paneles": paneles.strip(),
+            "nic": nic, "nombre": nombre.strip(), "tipo": tipo.strip()[:60],
+            "paneles": paneles.strip(),
             "capacidad_instalada": _num(capacidad_instalada),
             "inversores": inversores.strip(), "bateria": bateria.strip(),
             "capacidad_bateria": _num(capacidad_bateria),
@@ -518,6 +520,18 @@ def proyectos_crear(request: Request, nic: str, nombre: str = Form(default=""),
             "asesor": asesor.strip(), "notas": notas.strip(),
         })
         db.log_evento(conn, "info", f"Proyecto instalado agregado a {nic}", nombre[:60])
+    return RedirectResponse(f"/clientes/{nic}#proyectos", status_code=303)
+
+
+@app.post("/proyectos/{proyecto_id}/tipo")
+def proyectos_cambiar_tipo(proyecto_id: int, request: Request, tipo: str = Form(default="")):
+    """Cambia el tipo de proyecto (residencial, comercial, …). Es libre, se edita acá."""
+    requiere_operador(request)
+    with db.sesion() as conn:
+        nic = db.cambiar_tipo_proyecto(conn, proyecto_id, tipo)
+        if not nic:
+            raise HTTPException(404, "Ese proyecto no existe")
+        db.log_evento(conn, "info", f"Tipo de proyecto actualizado en {nic}", tipo.strip()[:60])
     return RedirectResponse(f"/clientes/{nic}#proyectos", status_code=303)
 
 

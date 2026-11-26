@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS proyectos (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     nic                 TEXT NOT NULL,
     nombre              TEXT NOT NULL DEFAULT '',
+    tipo                TEXT NOT NULL DEFAULT '',
     paneles             TEXT NOT NULL DEFAULT '',
     capacidad_instalada REAL,
     inversores          TEXT NOT NULL DEFAULT '',
@@ -228,6 +229,7 @@ def migrar(conn: sqlite3.Connection) -> None:
             except Exception:  # noqa: BLE001
                 pass
         _asegurar_columnas(conn, "usuarios", {"modulos": "TEXT NOT NULL DEFAULT ''"})
+        _asegurar_columnas(conn, "proyectos", {"tipo": "TEXT NOT NULL DEFAULT ''"})
         _asegurar_columnas(conn, "cotizaciones",
                            {"firma": "TEXT NOT NULL DEFAULT ''", "token": "TEXT",
                             "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'",
@@ -268,6 +270,9 @@ def migrar(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE cotizaciones ADD COLUMN {nombre} {tipo}")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
                  " ON cotizaciones(token)")
+    columnas_proy = {r[1] for r in conn.execute("PRAGMA table_info(proyectos)")}
+    if "tipo" not in columnas_proy:
+        conn.execute("ALTER TABLE proyectos ADD COLUMN tipo TEXT NOT NULL DEFAULT ''")
     conn.commit()
 
 
@@ -887,7 +892,7 @@ def clientes_mapa(conn: sqlite3.Connection) -> list[dict]:
 
 # ------------------------------------------------------------------ proyectos
 def crear_proyecto(conn: sqlite3.Connection, datos: dict) -> int:
-    campos = ["nic", "nombre", "paneles", "capacidad_instalada", "inversores",
+    campos = ["nic", "nombre", "tipo", "paneles", "capacidad_instalada", "inversores",
               "bateria", "capacidad_bateria", "fecha_instalacion", "asesor", "notas"]
     valores = [datos.get(c) if datos.get(c) not in ("", None) else
                (None if c in ("capacidad_instalada", "capacidad_bateria") else "")
@@ -898,6 +903,17 @@ def crear_proyecto(conn: sqlite3.Connection, datos: dict) -> int:
     )
     conn.commit()
     return int(cursor.lastrowid or 0)
+
+
+def cambiar_tipo_proyecto(conn: sqlite3.Connection, proyecto_id: int, tipo: str) -> str:
+    """Cambia el tipo de un proyecto instalado y devuelve el NIC (para volver)."""
+    fila = conn.execute("SELECT nic FROM proyectos WHERE id = ?", (int(proyecto_id),)).fetchone()
+    if fila is None:
+        return ""
+    conn.execute("UPDATE proyectos SET tipo = ? WHERE id = ?",
+                 (str(tipo or "").strip()[:60], int(proyecto_id)))
+    conn.commit()
+    return str(fila["nic"])
 
 
 def listar_proyectos(conn: sqlite3.Connection, nic: str) -> list[sqlite3.Row]:

@@ -44,6 +44,13 @@
   .pill.warn{background:var(--warn-bg);color:var(--accent)}
   .pill.info{background:var(--info-bg);color:var(--info)}
   .muted{color:var(--muted)}
+  .tipo-form{display:flex;gap:6px;align-items:center}
+  .tipo-form input{width:150px;padding:5px 8px;font-size:12.5px;border-radius:7px;
+    border:1px solid var(--input-bd, var(--line));background:var(--card);color:var(--txt);
+    font-family:inherit}
+  .btn-mini{border:1px solid var(--line);background:var(--card2);color:var(--txt);
+    border-radius:7px;width:26px;height:26px;cursor:pointer;line-height:1;font-size:13px}
+  .btn-mini:hover{border-color:var(--accent);color:var(--accent)}
   .num{text-align:right;font-variant-numeric:tabular-nums}
   .mini{padding:5px 10px;font-size:12px;border-radius:7px;min-height:32px}
   .acc-fila{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
@@ -285,6 +292,19 @@
     </div>
   </section>
 
+  <datalist id="tiposProyecto">
+    <option value="Residencial"></option>
+    <option value="Comercial"></option>
+    <option value="Industrial"></option>
+    <option value="Agropecuario"></option>
+    <option value="Institucional"></option>
+    <option value="Híbrido con baterías"></option>
+    <option value="On-grid"></option>
+    <option value="Off-grid"></option>
+    <option value="Bombeo solar"></option>
+    <option value="Mantenimiento"></option>
+  </datalist>
+
   <section id="proyectos">
     <div class="cab-seccion" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)">
       <h2 style="margin:0;padding:0;border:0;font-size:14px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)">Proyectos instalados ({{ proyectos|length }})</h2>
@@ -294,12 +314,21 @@
       {% if proyectos %}
       <div class="tabla-wrap">
         <table class="cards">
-          <thead><tr><th>Fecha</th><th>Proyecto</th><th>Paneles</th><th>Potencia (kW)</th><th>Inversores</th><th>Batería</th><th>Asesor</th><th></th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Proyecto</th><th>Tipo</th><th>Paneles</th>
+            <th>Potencia (kW)</th><th>Inversores</th><th>Batería</th><th>Asesor</th><th></th></tr></thead>
           <tbody>
           {% for p in proyectos %}
             <tr>
               <td data-label="Fecha">{{ p.fecha_instalacion or "—" }}</td>
               <td data-label="Proyecto"><b>{{ p.nombre or "Instalación" }}</b>{% if p.notas %}<br><span class="muted">{{ p.notas }}</span>{% endif %}</td>
+              <td data-label="Tipo">
+                <form method="post" action="/proyectos/{{ p.id }}/tipo" class="tipo-form">
+                  <input name="tipo" value="{{ p.tipo or '' }}" list="tiposProyecto"
+                         placeholder="Residencial, comercial…" aria-label="Tipo de proyecto"
+                         maxlength="60">
+                  <button class="btn-mini" type="submit" title="Guardar el tipo">✓</button>
+                </form>
+              </td>
               <td data-label="Paneles">{{ p.paneles or "—" }}</td>
               <td data-label="Potencia">{% if p.capacidad_instalada is not none %}{{ p.capacidad_instalada }} kW{% else %}—{% endif %}</td>
               <td data-label="Inversores">{{ p.inversores or "—" }}</td>
@@ -323,6 +352,9 @@
             style="padding:18px;border-top:1px solid var(--line)">
         <div class="ubic-grid">
           <div><label for="pr_nombre">Nombre del proyecto</label><input id="pr_nombre" name="nombre" placeholder="Sede principal · 24 paneles"></div>
+          <div><label for="pr_tipo">Tipo de proyecto</label>
+            <input id="pr_tipo" name="tipo" list="tiposProyecto" maxlength="60"
+                   placeholder="Residencial, comercial, industrial…"></div>
           <div><label for="pr_fecha">Fecha de instalación</label><input id="pr_fecha" name="fecha_instalacion" type="date"></div>
         </div>
         <div class="ubic-grid" style="margin-top:12px">
