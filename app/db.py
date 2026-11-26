@@ -1000,8 +1000,22 @@ def cerrar_pendiente(conn: sqlite3.Connection, nic: str, fecha_corte: str) -> No
 
 
 def pendientes_abiertos(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Pendientes abiertos con el nombre del cliente (el NIC solo no dice quién es).
+
+    Se toma el nombre del contrato: la razón social y, si está vacía, el titular de
+    pago que figura en la factura.
+    """
     return conn.execute(
-        "SELECT * FROM pendientes WHERE estado IN ('pendiente','atrasado') ORDER BY fecha_corte"
+        """SELECT p.*,
+                  c.razon_social    AS razon_social,
+                  c.titular_pago    AS titular_pago,
+                  c.alias           AS alias,
+                  COALESCE(NULLIF(c.razon_social, ''), NULLIF(c.titular_pago, ''),
+                           NULLIF(c.alias, ''), '') AS cliente
+             FROM pendientes p
+             LEFT JOIN contratos c ON c.nic = p.nic
+            WHERE p.estado IN ('pendiente','atrasado')
+            ORDER BY p.fecha_corte, cliente"""
     ).fetchall()
 
 

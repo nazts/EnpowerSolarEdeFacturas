@@ -225,11 +225,15 @@
     <h2>Pendientes — cortaron y aún no están en el portal ({{ pendientes|length }})</h2>
     <div class="cuerpo sin-pad">
       <div class="tabla-wrap tabla-scroll"><table class="cards">
-        <thead><tr><th>NIC</th><th>Corte</th><th>Intentos</th><th>Estado</th><th>Último intento</th></tr></thead>
+        <thead><tr><th>NIC</th><th>Titular</th><th>Corte</th><th>Intentos</th>
+          <th>Estado</th><th>Último intento</th></tr></thead>
         <tbody>
         {% for p in pendientes %}
           <tr>
             <td data-label="NIC"><b>{{ p.nic }}</b></td>
+            <td data-label="Titular">{% if p.cliente %}{{ p.cliente }}
+                {% if p.alias and p.alias != p.cliente %}<small> · {{ p.alias }}</small>{% endif %}
+                {% else %}<span class="muted">sin nombre en el contrato</span>{% endif %}</td>
             <td data-label="Corte">{{ p.fecha_corte }}</td>
             <td data-label="Intentos">{{ p.intentos }}</td>
             <td data-label="Estado">{% if p.estado == 'atrasado' %}<span class="pill bad">atrasado</span>

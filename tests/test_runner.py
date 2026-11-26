@@ -1090,3 +1090,24 @@ def test_un_pdf_ilegible_deja_el_pendiente_abierto(contrato, db_path, leer_pdf):
     with db.sesion() as c:
         abiertos = [r for r in db.pendientes_abiertos(c) if str(r["nic"]) == NIC]
     assert abiertos, "el corte del día tiene que seguir pendiente para reintentarlo"
+
+
+def test_los_pendientes_traen_el_nombre_del_cliente(db_path):
+    """Con sólo el NIC no se sabe de quién es la factura: se une con el contrato."""
+    with db.sesion() as c:
+        db.upsert_contrato(c, "8322303", razon_social="LUZ MARIA PORTES CASTRO")
+        db.actualizar_contrato(c, "8322303", {"alias": "Casa - amigo Alex"})
+        db.registrar_pendiente(c, "8322303", "2026-11-22")
+        abiertos = [dict(r) for r in db.pendientes_abiertos(c)]
+
+    assert len(abiertos) == 1
+    assert abiertos[0]["cliente"] == "LUZ MARIA PORTES CASTRO"
+    assert abiertos[0]["alias"] == "Casa - amigo Alex"
+
+
+def test_sin_contrato_el_pendiente_igual_aparece(db_path):
+    """Un pendiente de un NIC borrado no debe romper la lista."""
+    with db.sesion() as c:
+        db.registrar_pendiente(c, "9999999", "2026-11-22")
+        abiertos = [dict(r) for r in db.pendientes_abiertos(c)]
+    assert abiertos[0]["cliente"] == ""
