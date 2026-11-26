@@ -1219,7 +1219,7 @@ def cotizaciones_nueva(request: Request):
         "clientes": clientes, "comision_pct": 4.5, "firmas": firmas,
         "tasa": config.TASA_DOLAR,
         # marca de este formulario: si se envía dos veces no se duplica
-        "token": uuid.uuid4().hex, "firma_sugerida": config.FIRMA_NOMBRE,
+        "token": uuid.uuid4().hex, "firma_sugerida": "",
     })
 
 
@@ -1610,10 +1610,11 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
             ancho_img = float(cuerpo.get("ancho") or firma.get("ancho") or 160)
         except (TypeError, ValueError):
             # el navegador no mandó la posición (editor que no cargó): se usa la
-            # que ya tiene la firma en vez de rechazar el guardado con un 400
+            # que ya tiene la firma. Sin posición, se guarda sin ella (no hay
+            # coordenadas por defecto) y el PDF no dibuja ninguna imagen.
             ancho_img = float(firma.get("ancho") or 160)
-            x = float(firma["x"]) if firma.get("x") is not None else 60.0
-            y = float(firma["y"]) if firma.get("y") is not None else 130.0
+            x = float(firma["x"]) if firma.get("x") is not None else None
+            y = float(firma["y"]) if firma.get("y") is not None else None
         ancho_img = min(max(ancho_img, 40.0), ancho_hoja - 20)
         from .cotizacion_pdf import _alto_imagen
 

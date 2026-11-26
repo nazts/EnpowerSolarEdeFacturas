@@ -43,16 +43,11 @@ DB_PATH = BASE_DIR / os.environ.get("DB_PATH", "data/enpower.db")
 FACTURAS_DIR = BASE_DIR / os.environ.get("FACTURAS_DIR", "facturas")
 EXPORT_DIR = BASE_DIR / os.environ.get("EXPORT_DIR", "exports")
 
-# Cotizaciones: plantilla de la empresa (PDF con logo y pie de pagina) y firma
-# opcional en PNG. Si no hay PNG, el documento sale solo con la linea de firma.
+# Cotizaciones: plantilla de la empresa (PDF con logo y pie de pagina).
 PLANTILLA_COTIZACION = BASE_DIR / os.environ.get(
     "COTIZACION_PLANTILLA", "app/static/plantillas/cotizacion.pdf")
-FIRMA_COTIZACION = BASE_DIR / os.environ.get(
-    "COTIZACION_FIRMA", "app/static/plantillas/firma.png")
-FIRMA_NOMBRE = os.environ.get("COTIZACION_FIRMA_NOMBRE", "")
 # Tasa del dólar por defecto para las cotizaciones en USD (se puede cambiar en el formulario)
 TASA_DOLAR = float(os.environ.get("TASA_DOLAR", "60") or 60)
-FIRMA_CARGO = os.environ.get("COTIZACION_FIRMA_CARGO", "")
 
 # --- servidor web (panel) ---
 # 127.0.0.1 = solo esta PC | 0.0.0.0 = accesible en la red local

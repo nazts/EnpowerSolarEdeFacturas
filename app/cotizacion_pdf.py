@@ -7,16 +7,14 @@ reportlab; pypdf fusiona las capas. Ventajas frente a dibujar todo a mano:
 - la marca (logo, isotipo, pie) se mantiene **idéntica** al archivo del diseñador;
 - si la cotización tiene muchos renglones, la tabla continúa en otra hoja con la
   misma plantilla y el encabezado de columnas repetido;
-- la firma es opcional: si hay un PNG con fondo transparente se coloca sobre la
-  línea, y si no, la hoja queda con la línea para firmar a mano (el nombre y el
-  cargo se toman del `.env`, nunca escritos en el código).
+- la firma es opcional: se dibuja SOLO si la cotización eligió una firma (o sello)
+  de la tabla `firmas` y esa firma tiene una posición guardada (x e y). No hay
+  imagen ni coordenadas por defecto. Sin firma, queda la línea para firmar a mano
+  con el nombre y el cargo de la propia cotización o de la firma.
 
 Configuración (`.env`, opcional):
 
     COTIZACION_PLANTILLA=app/static/plantillas/cotizacion.pdf
-    COTIZACION_FIRMA=app/static/plantillas/firma.png
-    COTIZACION_FIRMA_NOMBRE=Nombre Apellido
-    COTIZACION_FIRMA_CARGO=Cargo
 """
 from __future__ import annotations
 
@@ -362,38 +360,30 @@ def _borde_inferior_tinta(ruta: Path) -> float:
 
 
 def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> None:
-    """Línea de firma y, si hay, la imagen (firma o sello) en la posición elegida.
+    """Línea de firma y, si la cotización eligió una firma CON posición, su imagen.
 
     `firma` viene de la tabla `firmas`: archivo, nombre, cargo, ancho, x e y en
-    puntos PDF. Cuando hay imagen, el nombre y el cargo se imprimen **debajo de
-    la imagen**, centrados: si la firma se movió a la derecha o al pie, el texto
-    la acompaña en vez de quedar lejos. Sin firma, queda la línea para firmar a
-    mano con el nombre debajo.
+    puntos PDF. La imagen se dibuja SOLO si hay posición elegida (x e y): no hay
+    coordenadas por defecto. Cuando hay imagen, el nombre y el cargo se imprimen
+    debajo, centrados. Sin imagen queda la línea para firmar a mano con el nombre
+    debajo (el nombre y el cargo salen de la cotización o de la firma).
     """
+    _registrar_fuentes()
     x0, ancho_guia = MARGEN + 10, 160
     y_linea = Y_LIMITE + 30
-    _registrar_fuentes()
 
     ruta = None
     ancho = ancho_guia
-    x_img, y_img = x0, y_linea + 3
-    hay_firma = bool(firma and firma.get("archivo"))
+    x_img = y_img = None
 
-    # La posición se toma SIEMPRE de la firma elegida. Antes estaba dentro del
-    # `if candidata.exists()`: si el PNG no estaba en el servidor, se perdían las
-    # coordenadas y se dibujaba al lado de la línea, en el sitio por defecto.
-    if hay_firma:
+    if firma and firma.get("archivo"):
         ancho = float(firma.get("ancho") or ancho_guia)
+        # sin posición elegida no se dibuja la imagen: no hay "por defecto"
         if firma.get("x") is not None and firma.get("y") is not None:
             x_img, y_img = float(firma["x"]), float(firma["y"])
-        candidata = RAIZ_STATIC / "firmas" / str(firma["archivo"])
-        if candidata.exists():
-            ruta = candidata
-
-    if ruta is None and not hay_firma:
-        # sólo se usa el PNG del .env cuando la cotización NO eligió una firma
-        por_defecto = Path(config.FIRMA_COTIZACION)
-        ruta = por_defecto if por_defecto.exists() else None
+            candidata = RAIZ_STATIC / "firmas" / str(firma["archivo"])
+            if candidata.exists():
+                ruta = candidata
 
     alto = 0.0
     if ruta is not None:
@@ -401,8 +391,6 @@ def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> Non
         try:
             # anchor="sw": (x, y) es la esquina inferior izquierda, igual que en el
             # editor. Con el centro, la firma salía corrida media imagen hacia arriba.
-            # size exacto: nada de letterboxing (eso corría la imagen dentro del
-            # recuadro); (x, y) es la esquina inferior izquierda
             c.drawImage(ImageReader(str(ruta)), x_img, y_img, width=ancho, height=alto,
                         mask="auto", preserveAspectRatio=False, anchor="sw")
         except Exception:  # noqa: BLE001 - una firma rota no debe tumbar la cotización
@@ -411,8 +399,7 @@ def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> Non
     nombre = (nombre or "").strip()
     if firma:
         nombre = nombre or str(firma.get("nombre") or "").strip()
-    nombre = nombre or config.FIRMA_NOMBRE
-    cargo = (str(firma.get("cargo") or "").strip() if firma else "") or config.FIRMA_CARGO
+    cargo = str(firma.get("cargo") or "").strip() if firma else ""
 
     if ruta is None:
         # sin imagen: la línea clásica para firmar a mano

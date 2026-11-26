@@ -188,20 +188,23 @@ def test_una_cotizacion_larga_pasa_a_la_segunda_hoja():
 def test_la_firma_png_es_opcional(tmp_path, monkeypatch):
     from PIL import Image, ImageDraw
 
-    from app import config
+    from app import cotizacion_pdf
 
-    # sin PNG: se genera igual (queda la línea para firmar a mano)
-    monkeypatch.setattr(config, "FIRMA_COTIZACION", tmp_path / "no-existe.png")
+    # sin firma: se genera igual (queda la línea para firmar a mano)
     pdf = cotizacion_pdf.generar(_cotizacion())
     assert pdf.startswith(b"%PDF")
 
-    # con PNG: se incrusta la imagen
-    firma = tmp_path / "firma.png"
+    # con firma elegida y posición guardada: se incrusta la imagen
+    (tmp_path / "firmas").mkdir(exist_ok=True)
+    firma = tmp_path / "firmas" / "firma.png"
     imagen = Image.new("RGBA", (200, 80), (0, 0, 0, 0))
     ImageDraw.Draw(imagen).line([(10, 40), (190, 20)], fill=(10, 30, 70, 255), width=4)
     imagen.save(firma)
-    monkeypatch.setattr(config, "FIRMA_COTIZACION", firma)
-    con_firma = cotizacion_pdf.generar(_cotizacion())
+    monkeypatch.setattr(cotizacion_pdf, "RAIZ_STATIC", tmp_path)
+    cot = _cotizacion()
+    cot["firma_imagen"] = {"archivo": "firma.png", "nombre": "Ing. Luis", "cargo": "",
+                           "x": 300, "y": 200, "ancho": 160}
+    con_firma = cotizacion_pdf.generar(cot)
     assert len(con_firma) > len(pdf)          # lleva la imagen adentro
 
 
