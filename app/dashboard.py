@@ -1280,6 +1280,7 @@ async def cotizaciones_guardar(request: Request):
             "comision_pct": datos["comision_pct"], "comision": datos["comision"],
             "total": datos["total"],
             "notas": str(form.get("notas") or "").strip(),
+            "nota_interna": str(form.get("nota_interna") or "").strip(),
             "firma": str(form.get("firma") or "").strip(),
             "firma_id": (int(form.get("firma_id")) if str(form.get("firma_id") or "").isdigit()
                          else None),
@@ -1636,6 +1637,22 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
                          "x": round(x, 1) if x is not None else None,
                          "y": round(y, 1) if y is not None else None,
                          "ancho": round(ancho_img, 1) if ancho_img else None})
+
+
+@app.post("/cotizaciones/{cotizacion_id}/nota")
+async def cotizaciones_nota(cotizacion_id: int, request: Request):
+    """Guarda o cambia la nota interna (solo sistema) de una cotización."""
+    requiere_modulo(request, "cotizaciones")
+    form = await request.form()
+    nota = str(form.get("nota_interna") or "").strip()
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cotizacion_id)
+        if cot is None:
+            raise HTTPException(404, "Esa cotización no existe")
+        db.anotar_cotizacion(conn, cotizacion_id, nota)
+        db.log_evento(conn, "info", f"Cotización {cot['numero']} anotada",
+                      nota[:200] if nota else "sin nota")
+    return RedirectResponse("/cotizaciones", status_code=303)
 
 
 @app.post("/cotizaciones/{cotizacion_id}/eliminar")

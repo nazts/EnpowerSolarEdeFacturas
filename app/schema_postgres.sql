@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
     comision          DOUBLE PRECISION NOT NULL DEFAULT 0,
     total             DOUBLE PRECISION NOT NULL DEFAULT 0,
     notas             TEXT NOT NULL DEFAULT '',
+    nota_interna      TEXT NOT NULL DEFAULT '',
     firma             TEXT NOT NULL DEFAULT '',
     firma_id          INTEGER,
     firma_x           DOUBLE PRECISION,

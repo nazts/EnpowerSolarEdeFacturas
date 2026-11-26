@@ -235,7 +235,8 @@ def migrar(conn: sqlite3.Connection) -> None:
                             "cliente_doc_tipo": "TEXT NOT NULL DEFAULT 'RNC'",
                             "tasa_cambio": "REAL NOT NULL DEFAULT 1",
                             "firma_id": "INTEGER", "firma_x": "REAL",
-                            "firma_y": "REAL", "firma_ancho": "REAL"})
+                            "firma_y": "REAL", "firma_ancho": "REAL",
+                            "nota_interna": "TEXT NOT NULL DEFAULT ''"})
         try:
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
                          " ON cotizaciones(token)")
@@ -265,7 +266,8 @@ def migrar(conn: sqlite3.Connection) -> None:
                          ("cliente_doc_tipo", "TEXT NOT NULL DEFAULT 'RNC'"),
                          ("tasa_cambio", "REAL NOT NULL DEFAULT 1"),
                          ("firma_id", "INTEGER"), ("firma_x", "REAL"),
-                         ("firma_y", "REAL"), ("firma_ancho", "REAL")):
+                         ("firma_y", "REAL"), ("firma_ancho", "REAL"),
+                         ("nota_interna", "TEXT NOT NULL DEFAULT ''")):
         if nombre not in columnas_cot:
             conn.execute(f"ALTER TABLE cotizaciones ADD COLUMN {nombre} {tipo}")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS cotizaciones_token"
@@ -498,8 +500,8 @@ def guardar_cotizacion(conn, datos: dict) -> int:
         """INSERT INTO cotizaciones
            (numero, fecha, cliente_nombre, cliente_rnc, cliente_doc_tipo, cliente_direccion,
             moneda, tasa_cambio, items, subtotal, itbis, comision_pct, comision, total,
-            notas, firma, firma_id, token, creado_por, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            notas, nota_interna, firma, firma_id, token, creado_por, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (str(datos.get("numero") or ""), str(datos.get("fecha") or hoy()),
          str(datos.get("cliente_nombre") or ""), str(datos.get("cliente_rnc") or ""),
          _tipo_documento(datos.get("cliente_doc_tipo")),
@@ -509,6 +511,7 @@ def guardar_cotizacion(conn, datos: dict) -> int:
          float(datos.get("subtotal") or 0), float(datos.get("itbis") or 0),
          float(datos.get("comision_pct") or 0), float(datos.get("comision") or 0),
          float(datos.get("total") or 0), str(datos.get("notas") or ""),
+         str(datos.get("nota_interna") or ""),
          str(datos.get("firma") or ""),
          (int(datos["firma_id"]) if datos.get("firma_id") else None),
          (str(datos.get("token") or "").strip() or None),
@@ -593,6 +596,13 @@ def firmar_cotizacion(conn, cotizacion_id: int, firma_id: int | None,
                   float(y) if y is not None else None,
                   float(ancho) if ancho is not None else None,
                   int(cotizacion_id)))
+    conn.commit()
+
+
+def anotar_cotizacion(conn, cotizacion_id: int, nota: str) -> None:
+    """Guarda (o cambia) la nota interna del sistema de una cotización."""
+    conn.execute("UPDATE cotizaciones SET nota_interna = ? WHERE id = ?",
+                 (str(nota or "").strip(), int(cotizacion_id)))
     conn.commit()
 
 

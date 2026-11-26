@@ -30,6 +30,15 @@
   .mini:hover{border-color:var(--accent)}
   .mini.peligro{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
   .mini.peligro:hover{background:var(--bad-bg);border-color:var(--bad)}
+  td.nota-celda{max-width:240px}
+  .nota-txt{display:block;font-size:12px;color:var(--muted);white-space:pre-wrap;
+    overflow:hidden;max-height:44px;line-height:1.35}
+  .nota-txt.vacia{color:var(--muted);opacity:.55}
+  .nota-btn{margin-top:4px}
+  .nota-form textarea{width:100%;min-width:200px;font:inherit;font-size:12.5px;
+    padding:8px;border-radius:8px;border:1px solid var(--input-bd,#8A7B5E);
+    background:var(--input-bg,#FFFDF9);color:var(--txt);resize:vertical}
+  .nota-acciones{display:flex;gap:6px;margin-top:6px}
   .vacio{padding:26px;text-align:center;color:var(--muted)}
   .aviso{margin:0 0 16px;padding:12px 16px;border-radius:12px;background:var(--ok-bg);
     color:var(--ok);border:1px solid var(--line);font-size:13.5px}
@@ -81,7 +90,7 @@
     <div class="tabla-wrap">
       <table>
         <thead><tr><th>No.</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th>
-          <th>Creada por</th><th></th></tr></thead>
+          <th>Creada por</th><th>Nota interna</th><th></th></tr></thead>
         <tbody>
         {% for c in cotizaciones %}
           <tr>
@@ -91,6 +100,21 @@
               {% if c.cliente_rnc %}<small>{{ c.cliente_rnc }}</small>{% endif %}</td>
             <td class="num" data-label="Total">{{ dinero(c.total, c.moneda) }}</td>
             <td data-label="Creada por">{{ c.creado_por or "—" }}</td>
+            <td data-label="Nota" class="nota-celda">
+              <span class="nota-txt{% if not c.nota_interna %} vacia{% endif %}"
+                    title="{{ c.nota_interna or '' }}">{{ c.nota_interna or "—" }}</span>
+              <button class="mini nota-btn" type="button"
+                      aria-label="Editar nota interna de {{ c.numero }}">
+                <i class="bi bi-pencil" aria-hidden="true"></i> Nota</button>
+              <form class="nota-form" method="post" action="/cotizaciones/{{ c.id }}/nota" hidden>
+                <textarea name="nota_interna" rows="2"
+                          placeholder="Ajustes, descuentos, qué se le hizo…">{{ c.nota_interna or '' }}</textarea>
+                <div class="nota-acciones">
+                  <button class="mini" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Guardar</button>
+                  <button class="mini" type="button" data-cancelar>Cancelar</button>
+                </div>
+              </form>
+            </td>
             <td data-label="">
               <a class="mini" href="/cotizaciones/{{ c.id }}.pdf" target="_blank" rel="noopener">
                 <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
@@ -117,4 +141,31 @@
     {% endif %}
   </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  document.querySelectorAll('.nota-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var td = btn.closest('td');
+      var form = td.querySelector('.nota-form');
+      var txt = td.querySelector('.nota-txt');
+      var abrir = form.hidden;
+      form.hidden = !abrir;
+      txt.hidden = abrir;
+      btn.hidden = abrir;
+      if (abrir) form.querySelector('textarea').focus();
+    });
+  });
+  document.querySelectorAll('[data-cancelar]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var td = b.closest('td');
+      td.querySelector('.nota-form').hidden = true;
+      td.querySelector('.nota-txt').hidden = false;
+      td.querySelector('.nota-btn').hidden = false;
+    });
+  });
+})();
+</script>
 {% endblock %}

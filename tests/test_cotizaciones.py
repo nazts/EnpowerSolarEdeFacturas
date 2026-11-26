@@ -214,6 +214,25 @@ def test_la_firma_png_es_opcional(tmp_path, monkeypatch):
 
 
 # ------------------------------- una cotización no se guarda dos veces
+def test_la_cotizacion_tiene_una_nota_interna_editable(db_path):
+    """Nota para el sistema: se guarda al crear y se puede cambiar después."""
+    from app import cotizacion_pdf, db
+
+    datos = cotizacion_pdf.calcular(_cotizacion()["items"], 4.5)
+    with db.sesion() as c:
+        id_cot = db.guardar_cotizacion(c, {**datos, "numero": "000050",
+                                           "fecha": "2026-11-26", "token": "tk-nota",
+                                           "cliente_nombre": "CLIENTE X",
+                                           "notas": "para el cliente",
+                                           "nota_interna": "se le ajustó el precio"})
+        cot = db.obtener_cotizacion(c, id_cot)
+        assert cot["nota_interna"] == "se le ajustó el precio"
+
+        db.anotar_cotizacion(c, id_cot, "se cambió la comisión a 3%")
+        cot = db.obtener_cotizacion(c, id_cot)
+        assert cot["nota_interna"] == "se cambió la comisión a 3%"
+
+
 def test_el_token_evita_guardar_la_misma_cotizacion_dos_veces(db_path):
     """Doble clic o volver atrás: el segundo envío no crea otra fila."""
     from app import cotizacion_pdf, db
