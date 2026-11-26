@@ -7,19 +7,20 @@ from app import auth, cotizacion_pdf, dashboard, db
 
 # ------------------------------------------------------------------ cálculo
 def test_calcula_subtotal_itbis_y_total():
-    # la comisión se suma al sub total y el itbis se calcula encima (por dentro)
+    # la comisión se aplica POR UNIDAD: el precio mostrado ya la incluye y el
+    # sub total la refleja; el itbis se calcula sobre ese sub total.
     items = [
         {"descripcion": "Panel 590W", "cantidad": 10, "precio": 1000, "itbis": 18},
         {"descripcion": "Batería", "cantidad": 2, "precio": 5000, "itbis": 18},
     ]
     datos = cotizacion_pdf.calcular(items, 4.5)
 
-    assert datos["subtotal"] == 20000.0
-    assert datos["comision"] == 900.0          # 4.5% del sub total
-    assert datos["subtotal_gravado"] == 20900.0  # sub total + comisión
+    assert datos["comision"] == 900.0          # 4.5% del bruto (dato de control)
+    assert datos["subtotal"] == 20900.0        # 20000 × 1.045 (la comisión va dentro)
     assert datos["itbis"] == 3762.0            # 18% sobre 20900
     assert datos["total"] == 24662.0
-    # la línea lleva su parte de comisión e itbis (todo cuadra)
+    assert datos["items"][0]["precio"] == 1045.0   # 1000 × 1.045
+    # la tabla suma exactamente el total (todo cuadra)
     assert abs(datos["items"][0]["importe"] + datos["items"][1]["importe"]
                - datos["total"]) < 0.02
 
@@ -402,9 +403,9 @@ def test_una_cotizacion_sin_itbis_no_cobra_impuesto():
                      "precio": 100000, "itbis": 0}]
     datos = cotizacion_pdf.calcular(cot["items"], 4.5)
     assert datos["itbis"] == 0
-    assert datos["subtotal"] == 100000
     assert datos["comision"] == 4500
-    assert datos["total"] == 104500          # sin itbis, pero con la comisión dentro
+    assert datos["subtotal"] == 104500       # la comisión va dentro del sub total
+    assert datos["total"] == 104500
 
 
 def test_el_formulario_tiene_el_interruptor_de_itbis_y_el_tipo_de_documento():
@@ -419,12 +420,11 @@ def test_el_formulario_tiene_el_interruptor_de_itbis_y_el_tipo_de_documento():
 
 # ------------------------------------------------ moneda, tasa y comisión
 def test_la_comision_se_suma_al_subtotal_y_el_itbis_va_encima():
-    """La comisión entra al sub total y el itbis se calcula sobre sub total + comisión."""
+    """La comisión se aplica por unidad y el itbis se calcula sobre el sub total marcado."""
     items = [{"descripcion": "Panel", "cantidad": 1, "precio": 100000, "itbis": 18}]
     datos = cotizacion_pdf.calcular(items, comision_pct=10)
-    assert datos["subtotal"] == 100000
-    assert datos["comision"] == 10000                    # 10% del sub total
-    assert datos["subtotal_gravado"] == 110000           # sub total + comisión
+    assert datos["comision"] == 10000                    # 10% del bruto
+    assert datos["subtotal"] == 110000                   # 100000 × 1.10
     assert datos["itbis"] == 19800                       # 18% sobre 110000
     assert datos["total"] == 129800
 
@@ -442,7 +442,7 @@ def test_cotizacion_en_dolares_usa_su_simbolo_y_no_rd():
     cot["tasa_cambio"] = 60.5
     cot["items"] = [{"descripcion": "Sistema 5 kW", "cantidad": 1, "precio": 9000, "itbis": 18}]
     texto = " ".join(_paginas(cotizacion_pdf.generar(cot)))
-    assert "US$ 9,000.00" in texto
+    assert "US$ 9,405.00" in texto          # 9000 × 1.045 (comisión por unidad)
     assert "Total USD" in texto
     assert "Total DOP" not in texto
     assert "Dólares (USD) · RD$ 60.50" in texto    # la tasa que se usó

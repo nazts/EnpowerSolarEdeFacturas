@@ -97,7 +97,7 @@
       <div class="campo c3">
         <label for="comision_pct">Comisión (%)</label>
         <input id="comision_pct" name="comision_pct" value="{{ comision_pct }}" inputmode="decimal">
-        <p class="ayuda">Se suma al sub total y el Itbis se calcula encima.</p>
+        <p class="ayuda">Se aplica por unidad y queda reflejada en el sub total.</p>
       </div>
     </div>
   </section>
@@ -191,8 +191,6 @@
         <div class="fuerte"><span>Total <span id="tMoneda">DOP</span></span><span id="tTotal">RD$ 0.00</span></div>
         <div class="ayuda" id="lineaTasa" hidden><span>Tasa RD$ <span id="tTasa">0</span></span>
           <b id="tEquiv">RD$ 0.00</b></div>
-        <div class="ayuda interno"><span>Comisión <span id="tPct">4.5</span>% (incluida)</span>
-          <b id="tComision">RD$ 0.00</b></div>
       </div>
     </div>
     <div class="barra">
@@ -291,8 +289,6 @@
     document.getElementById('tSub').textContent = dinero(gravado);
     document.getElementById('tItbis').textContent = dinero(itb);
     document.getElementById('tTotal').textContent = dinero(total);
-    document.getElementById('tPct').textContent = pct.value || '0';
-    document.getElementById('tComision').textContent = dinero(com);
     var tasa = num(entTasa && entTasa.value) || 0;
     var tTasa = document.getElementById('tTasa');
     if (tTasa) tTasa.textContent = tasa.toLocaleString('es-DO', {minimumFractionDigits: 2,

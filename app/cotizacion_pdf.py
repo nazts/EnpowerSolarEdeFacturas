@@ -95,14 +95,14 @@ def _fecha(valor: str | None) -> str:
 
 
 def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
-    """Suma renglones y cierra los totales con la comisión.
+    """Suma renglones aplicando la comisión POR UNIDAD y el itbis encima.
 
-    La comisión (4.5% por defecto) se suma al sub total **por dentro**: el
-    sub total que ve el cliente ya la incluye y el itbis se calcula sobre
-    sub total + comisión. Así, un artículo de 300 con 4.5% y 18% de itbis
-    queda: sub total 313.50 + itbis 56.43 = 369.93.
+    La comisión (4.5% por defecto) se aplica a cada renglón: el precio unitario
+    que se muestra ya la incluye, de modo que el sub total la refleja directamente
+    y el itbis se calcula sobre ese sub total. Un artículo de 300 con 4.5% y 18%
+    de itbis: precio 313.50 · sub total 313.50 · itbis 56.43 · total 369.93.
     """
-    subtotal = 0.0
+    factor = 1 + (comision_pct or 0) / 100
     lleva_itbis = False
     bases = []
     for item in items or []:
@@ -120,41 +120,38 @@ def calcular(items: list[dict], comision_pct: float = 4.5) -> dict:
             tasa = 18.0
         if tasa > 0:
             lleva_itbis = True
-        base = cantidad * precio
-        subtotal += base
         bases.append({
             "descripcion": str(item.get("descripcion") or "").strip(),
-            "cantidad": cantidad, "precio": precio, "base": base,
+            "cantidad": cantidad, "precio": precio, "base": cantidad * precio,
         })
 
-    comision = subtotal * (comision_pct or 0) / 100
-    gravado = subtotal + comision
-    tasa_global = 18.0 if lleva_itbis else 0.0
-    itbis = gravado * tasa_global / 100
+    bruto = sum(b["base"] for b in bases)
+    comision = bruto * (comision_pct or 0) / 100
 
-    # la comisión se reparte proporcionalmente a cada renglón: así la tabla
-    # (itbis e importe por línea) suma exactamente lo que dice el cuadro de totales
+    subtotal = 0.0
+    tasa_global = 18.0 if lleva_itbis else 0.0
     limpios = []
     for fila in bases:
-        comision_linea = fila["base"] * (comision_pct or 0) / 100
-        gravado_linea = fila["base"] + comision_linea
-        impuesto = gravado_linea * tasa_global / 100
+        precio_final = fila["precio"] * factor
+        base_final = fila["cantidad"] * precio_final
+        impuesto = base_final * tasa_global / 100
+        subtotal += base_final
         limpios.append({
             "descripcion": fila["descripcion"],
-            "cantidad": fila["cantidad"], "precio": fila["precio"],
+            "cantidad": fila["cantidad"], "precio": round(precio_final, 2),
             "itbis_pct": tasa_global,
             "itbis_monto": round(impuesto, 2),
-            "importe": round(gravado_linea + impuesto, 2),
+            "importe": round(base_final + impuesto, 2),
         })
 
+    itbis = subtotal * tasa_global / 100
     return {
         "items": limpios,
         "subtotal": round(subtotal, 2),
         "comision_pct": comision_pct,
         "comision": round(comision, 2),
-        "subtotal_gravado": round(gravado, 2),
         "itbis": round(itbis, 2),
-        "total": round(gravado + itbis, 2),
+        "total": round(subtotal + itbis, 2),
     }
 
 
@@ -315,8 +312,7 @@ def _totales(c: canvas.Canvas, datos: dict, y_top: float,
     derecha = ancho - MARGEN
     tot_w = 215
     codigo = _codigo_moneda(moneda)
-    sub_total = datos.get("subtotal_gravado", datos["subtotal"] + datos.get("comision", 0))
-    filas = [["Sub. Total", _dinero(sub_total, codigo)],
+    filas = [["Sub. Total", _dinero(datos["subtotal"], codigo)],
              ["Itbis", _dinero(datos["itbis"], codigo)],
              [f"Total {codigo}", _dinero(datos["total"], codigo)]]
     tabla = Table(filas, colWidths=[95, 120], rowHeights=[21, 21, 25])
