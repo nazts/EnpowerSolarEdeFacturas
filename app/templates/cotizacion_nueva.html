@@ -95,10 +95,9 @@
         <input id="tasa_cambio" name="tasa_cambio" value="{{ tasa or 60 }}" inputmode="decimal">
       </div>
       <div class="campo c3">
-        <label for="comision_pct">Comisión (%) · interno</label>
+        <label for="comision_pct">Comisión (%)</label>
         <input id="comision_pct" name="comision_pct" value="{{ comision_pct }}" inputmode="decimal">
-        <p class="ayuda">Se guarda para el control de ventas. No se suma al total
-          ni aparece en el PDF.</p>
+        <p class="ayuda">Se suma al sub total y el Itbis se calcula encima.</p>
       </div>
     </div>
   </section>
@@ -192,7 +191,7 @@
         <div class="fuerte"><span>Total <span id="tMoneda">DOP</span></span><span id="tTotal">RD$ 0.00</span></div>
         <div class="ayuda" id="lineaTasa" hidden><span>Tasa RD$ <span id="tTasa">0</span></span>
           <b id="tEquiv">RD$ 0.00</b></div>
-        <div class="ayuda interno"><span>Comisión <span id="tPct">4.5</span>% (interno)</span>
+        <div class="ayuda interno"><span>Comisión <span id="tPct">4.5</span>% (incluida)</span>
           <b id="tComision">RD$ 0.00</b></div>
       </div>
     </div>
@@ -274,21 +273,26 @@
   if (entTasa) entTasa.addEventListener('input', calcular);
 
   function calcular(){
-    var sub = 0, itb = 0;
+    var sub = 0;
+    var tasaItb = (!llevaItbis || llevaItbis.checked) ? 18 : 0;
+    var pctNum = num(pct.value);
     Array.prototype.forEach.call(filas.rows, function(tr){
       var base = num(tr.querySelector('input[name=cantidad]').value) *
                  num(tr.querySelector('input[name=precio]').value);
-      var impuesto = base * num(tr.querySelector('input[name=itbis_item]').value) / 100;
-      sub += base; itb += impuesto;
-      tr.querySelector('.imp').textContent = dinero(base + impuesto);
+      sub += base;
+      // la comisión va por dentro: importe por línea = base × (1+com%) × (1+itbis%)
+      tr.querySelector('.imp').textContent =
+        dinero(base * (1 + pctNum / 100) * (1 + tasaItb / 100));
     });
-    var total = sub + itb;
-    document.getElementById('tSub').textContent = dinero(sub);
+    var com = sub * pctNum / 100;
+    var gravado = sub + com;
+    var itb = gravado * tasaItb / 100;
+    var total = gravado + itb;
+    document.getElementById('tSub').textContent = dinero(gravado);
     document.getElementById('tItbis').textContent = dinero(itb);
     document.getElementById('tTotal').textContent = dinero(total);
     document.getElementById('tPct').textContent = pct.value || '0';
-    // comisión interna: sobre el sub total y fuera del total que paga el cliente
-    document.getElementById('tComision').textContent = dinero(sub * num(pct.value) / 100);
+    document.getElementById('tComision').textContent = dinero(com);
     var tasa = num(entTasa && entTasa.value) || 0;
     var tTasa = document.getElementById('tTasa');
     if (tTasa) tTasa.textContent = tasa.toLocaleString('es-DO', {minimumFractionDigits: 2,
