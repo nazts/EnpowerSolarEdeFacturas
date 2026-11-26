@@ -175,6 +175,9 @@
           {% else %}
           <span class="sub coords sin">sin ubicar</span>
           {% endif %}
+          {% if f.existe is defined and not f.existe %}
+          <span class="sub" style="color:var(--bad);font-weight:600">⚠ falta el archivo en el servidor</span>
+          {% endif %}
         </div>
         <div class="pie-tarjeta">
           <form method="post" action="/firmas/{{ f.id }}/limpiar" style="display:contents">

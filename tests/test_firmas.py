@@ -464,3 +464,42 @@ def test_el_listado_muestra_lo_que_quedo_guardado(dueno):
         mensaje="ubicada", nueva="", ubicada=ubicada)
     assert "Posición guardada en la base" in html
     assert "x 111" in html and "y 99" in html
+
+
+def test_si_falta_el_archivo_no_se_pierden_las_coordenadas(tmp_path, monkeypatch):
+    """El bug: las coordenadas estaban dentro del `if archivo.exists()`.
+
+    Si el PNG no estaba en el servidor se dibujaba el del .env en el sitio fijo.
+    """
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    from app import config, cotizacion_pdf
+
+    # hay un PNG por defecto configurado…
+    por_defecto = tmp_path / "firma-env.png"
+    por_defecto.write_bytes(_png(300, 120))
+    monkeypatch.setattr(config, "FIRMA_COTIZACION", por_defecto)
+    monkeypatch.setattr(cotizacion_pdf, "RAIZ_STATIC", tmp_path)   # sin carpeta firmas
+
+    cot = {"numero": "000070", "fecha": "2026-11-26", "cliente_nombre": "X",
+           "items": [{"descripcion": "A", "cantidad": 1, "precio": 100, "itbis": 18}],
+           "comision_pct": 4.5, "notas": "", "firma": "Ing. Luis",
+           "firma_imagen": {"archivo": "no-esta.png", "nombre": "Ing. Luis", "cargo": "",
+                            "x": 300.0, "y": 200.0, "ancho": 180.0}}
+    # referencia: sin firma elegida se dibuja la del .env (una imagen más)
+    sin_firma = PdfReader(BytesIO(cotizacion_pdf.generar({**cot, "firma_imagen": None})))
+    con_firma_rota = PdfReader(BytesIO(cotizacion_pdf.generar(cot)))
+    assert len(con_firma_rota.pages[0].images) == len(sin_firma.pages[0].images) - 1
+
+
+def test_avisa_en_actividad_cuando_falta_la_imagen(tmp_path, monkeypatch, db_path):
+    from app import cotizacion_pdf
+
+    monkeypatch.setattr(cotizacion_pdf, "RAIZ_STATIC", tmp_path)
+    cotizacion_pdf._avisa_si_falta_el_archivo({"archivo": "no-esta.png", "nombre": "Firma X"})
+    with db.sesion() as c:
+        fila = c.execute("SELECT mensaje, detalle FROM eventos WHERE mensaje LIKE '%no está en el servidor%' "
+                         "ORDER BY id DESC LIMIT 1").fetchone()
+    assert fila is not None and "no-esta.png" in fila["detalle"]

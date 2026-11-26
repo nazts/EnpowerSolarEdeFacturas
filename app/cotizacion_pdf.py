@@ -377,14 +377,21 @@ def _firma(c: canvas.Canvas, nombre: str = "", firma: dict | None = None) -> Non
     ruta = None
     ancho = ancho_guia
     x_img, y_img = x0, y_linea + 3
-    if firma and firma.get("archivo"):
+    hay_firma = bool(firma and firma.get("archivo"))
+
+    # La posición se toma SIEMPRE de la firma elegida. Antes estaba dentro del
+    # `if candidata.exists()`: si el PNG no estaba en el servidor, se perdían las
+    # coordenadas y se dibujaba al lado de la línea, en el sitio por defecto.
+    if hay_firma:
+        ancho = float(firma.get("ancho") or ancho_guia)
+        if firma.get("x") is not None and firma.get("y") is not None:
+            x_img, y_img = float(firma["x"]), float(firma["y"])
         candidata = RAIZ_STATIC / "firmas" / str(firma["archivo"])
         if candidata.exists():
             ruta = candidata
-            ancho = float(firma.get("ancho") or ancho_guia)
-            if firma.get("x") is not None and firma.get("y") is not None:
-                x_img, y_img = float(firma["x"]), float(firma["y"])
-    if ruta is None:
+
+    if ruta is None and not hay_firma:
+        # sólo se usa el PNG del .env cuando la cotización NO eligió una firma
         por_defecto = Path(config.FIRMA_COTIZACION)
         ruta = por_defecto if por_defecto.exists() else None
 
@@ -487,9 +494,26 @@ def _firma_elegida(cot: dict) -> dict | None:
         return None
 
 
+def _avisa_si_falta_el_archivo(imagen: dict | None) -> None:
+    """Si la firma elegida no está en el servidor, queda anotado en Actividad."""
+    if not imagen or not imagen.get("archivo"):
+        return
+    if (RAIZ_STATIC / "firmas" / str(imagen["archivo"])).exists():
+        return
+    try:
+        from app import db
+
+        with db.sesion() as conn:
+            db.log_evento(conn, "aviso", "La imagen de la firma no está en el servidor",
+                          f"archivo {imagen['archivo']} (firma {imagen.get('nombre') or imagen.get('id')})")
+    except Exception:  # noqa: BLE001 - el aviso nunca debe tumbar el PDF
+        pass
+
+
 def generar(cot: dict) -> bytes:
     """Devuelve el PDF (una o más hojas) sobre la plantilla de la empresa."""
     imagen = _firma_elegida(cot)
+    _avisa_si_falta_el_archivo(imagen)
     if imagen and cot.get("firma_x") is not None and cot.get("firma_y") is not None:
         # la cotización puede tener su propia posición (se firmó desde el listado)
         imagen = {**imagen, "x": cot["firma_x"], "y": cot["firma_y"],

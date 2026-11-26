@@ -1325,7 +1325,8 @@ def _con_borde(firmas: list[dict]) -> list[dict]:
     for firma in firmas:
         ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
         salida.append({**firma,
-                       "borde": _borde_inferior_tinta(ruta) if ruta.exists() else 1.0})
+                       "borde": _borde_inferior_tinta(ruta) if ruta.exists() else 1.0,
+                       "existe": ruta.exists()})
     return salida
 
 
@@ -1532,7 +1533,10 @@ def cotizaciones_pdf(cotizacion_id: int, request: Request):
     nombre = f"Cotizacion {cot['numero']} {cot.get('cliente_nombre') or ''}".strip()
     nombre = re.sub(r"[^A-Za-z0-9 ._-]", "", nombre)[:80] + ".pdf"
     return Response(pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'inline; filename="{nombre}"'})
+                    headers={"Content-Disposition": f'inline; filename="{nombre}"',
+                             # sin esto el navegador reusa el PDF viejo y parece
+                             # que la firma no se movió
+                             "Cache-Control": "no-store, must-revalidate"})
 
 
 @app.get("/cotizaciones/{cotizacion_id}/hoja.png")
