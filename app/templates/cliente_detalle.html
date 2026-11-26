@@ -192,7 +192,7 @@
           <div class="dato"><span class="k">Inversores</span><span class="v">{{ cliente.inversores or "—" }}</span></div>
           <div class="dato"><span class="k">Batería</span><span class="v">{{ cliente.bateria or "—" }}</span></div>
           <div class="dato"><span class="k">Capacidad batería</span><span class="v">{% if cliente.capacidad_bateria is not none and cliente.capacidad_bateria != "" %}{{ cliente.capacidad_bateria }} kWh{% else %}—{% endif %}</span></div>
-          <div class="dato"><span class="k">Instalación</span><span class="v">{{ cliente.fecha_instalacion or "—" }}</span></div>
+          <div class="dato"><span class="k">Arranque de proyecto</span><span class="v">{{ cliente.fecha_instalacion or "—" }}</span></div>
         </div>
         {% set lat_enlace = cliente.latitud if cliente.latitud not in (none, '') else '' %}
         {% set lon_enlace = cliente.longitud if cliente.longitud not in (none, '') else '' %}
@@ -274,7 +274,7 @@
           </div>
           <div class="ubic-grid" style="margin-top:12px">
             <div>
-              <label for="eq_fecha">Fecha de instalación</label>
+              <label for="eq_fecha">Fecha de arranque de proyecto</label>
               <input id="eq_fecha" name="fecha_instalacion" type="date" value="{{ cliente.fecha_instalacion or '' }}">
             </div>
             <div></div>
@@ -355,7 +355,7 @@
           <div><label for="pr_tipo">Tipo de proyecto</label>
             <input id="pr_tipo" name="tipo" list="tiposProyecto" maxlength="60"
                    placeholder="Residencial, comercial, industrial…"></div>
-          <div><label for="pr_fecha">Fecha de instalación</label><input id="pr_fecha" name="fecha_instalacion" type="date"></div>
+          <div><label for="pr_fecha">Fecha de arranque de proyecto</label><input id="pr_fecha" name="fecha_instalacion" type="date"></div>
         </div>
         <div class="ubic-grid" style="margin-top:12px">
           <div><label for="pr_paneles">Paneles</label><input id="pr_paneles" name="paneles" placeholder="12 x JA Solar 550W"></div>

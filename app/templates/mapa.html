@@ -454,7 +454,7 @@
       '<dt>Inversores</dt><dd>' + dato(c.inversores) + '</dd>' +
       '<dt>Batería</dt><dd>' + bat + '</dd>' +
       '<dt>Capacidad</dt><dd>' + (num(c.capacidad_bateria) === null ? '—' : '<b>' + esc(c.capacidad_bateria) + '</b> kWh') + '</dd>' +
-      '<dt>Instalación</dt><dd>' + dato(c.fecha_instalacion) + '</dd></dl></div>' +
+      '<dt>Arranque de proyecto</dt><dd>' + dato(c.fecha_instalacion) + '</dd></dl></div>' +
       '<div class="fa"><a class="mp-btn" href="/clientes/' + encodeURIComponent(c.nic) + '">Ver ficha completa</a>' +
       '<a class="mp-btn sec" href="/clientes/nuevo" style="display:none"></a></div>';
     document.getElementById('ficha').innerHTML = h;
