@@ -572,6 +572,16 @@ async def _error_http(request: Request, exc: StarletteHTTPException):
         status_code=exc.status_code)
 
 
+def _js_version() -> str:
+    """Versión del editor de firmas para que el navegador no use uno viejo."""
+    try:
+        ruta = Path(__file__).resolve().parent / "static" / "js" / "editor_firma.js"
+        return str(int(ruta.stat().st_mtime))
+    except OSError:
+        return "1"
+
+
+templates.env.globals["js_version"] = _js_version
 templates.env.globals["dinero"] = _fmt_dinero
 templates.env.globals["moneda_nombre"] = db.nombre_moneda
 
@@ -1573,7 +1583,7 @@ def cotizaciones_firmar_form(request: Request, cotizacion_id: int):
         "activo": "cotizaciones", "cotizacion": cot, "firmas": firmas,
         "ancho_hoja": round(ancho, 1), "alto_hoja": round(alto, 1),
         "mensaje": request.query_params.get("mensaje", ""),
-    })
+    }, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/cotizaciones/{cotizacion_id}/firmar")
@@ -1590,16 +1600,20 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
     ancho_hoja, alto_hoja = _medidas_hoja()
     x = y = ancho_img = None
     if firma_id:
-        try:
-            x = float(cuerpo.get("x"))
-            y = float(cuerpo.get("y"))
-            ancho_img = float(cuerpo.get("ancho") or 160)
-        except (TypeError, ValueError):
-            raise HTTPException(400, "Datos de la firma inválidos")
         with db.sesion() as conn:
             firma = db.obtener_firma(conn, firma_id)
         if not firma:
             raise HTTPException(404, "Esa firma no existe")
+        try:
+            x = float(cuerpo.get("x"))
+            y = float(cuerpo.get("y"))
+            ancho_img = float(cuerpo.get("ancho") or firma.get("ancho") or 160)
+        except (TypeError, ValueError):
+            # el navegador no mandó la posición (editor que no cargó): se usa la
+            # que ya tiene la firma en vez de rechazar el guardado con un 400
+            ancho_img = float(firma.get("ancho") or 160)
+            x = float(firma["x"]) if firma.get("x") is not None else 60.0
+            y = float(firma["y"]) if firma.get("y") is not None else 130.0
         ancho_img = min(max(ancho_img, 40.0), ancho_hoja - 20)
         from .cotizacion_pdf import _alto_imagen
 

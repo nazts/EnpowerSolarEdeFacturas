@@ -503,3 +503,39 @@ def test_avisa_en_actividad_cuando_falta_la_imagen(tmp_path, monkeypatch, db_pat
         fila = c.execute("SELECT mensaje, detalle FROM eventos WHERE mensaje LIKE '%no está en el servidor%' "
                          "ORDER BY id DESC LIMIT 1").fetchone()
     assert fila is not None and "no-esta.png" in fila["detalle"]
+
+
+# ------------------------------- blindaje del guardado (hipótesis H1–H4)
+def test_si_el_navegador_no_manda_la_posicion_se_usa_la_de_la_firma(dueno, db_path):
+    """Un editor que no cargó no debe terminar en un 400: se usa lo que hay."""
+    _subir(dueno, _png())
+    with db.sesion() as conn:
+        firma_id = db.lista_firmas(conn)[0]["id"]
+    asyncio.run(dashboard.firmas_posicion(
+        request=Peticion(usuario=dueno, json_={"x": 180, "y": 140, "ancho": 150}),
+        firma_id=firma_id))
+    cot_id = _cotizacion_guardada(db_path)
+
+    r = asyncio.run(dashboard.cotizaciones_firmar(
+        request=Peticion(usuario=dueno, json_={"firma_id": firma_id}),   # sin x ni y
+        cotizacion_id=cot_id))
+    assert r.status_code == 200
+    with db.sesion() as conn:
+        cot = db.obtener_cotizacion(conn, cot_id)
+    assert cot["firma_id"] == firma_id
+    assert round(cot["firma_x"]) == 180 and round(cot["firma_y"]) == 140
+
+
+def test_la_pantalla_de_firmar_no_se_cachea_y_el_js_va_con_version():
+    from pathlib import Path
+
+    html = (Path(__file__).resolve().parent.parent / "app" / "templates"
+            / "cotizacion_firmar.html").read_text(encoding="utf-8")
+    assert "editor_firma.js?v={{ js_version }}" in html
+    assert "POS_GUARDADA" in html                      # la posición se aplica una vez
+    assert "primeraVez" in html
+    assert "typeof EditorFirma === 'undefined'" in html  # avisa si el JS no cargó
+    assert "numeroDe('px'" in html                     # manda lo que se ve en pantalla
+    # re-elegir la misma firma no debe borrar el arrastre
+    assert "firmaActual" in html
+    assert "=== String(firmaActual) && editor" in html
