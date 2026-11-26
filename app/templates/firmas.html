@@ -154,7 +154,7 @@
 
 <div class="panel">
   <h2><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Agregar una firma o sello</h2>
-  <form class="cuerpo subida" method="post" action="/firmas" enctype="multipart/form-data">
+  <form class="cuerpo subida" method="post" action="/firmas" enctype="multipart/form-data" data-cargando="Subiendo la firma…">
     <label class="soltar" id="soltar">
       <input id="archivo" name="archivo" type="file" accept="image/png">
       <span class="icono"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i></span>
@@ -398,6 +398,7 @@
     boton.disabled = true;
     avisar('');
     boton.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando…';
+    cargando('Guardando la posición…');
     fetch('/firmas/' + firmaId + '/posicion', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(p)
@@ -414,6 +415,7 @@
                       '#firma-' + firmaId;
     }).catch(function(err){
       boton.disabled = false;
+      listo();
       boton.innerHTML = '<i class="bi bi-check2"></i> Guardar posición';
       avisar('No se guardó. ' + err.message);
     });

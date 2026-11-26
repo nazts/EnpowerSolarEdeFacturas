@@ -260,6 +260,7 @@
   function guardar(firmaId, datos){
     boton.disabled = true;
     avisar('');
+    cargando(firmaId ? 'Sellando la firma…' : 'Quitando la firma…');
     return fetch('/cotizaciones/' + COTIZACION + '/firmar', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(datos)
@@ -272,6 +273,7 @@
       window.location.href = '/cotizaciones/{{ cotizacion.id }}/firmar?mensaje=firmada';
     }).catch(function(err){
       boton.disabled = false;
+      listo();
       avisar('No se guardó. ' + err.message);
     });
   }

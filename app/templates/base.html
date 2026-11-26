@@ -152,6 +152,20 @@
   #toast.malo{border-color:var(--bad)}
   @media(max-width:768px){ #toast{left:14px;right:14px;bottom:14px;max-width:none} }
 
+  /* ---------- Cargando (bloquea el doble clic y muestra que se está trabajando) ---------- */
+  #cargando{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
+    background:var(--backdrop);-webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px)}
+  #cargando.visible{display:flex}
+  #cargando .caja{display:flex;flex-direction:column;align-items:center;gap:14px;min-width:220px;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 34px;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);color:var(--txt);font-size:14px;text-align:center}
+  #cargando .rueda{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);
+    border-top-color:var(--accent);animation:gira .8s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){
+    #cargando .rueda{animation:none;border-style:dotted;border-color:var(--accent)}
+  }
+
   @media(max-width:768px){
     aside#sidebar{transform:translateX(calc(-100% - 20px));width:min(280px,82vw)}
     body.side-abierto aside#sidebar{transform:none}
@@ -291,7 +305,44 @@
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="cargando" role="status" aria-live="assertive">
+  <div class="caja">
+    <div class="rueda" aria-hidden="true"></div>
+    <div id="cargandoTxt">Procesando…</div>
+  </div>
+</div>
 <script>
+/* Feedback de carga: un velo con rueda que además bloquea el doble clic. */
+var __cgInicio = 0, __cgTimer = null;
+function cargando(msg){
+  var c = document.getElementById('cargando'), t = document.getElementById('cargandoTxt');
+  if(!c) return;
+  t.textContent = msg || 'Procesando…';
+  c.classList.add('visible');
+  document.body.setAttribute('aria-busy', 'true');
+  __cgInicio = Date.now();
+  clearTimeout(__cgTimer);
+}
+function listo(){
+  var c = document.getElementById('cargando');
+  if(!c) return;
+  var resta = 350 - (Date.now() - __cgInicio);   // mínimo visible: que no parpadee
+  __cgTimer = setTimeout(function(){
+    c.classList.remove('visible');
+    document.body.removeAttribute('aria-busy');
+  }, resta > 0 ? resta : 0);
+}
+window.cargando = cargando;
+window.listo = listo;
+/* Todo formulario muestra el velo al enviarse (y bloquea el segundo clic).
+   Va en fase de burbuja: si un onsubmit pide confirmación y se cancela,
+   el evento no llega aquí y el velo no se queda colgado. */
+document.addEventListener('submit', function(e){
+  var f = e.target;
+  if(!(f instanceof HTMLFormElement)) return;
+  cargando(f.getAttribute('data-cargando') || 'Procesando…');
+});
+
 function toast(txt, ok){
   var t = document.getElementById('toast');
   if(!t) return;
@@ -304,19 +355,19 @@ async function accionTelegram(btn){
   if(btn.disabled) return;
   btn.disabled = true;
   btn.setAttribute('aria-busy','true');
-  toast('Enviando mensaje de prueba…');
+  cargando('Enviando mensaje de prueba…');
   try{
     const r = await fetch('/api/test-telegram', {method:'POST'});
     const d = await r.json();
     toast(d.ok ? 'Mensaje enviado al canal ✓' : ('Telegram: ' + d.error), d.ok);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
-  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
+  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); listo(); }
 }
 async function accionHistorial(btn){
   if(btn.disabled) return;
   btn.disabled = true;
   btn.setAttribute('aria-busy','true');
-  toast('Guardando las últimas facturas de cada cliente…');
+  cargando('Guardando las últimas facturas de cada cliente…');
   try{
     const r = await fetch('/api/historial', {method:'POST'});
     const d = await r.json();
@@ -326,13 +377,13 @@ async function accionHistorial(btn){
           (e.length ? ' · ' + e.length + ' con problema: ' + (e[0].error||'') : ''), !e.length);
     setTimeout(function(){ location.reload(); }, 1800);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
-  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
+  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); listo(); }
 }
 async function accionCorrer(btn){
   if(btn.disabled) return;
   btn.disabled = true;
   btn.setAttribute('aria-busy','true');
-  toast('Escaneando Edenorte y Edesur…');
+  cargando('Escaneando Edenorte y Edesur…');
   try{
     const r = await fetch('/api/corrida', {method:'POST'});
     const d = await r.json();
@@ -343,7 +394,7 @@ async function accionCorrer(btn){
           (e.length ? ' · ' + e.length + ' con problema: ' + (e[0].error||'') : ''), !e.length);
     setTimeout(function(){ location.reload(); }, 1500);
   }catch(e){ toast('No se pudo conectar con el servidor', false); }
-  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); }
+  finally{ btn.disabled = false; btn.removeAttribute('aria-busy'); listo(); }
 }
 (function(){
   var b = document.body, KEY = 'sidebar-min';
