@@ -158,6 +158,33 @@ CREATE TABLE IF NOT EXISTS eventos (
     detalle    TEXT NOT NULL DEFAULT '',
     usuario    TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS plantas_noor (
+    serial_number TEXT PRIMARY KEY,
+    nic           TEXT,
+    dtc           INTEGER,
+    alias         TEXT NOT NULL DEFAULT '',
+    activo        INTEGER NOT NULL DEFAULT 1,
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_plantas_noor_nic ON plantas_noor(nic);
+
+CREATE TABLE IF NOT EXISTS historial_potencia (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    serial_number TEXT NOT NULL,
+    timestamp     TEXT NOT NULL,
+    pv_w          REAL,
+    carga_w       REAL,
+    red_w         REAL,
+    bateria_w     REAL,
+    soc           REAL,
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(serial_number, timestamp)
+);
+
+CREATE INDEX IF NOT EXISTS idx_historial_potencia_sn_ts ON historial_potencia(serial_number, timestamp DESC);
 """
 
 
@@ -1166,3 +1193,40 @@ if __name__ == "__main__":
                       "usuarios", "proyectos", "eventos"):
             n = conn.execute(f"SELECT COUNT(*) AS n FROM {tabla}").fetchone()["n"]
             print(f"  {tabla:12} {n}")
+
+
+# ----------------------------------------------------- plantas Noor + historial
+def guardar_snapshot(
+    conn: sqlite3.Connection,
+    serial_number: str,
+    timestamp: str,
+    pv_w: float | None,
+    carga_w: float | None,
+    red_w: float | None,
+    bateria_w: float | None,
+    soc: float | None,
+) -> None:
+    """Guarda un snapshot de potencia en historial_potencia (INSERT OR IGNORE)."""
+    conn.execute(
+        """INSERT OR IGNORE INTO historial_potencia
+           (serial_number, timestamp, pv_w, carga_w, red_w, bateria_w, soc)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (serial_number, timestamp, pv_w, carga_w, red_w, bateria_w, soc),
+    )
+    conn.commit()
+
+
+def historial_planta(
+    conn: sqlite3.Connection,
+    serial_number: str,
+    inicio: str,
+    fin: str,
+) -> list[sqlite3.Row]:
+    """Devuelve el historial de potencia de una planta entre dos timestamps ISO."""
+    return conn.execute(
+        """SELECT timestamp, pv_w, carga_w, red_w, bateria_w, soc
+           FROM historial_potencia
+           WHERE serial_number = ? AND timestamp BETWEEN ? AND ?
+           ORDER BY timestamp""",
+        (serial_number, inicio, fin),
+    ).fetchall()

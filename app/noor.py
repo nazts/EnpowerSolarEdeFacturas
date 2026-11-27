@@ -207,3 +207,34 @@ def _cargar_traduccion() -> dict:
 def traducir_alarma(label_en: str) -> str:
     """Traduce la etiqueta de una alarma al español (vacía si no la conoce)."""
     return _cargar_traduccion().get(label_en, label_en)
+
+
+def capturar_snapshot(serial_number: str) -> dict[str, float | None]:
+    """Captura un snapshot de potencia en tiempo real de una planta.
+    
+    Devuelve dict con pv_w, carga_w, red_w, bateria_w, soc (None si no disponible).
+    Lanza excepción si falla la API.
+    """
+    try:
+        la = login()
+        H = _headers(la)
+        r = requests.get(
+            f"{BASE}/api/RunInfo/getMgrnRunInfo",
+            params={"deviceSn": serial_number},
+            headers=H,
+            timeout=30,
+        )
+        r.raise_for_status()
+        j = r.json()
+        if not j.get("success"):
+            raise RuntimeError(f"API error: {j.get('errMessage', 'unknown')}")
+        d = j.get("data") or {}
+        return {
+            "pv_w": d.get("pvPower"),  # potencia solar (W)
+            "carga_w": d.get("loadPower"),  # consumo casa (W)
+            "red_w": d.get("gridPower"),  # red (positivo=importa, negativo=exporta)
+            "bateria_w": d.get("batteryPower"),  # batería (positivo=carga, negativo=descarga)
+            "soc": d.get("soc"),  # estado de carga (0-100)
+        }
+    except Exception as exc:
+        raise RuntimeError(f"Error al capturar snapshot de {serial_number}: {exc}") from exc

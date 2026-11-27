@@ -40,26 +40,30 @@
   .mn-periodos{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
   .mn-periodos button{flex:1;min-width:52px;padding:7px 4px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;font-weight:600}
   .mn-periodos button.activo{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
-  .mn-metricas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .mn-metricas .m{background:var(--card2);border-radius:14px;padding:11px 13px}
-  .mn-metricas .m b{display:block;font-family:'Genos',monospace;font-size:21px;font-weight:600;color:var(--txt);line-height:1.05}
-  .mn-metricas .m small{color:var(--muted);font-size:11px;display:block;margin-top:1px}
-  .mn-metricas .m small:first-child{margin-bottom:3px}
-  .mn-extra{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
-  .mn-extra .e{background:var(--card2);border-radius:12px;padding:10px 12px;text-align:center}
-  .mn-extra .e b{display:block;font-family:'Genos',monospace;font-size:17px;font-weight:600;color:var(--txt)}
-  .mn-extra .e small{color:var(--muted);font-size:10.5px}
   .mn-cols{display:grid;grid-template-columns:minmax(340px,1.15fr) minmax(280px,.85fr);gap:14px}
   .mn-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
   .mn-panel > h4{margin:0;padding:12px 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
   .mn-panel .mn-body{padding:14px 16px}
-  /* flujo */
-  .mn-flujo{width:100%;height:auto;display:block}
-  .mn-flujo .nodo text{font-size:13px;font-weight:600;fill:var(--txt)}
-  .mn-flujo .nodo .sub{font-size:11px;fill:var(--muted);font-weight:400}
-  .mn-flujo .nodo circle{stroke:var(--line);stroke-width:1.5}
-  .mn-flujo .line{stroke-dasharray:7 6;animation:mn-flujo 1.1s linear infinite;opacity:.9}
-  @keyframes mn-flujo{to{stroke-dashoffset:-13}}
+  /* escena isométrica 2.5D */
+  .mn-scene{width:100%;height:auto;display:block;color:var(--txt)}
+  .sc-solar{--c:var(--accent2,#E8A33D)} .sc-red{--c:var(--info,#3E7CB1)} .sc-casa{--c:var(--ok,#2F9E44)} .sc-bat{--c:var(--accent,#7A5CC7)}
+  .sc-l{fill:var(--card2);fill:color-mix(in srgb,var(--c) 22%,var(--card2));stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+  .sc-r{fill:var(--card);fill:color-mix(in srgb,var(--c) 34%,var(--card));stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+  .sc-t{fill:var(--card);fill:color-mix(in srgb,var(--c) 52%,var(--card));stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+  .sc-roof{fill:var(--c);fill-opacity:.8;stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+  .sc-roof2{fill:var(--c);fill-opacity:.55;stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+  .sc-cell{fill:var(--c);transition:fill-opacity .6s}
+  .sc-pole{stroke:var(--muted);stroke-width:4;stroke-linecap:round;fill:none}
+  .sc-ground{fill:var(--line);fill-opacity:.35}
+  .sc-sun{fill:var(--accent2,#E8A33D)}
+  .sc-rays{stroke:var(--accent2,#E8A33D);stroke-width:2.5;stroke-linecap:round;transform-origin:70px 55px;animation:mn-gira 24s linear infinite}
+  @keyframes mn-gira{to{transform:rotate(360deg)}}
+  .sc-nm{font-size:12px;font-weight:700;fill:var(--muted);text-anchor:middle;letter-spacing:.5px;text-transform:uppercase;paint-order:stroke;stroke:var(--card);stroke-width:4px}
+  .sc-val{font-family:'Genos',monospace;font-size:21px;font-weight:600;fill:var(--txt);text-anchor:middle;paint-order:stroke;stroke:var(--card);stroke-width:4px}
+  .sc-val .u{font-size:12px;fill:var(--muted)}
+  .sc-flow{fill:none;stroke-linecap:round;stroke-dasharray:8 7;animation:mn-flujo 1s linear infinite}
+  .sc-flowbg{fill:none;stroke-linecap:round;opacity:.16}
+  @keyframes mn-flujo{to{stroke-dashoffset:-15}}
   /* kpis grandes en vivo */
   .mn-live{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
   .mn-live .k{background:var(--card2);border-radius:14px;padding:12px 14px}
@@ -80,7 +84,47 @@
   .mn-vinc .mn-row{display:flex;gap:8px}
   .mn-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--on-accent);padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
   .mn-toast.show{opacity:1}
-  @media (max-width:900px){.mn-cols{grid-template-columns:1fr}}
+  /* galaxia de estadísticas */
+  .mn-galaxia{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .mn-galaxia::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 15% 0%,var(--accent2,#E8A33D) 0,transparent 55%),radial-gradient(ellipse at 90% 100%,var(--accent,#7A5CC7) 0,transparent 55%);opacity:.10}
+  .mn-galaxia > *{position:relative}
+  .mn-galaxia > .mn-stars{position:absolute;inset:0;pointer-events:none;z-index:0}
+  .mn-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:var(--accent2,#E8A33D);opacity:.15;animation:mn-twk 3s ease-in-out infinite}
+  @keyframes mn-twk{0%,100%{opacity:.08;transform:scale(.8)}50%{opacity:.6;transform:scale(1.5)}}
+  .mn-gtit{margin:0 0 12px;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)}
+  .mn-curva{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:4px 0 14px;min-height:150px;position:relative}
+  .mn-curva svg{width:100%;height:auto;display:block}
+  .mn-curva .vacio{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:var(--muted);font-size:13px}
+  .cv-grid{stroke:var(--line);stroke-width:1}
+  .cv-ax{fill:var(--muted);font-size:10.5px}
+  .cv-line{fill:none;stroke:var(--accent2,#E8A33D);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+  .cv-avg{fill:none;stroke:var(--accent,#7A5CC7);stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round}
+  .cv-pk{fill:var(--accent2,#E8A33D);stroke:var(--card);stroke-width:2}
+  .cv-pkt{fill:var(--txt);font-family:'Genos',monospace;font-size:13px;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:var(--card2);stroke-width:3px}
+  .cv-dot{fill:var(--card,#fff);stroke:var(--accent2,#E8A33D);stroke-width:3}
+  .cv-leg{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin:-8px 0 12px 2px;flex-wrap:wrap}
+  .cv-leg span::before{content:"";display:inline-block;width:16px;height:0;border-top:2.5px solid var(--accent2,#E8A33D);margin-right:6px;vertical-align:middle}
+  .cv-leg span.a::before{border-top:2px dashed var(--accent,#7A5CC7)}
+  .mn-g6{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .mn-g6 .m{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
+  .mn-g6 .m small{display:block;color:var(--muted);font-size:11.5px}
+  .mn-g6 .m b{display:block;font-family:'Genos',monospace;font-size:25px;font-weight:600;color:var(--txt);line-height:1.1}
+  .mn-g6 .m b i{font-style:normal;font-size:12px;color:var(--muted);margin-left:4px}
+  .mn-bar{height:5px;border-radius:99px;background:var(--line);margin-top:7px;overflow:hidden}
+  .mn-bar span{display:block;height:100%;width:0;border-radius:99px;background:var(--c,var(--accent));transition:width .9s ease}
+  .mn-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .mn-g3 .bg{background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:130px}
+  .mn-g3 .bg small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.7px}
+  .mn-g3 .bg b{font-family:'Genos',monospace;font-size:34px;font-weight:600;color:var(--txt);line-height:1.1}
+  .mn-g3 .bg b i{font-style:normal;font-size:15px;color:var(--muted);margin-left:4px}
+  .mn-ring{position:relative;width:104px;height:104px}
+  .mn-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .mn-ring .t{fill:none;stroke:var(--line);stroke-width:9}
+  .mn-ring .p{fill:none;stroke:var(--accent2,#E8A33D);stroke-width:9;stroke-linecap:round;stroke-dasharray:276.46;stroke-dashoffset:276.46;transition:stroke-dashoffset 1s ease}
+  .mn-ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .mn-ring b i{font-size:13px;margin-left:1px}
+  @media (max-width:900px){.mn-cols{grid-template-columns:1fr}.mn-g6{grid-template-columns:1fr 1fr}}
+  @media (max-width:600px){.mn-wrap{padding:12px}.mn-g6,.mn-g3{grid-template-columns:1fr}.mn-periodos{display:grid;grid-template-columns:repeat(5,1fr);width:100%}.mn-periodos button{min-width:0}.mn-galaxia{padding:12px}}
 </style>{% endblock %}
 
 {% block contenido %}
@@ -115,27 +159,13 @@
 
     <div class="mn-cols">
       <div class="mn-panel">
-        <h4>Flujo de energía (hoy)</h4>
-        <div class="mn-body"><svg id="mnFlujoSvg" class="mn-flujo" viewBox="0 0 500 330" role="img" aria-label="Diagrama de flujo de energía"></svg></div>
+        <h4>Flujo de energía (en vivo)</h4>
+        <div class="mn-body"><svg id="mnFlujoSvg" class="mn-scene" viewBox="0 0 640 410" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Escena isométrica de flujo de energía"></svg></div>
         <h4>Potencia en vivo</h4>
         <div class="mn-body"><div class="mn-live" id="mnLive"></div></div>
       </div>
 
       <div style="display:grid;gap:14px;align-content:start">
-        <div class="mn-panel">
-          <h4>Energía</h4>
-          <div class="mn-body">
-            <div class="mn-periodos" id="mnPeriodos">
-              <button data-p="today" class="activo">Hoy</button>
-              <button data-p="week">Semana</button>
-              <button data-p="month">Mes</button>
-              <button data-p="year">Año</button>
-              <button data-p="total">Total</button>
-            </div>
-            <div class="mn-metricas" id="mnMetricas"></div>
-            <div class="mn-extra" id="mnExtra"></div>
-          </div>
-        </div>
         <div class="mn-panel">
           <h4>Alarmas</h4>
           <div class="mn-body"><div id="mnAlarmas"></div></div>
@@ -146,6 +176,28 @@
         </div>
       </div>
     </div>
+
+    <section class="mn-galaxia" id="mnGalaxia">
+      <div class="mn-stars" id="mnStars" aria-hidden="true"></div>
+      <h3 class="mn-gtit">Energía · galaxia solar</h3>
+      <div class="mn-periodos" id="mnPeriodos">
+        <button data-p="today" class="activo">Hoy</button>
+        <button data-p="week">Semana</button>
+        <button data-p="month">Mes</button>
+        <button data-p="year">Año</button>
+        <button data-p="total">Total</button>
+      </div>
+      <div class="mn-curva" id="mnCurva"><div class="vacio">Cargando curva de luz…</div></div>
+      <div class="cv-leg"><span>Producción solar (kWh)</span><span class="a">Media móvil</span></div>
+      <div class="mn-g6" id="mnG6"></div>
+      <div class="mn-g3">
+        <div class="bg"><small>Ahorro</small><b><span id="mnAhorro">—</span><i>$</i></b></div>
+        <div class="bg"><small>CO₂ evitado</small><b><span id="mnCo2">—</span><i>kg</i></b></div>
+        <div class="bg"><small>Independencia de red</small>
+          <div class="mn-ring"><svg viewBox="0 0 100 100"><circle class="t" cx="50" cy="50" r="44"/><circle class="p" id="mnAnillo" cx="50" cy="50" r="44"/></svg><b><span id="mnIndep">—</span><i>%</i></b></div>
+        </div>
+      </div>
+    </section>
 
     <div id="mnVincular" class="mn-vinc" hidden>
       <p>Esta planta no está vinculada a un contrato de la base de datos.</p>
@@ -169,7 +221,7 @@
   var animando = false;
 
   // colores semánticos de los nodos
-  var COLOR = { solar:'#E8A33D', red:'#3E7CB1', casa:'#2F9E44', bateria:'#7A5CC7' };
+  var COLOR = { solar:'var(--accent2,#E8A33D)', red:'var(--info,#3E7CB1)', casa:'var(--ok,#2F9E44)', bateria:'var(--accent,#7A5CC7)' };
   var NODO_DE = {
     'Solar':'solar', 'Grid Input':'red', 'Grid Output':'red',
     'Battery Charge':'bateria', 'Battery Discharge':'bateria',
@@ -231,6 +283,7 @@
     $('#mnDetalle').hidden = false;
     suavizado = {};
     periodoActual = 'today';
+    curvaKey = null;
     window.scrollTo(0,0);
     fetchDetalle(true);
     if (timerDetalle) clearInterval(timerDetalle);
@@ -282,10 +335,8 @@
     pintarLive(d.energia, inicial);
     // energía por periodo (pestañas) — respeta la pestaña elegida
     cargarPeriodo(periodoActual);
-    // flujo
-    pintarFlujo(d.flujo);
-    if (h.potencia_red != null) $('#mnNodo-red').textContent = fmt(h.potencia_red,2)+' kW';
-    if (h.potencia_bateria != null) $('#mnNodo-bateria').textContent = fmt(h.potencia_bateria,2)+' kW' + (h.soc != null ? ' · '+h.soc+'%' : '');
+    // flujo (escena isométrica)
+    pintarFlujo(d.flujo, d.energia, h);
     // alarmas
     pintarAlarmas(d.alarmas);
     // equipo + firmware
@@ -336,79 +387,252 @@
     _raf[clave] = requestAnimationFrame(function(){ animarNumero(el, clave, objetivo, dec); });
   }
 
+  // ---- energía por periodo (galaxia) ----
   var periodoActual = 'today';
+  var G6 = [
+    ['pvElectrical','Generación solar (PV)','var(--accent2,#E8A33D)'],
+    ['loadElectrical','Consumo (carga)','var(--ok,#2F9E44)'],
+    ['pvTrade','Exportado a la red','var(--info,#3E7CB1)'],
+    ['purchasingTotalEnergy','Importado de la red','var(--bad,#C0392B)'],
+    ['batCharge','Batería cargada','var(--accent,#7A5CC7)'],
+    ['batDischarge','Batería descargada','var(--warn,#D68910)']
+  ];
+  var curvaKey = null;
+  function initGalaxia(){
+    var st = $('#mnStars');
+    if (!st.dataset.init){
+      var h = '';
+      for (var i=0;i<46;i++) h += '<i style="left:'+(Math.random()*100).toFixed(1)+'%;top:'+(Math.random()*100).toFixed(1)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s;animation-duration:'+(2+Math.random()*3).toFixed(1)+'s"></i>';
+      st.innerHTML = h; st.dataset.init = '1';
+    }
+    var g = $('#mnG6');
+    if (!g.dataset.init){
+      g.innerHTML = G6.map(function(m){
+        return '<div class="m" style="--c:'+m[2]+'"><small>'+m[1]+'</small><b><span id="mnM-'+m[0]+'">—</span><i>kWh</i></b><div class="mn-bar"><span id="mnB-'+m[0]+'"></span></div></div>';
+      }).join('');
+      g.dataset.init = '1';
+    }
+  }
   function cargarPeriodo(p){
     periodoActual = p;
     Array.prototype.forEach.call(document.querySelectorAll('#mnPeriodos button'), function(b){
       b.className = (b.dataset.p === p) ? 'activo' : '';
     });
-    fetch('/api/monitoreo/planta/'+plantaActual+'/energia?periodo='+p).then(function(r){ return r.json(); }).then(function(d){
+    initGalaxia();
+    var id = plantaActual;
+    fetch('/api/monitoreo/planta/'+id+'/energia?periodo='+p).then(function(r){ return r.json(); }).then(function(d){
       if (d.error) throw new Error(d.error);
-      pintarMetricas(d.resumen);
-    }).catch(function(){ $('#mnMetricas').innerHTML = '<div class="mn-vacio">Sin datos</div>'; });
+      if (id !== plantaActual || p !== periodoActual) return;   // respuesta tardía
+      pintarMetricas(d.resumen || {}, p);
+    }).catch(function(){ if (id === plantaActual && p === periodoActual) pintarMetricas({}, p); });
+    cargarCurva(p);
   }
-  function pintarMetricas(r){
-    function fe(v){
-      if (v == null) return '<b>—</b><small></small>';
-      var m = Math.abs(v) >= 1000;
-      return '<b>'+fmt(m ? v/1000 : v, 1)+'</b><small>'+(m?'MWh':'kWh')+'</small>';
+  function numDec(v){ return Math.abs(v) >= 1000 ? 0 : 1; }
+  function pintarMetricas(r, p){
+    var max = 0;
+    G6.forEach(function(m){ var v = Number(r[m[0]]); if (!isNaN(v) && v > max) max = v; });
+    G6.forEach(function(m){
+      var el = $('#mnM-'+m[0]), bar = $('#mnB-'+m[0]), v = r[m[0]];
+      if (v == null || isNaN(v)){ el.textContent = '—'; bar.style.width = '0'; return; }
+      v = Number(v);
+      animarNumero(el, 'g_'+m[0]+'_'+p, v, numDec(v));
+      bar.style.width = (max > 0 ? Math.max(2, Math.min(100, v/max*100)) : 0).toFixed(0) + '%';
+    });
+    function big(sel, clave, v, dec){
+      var el = $(sel);
+      if (v == null || isNaN(v)){ el.textContent = '—'; return; }
+      animarNumero(el, clave+'_'+p, Number(v), dec);
     }
-    $('#mnMetricas').innerHTML =
-      '<div class="m"><small>Generación solar (PV)</small>'+fe(r.pvElectrical)+'</div>' +
-      '<div class="m"><small>Consumo (carga)</small>'+fe(r.loadElectrical)+'</div>' +
-      '<div class="m"><small>Exportado a la red</small>'+fe(r.pvTrade)+'<small>Importado de la red</small>'+fe(r.purchasingTotalEnergy)+'</div>' +
-      '<div class="m"><small>Batería cargada</small>'+fe(r.batCharge)+'<small>Batería descargada</small>'+fe(r.batDischarge)+'</div>';
-    var ex = [];
-    if (r.totalRevenue != null) ex.push('<div class="e"><b>$'+fmt(r.totalRevenue,0)+'</b><small>Ahorro</small></div>');
-    if (r.co2Awolided != null) ex.push('<div class="e"><b>'+fmt(r.co2Awolided,0)+' kg</b><small>CO₂ evitado</small></div>');
-    if (r.gridIndependenceRate != null) ex.push('<div class="e"><b>'+fmt(r.gridIndependenceRate,0)+'%</b><small>Independencia de red</small></div>');
-    $('#mnExtra').innerHTML = ex.join('');
+    big('#mnAhorro', 'gAhorro', r.totalRevenue, 0);
+    big('#mnCo2', 'gCo2', r.co2Awolided, 0);
+    big('#mnIndep', 'gIndep', r.gridIndependenceRate, 0);
+    var ind = Number(r.gridIndependenceRate);
+    $('#mnAnillo').style.strokeDashoffset = (r.gridIndependenceRate == null || isNaN(ind) ? 276.46 : 276.46*(1 - Math.max(0, Math.min(100, ind))/100)).toFixed(1);
   }
 
-  // ---- flujo (SVG, power-flow 2D) ----
-  var POS = { solar:[120,90], red:[120,250], casa:[400,90], bateria:[400,250] };
-  var ETIQ = { solar:'Solar', red:'Red', casa:'Casa', bateria:'Batería' };
-  function pintarFlujo(flujo){
+  // ---- curva de luz (producción por hora/día/mes) ----
+  var MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function curvaMsg(txt){ curvaKey = null; $('#mnCurva').innerHTML = '<div class="vacio">'+esc(txt)+'</div>'; }
+  function cargarCurva(p){
+    if (p === 'total'){ curvaMsg('«Total» no tiene serie horaria. Elige Hoy, Semana, Mes o Año para ver la curva de luz.'); return; }
+    var id = plantaActual;
+    fetch('/api/monitoreo/planta/'+id+'/chart?periodo='+p).then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) throw new Error(d.error);
+      if (id !== plantaActual || p !== periodoActual) return;
+      pintarCurva(d.serie || [], p);
+    }).catch(function(){ if (id === plantaActual && p === periodoActual) curvaMsg('No se pudo cargar la curva de producción.'); });
+  }
+  function agrupar(serie, p){
+    var cub = {}, orden = [];
+    serie.forEach(function(pt){
+      var t = String(pt.time || ''); if (t.length < 10) return;
+      var k;
+      if (p === 'today') k = t.slice(11, 13);
+      else if (p === 'year') k = t.slice(0, 7);
+      else k = t.slice(0, 10);
+      if (!(k in cub)){ cub[k] = 0; orden.push(k); }
+      cub[k] += Number(pt.pvEnergyGenerated) || 0;
+    });
+    if (p === 'today'){
+      orden = [];
+      for (var h=0; h<24; h++){ var kk = (h<10?'0':'')+h; orden.push(kk); if (!(kk in cub)) cub[kk] = 0; }
+    } else orden.sort();
+    return orden.map(function(k){
+      var lab = (p === 'today') ? (k+'h') : (p === 'year') ? (MESES[Number(k.slice(5,7))-1] || k) : k.slice(8,10)+'/'+k.slice(5,7);
+      return { k:k, lab:lab, v:cub[k] };
+    });
+  }
+  function suave(pts){
+    if (pts.length < 2) return 'M'+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);
+    var d = 'M'+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);
+    for (var i=1;i<pts.length-1;i++){
+      var mx = (pts[i][0]+pts[i+1][0])/2, my = (pts[i][1]+pts[i+1][1])/2;
+      d += ' Q'+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1)+' '+mx.toFixed(1)+' '+my.toFixed(1);
+    }
+    var l = pts[pts.length-1];
+    return d + ' L'+l[0].toFixed(1)+' '+l[1].toFixed(1);
+  }
+  function pintarCurva(serie, p){
+    var datos = agrupar(serie, p);
+    var pico = 0, ip = -1;
+    datos.forEach(function(x,i){ if (x.v > pico){ pico = x.v; ip = i; } });
+    if (!datos.length || pico <= 0){ curvaMsg('Sin producción registrada en este periodo.'); return; }
+    var key = p + '|' + datos.map(function(x){ return x.v.toFixed(2); }).join(',');
+    if (key === curvaKey) return;      // sin cambios (poll de 10s): no reiniciar la animación
+    curvaKey = key;
+    var W = 800, H = 230, pl = 40, pr = 14, pt = 26, pb = 28, iw = W-pl-pr, ih = H-pt-pb;
+    var ymax = pico*1.15, n = datos.length;
+    function X(i){ return pl + (n === 1 ? iw/2 : i*iw/(n-1)); }
+    function Y(v){ return pt + ih - (v/ymax)*ih; }
+    var pts = datos.map(function(x,i){ return [X(i), Y(x.v)]; });
+    var avg = datos.map(function(x,i){
+      var s = 0, c = 0; for (var j=i-1;j<=i+1;j++){ if (j>=0 && j<n){ s += datos[j].v; c++; } }
+      return [X(i), Y(s/c)];
+    });
+    var linea = suave(pts);
+    var area = linea + ' L'+X(n-1).toFixed(1)+' '+(pt+ih)+' L'+X(0).toFixed(1)+' '+(pt+ih)+' Z';
+    var grid = '';
+    for (var g=0; g<=4; g++){
+      var gy = pt + ih*g/4, val = ymax*(1-g/4);
+      grid += '<line class="cv-grid" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+gy.toFixed(1)+'" y2="'+gy.toFixed(1)+'" opacity="'+(g===4?1:.5)+'"/>' +
+              '<text class="cv-ax" x="'+(pl-6)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end">'+fmt(val, ymax>=10?0:1)+'</text>';
+    }
+    var paso = Math.max(1, Math.ceil(n/8)), ejes = '';
+    datos.forEach(function(x,i){
+      if (i % paso === 0) ejes += '<text class="cv-ax" x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+esc(x.lab)+'</text>';
+    });
+    var px = pts[ip][0], py = pts[ip][1];
+    var tx = Math.max(70, Math.min(W-70, px));
+    var svg = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Curva de producción solar">' +
+      '<defs><linearGradient id="mnCvG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent2,#E8A33D)" stop-opacity=".45"/><stop offset="1" stop-color="var(--accent2,#E8A33D)" stop-opacity="0"/></linearGradient></defs>' +
+      grid + ejes +
+      '<path d="'+area+'" fill="url(#mnCvG)"/>' +
+      '<path class="cv-avg" d="'+suave(avg)+'"/>' +
+      '<path class="cv-line" id="mnCvPath" d="'+linea+'"/>' +
+      '<circle class="cv-pk" cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="5"/>' +
+      '<text class="cv-pkt" x="'+tx.toFixed(1)+'" y="'+Math.max(12, py-11).toFixed(1)+'">Pico '+fmt(pico, pico>=10?0:2)+' kWh · '+esc(datos[ip].lab)+'</text>' +
+      '<circle class="cv-dot" r="5"><animateMotion dur="7s" repeatCount="indefinite"><mpath href="#mnCvPath"/></animateMotion></circle>' +
+      '</svg>';
+    $('#mnCurva').innerHTML = svg;
+  }
+
+  // ---- escena isométrica 2.5D ----
+  var K = 0.866;
+  function isoBox(x, y, a, b, h){
+    // (x,y) = vértice inferior frontal; a = lado derecho, b = lado izquierdo, h = alto
+    var F=[x,y], R=[x+a*K,y-a*.5], Lf=[x-b*K,y-b*.5], B=[Lf[0]+a*K,Lf[1]-a*.5];
+    function pt(p,dy){ return p[0].toFixed(1)+','+(p[1]-dy).toFixed(1); }
+    return '<polygon class="sc-l" points="'+pt(Lf,0)+' '+pt(F,0)+' '+pt(F,h)+' '+pt(Lf,h)+'"/>' +
+           '<polygon class="sc-r" points="'+pt(F,0)+' '+pt(R,0)+' '+pt(R,h)+' '+pt(F,h)+'"/>' +
+           '<polygon class="sc-t" points="'+pt(Lf,h)+' '+pt(F,h)+' '+pt(R,h)+' '+pt(B,h)+'"/>';
+  }
+  var ANCLA = { solar:[165,150], casa:[470,185], bateria:[175,305], red:[565,265] };
+  function escenaBase(){
+    var s = '', i, k, c;
+    s += '<polygon class="sc-ground" points="320,400 40,300 320,215 600,300"/>';
+    // sol
+    s += '<g id="mnSol"><g class="sc-rays">';
+    for (i=0;i<12;i++){ var an=i*Math.PI/6; s += '<line x1="'+(70+Math.cos(an)*26).toFixed(1)+'" y1="'+(55+Math.sin(an)*26).toFixed(1)+'" x2="'+(70+Math.cos(an)*36).toFixed(1)+'" y2="'+(55+Math.sin(an)*36).toFixed(1)+'"/>'; }
+    s += '</g><circle class="sc-sun" cx="70" cy="55" r="17"/></g>';
+    // paneles solares (3 losas)
+    s += '<g class="sc-solar">';
+    for (k=2;k>=0;k--) s += isoBox(110 + k*K*30, 168 - k*15, 28, 44, 6);
+    s += '</g>';
+    // batería (5 celdas en la cara derecha)
+    s += '<g class="sc-bat">' + isoBox(175, 335, 34, 34, 54);
+    for (c=0;c<5;c++){
+      var y0 = 335 - 6 - c*9.5, xa = 175 + 4, xb = 175 + 34*K - 4, dy = (xb-xa)*0.577;
+      s += '<polygon class="sc-cell" id="mnCelda'+c+'" fill-opacity=".15" points="'+xa+','+(y0-2)+' '+xb.toFixed(1)+','+(y0-2-dy).toFixed(1)+' '+xb.toFixed(1)+','+(y0-8-dy).toFixed(1)+' '+xa+','+(y0-8)+'"/>';
+    }
+    s += '</g>';
+    // casa
+    var hx=470, hy=262, a=62, b=62, h=46;
+    var cx = hx, cy = hy - 62*.5 - h - 34;
+    var F=[hx,hy-h], R=[hx+a*K,hy-h-a*.5], Lf=[hx-b*K,hy-h-b*.5];
+    s += '<g class="sc-casa">' + isoBox(hx, hy, a, b, h) +
+      '<polygon class="sc-roof" points="'+Lf[0].toFixed(1)+','+Lf[1].toFixed(1)+' '+F[0]+','+F[1]+' '+cx+','+cy.toFixed(1)+'"/>' +
+      '<polygon class="sc-roof2" points="'+F[0]+','+F[1]+' '+R[0].toFixed(1)+','+R[1].toFixed(1)+' '+cx+','+cy.toFixed(1)+'"/>' +
+      '<polygon class="sc-cell" fill-opacity=".85" points="'+(hx+10)+','+(hy-5)+' '+(hx+26)+','+(hy-14.2)+' '+(hx+26)+','+(hy-38.2)+' '+(hx+10)+','+(hy-29)+'"/></g>';
+    // poste de red
+    s += '<g class="sc-red"><path class="sc-pole" d="M565 345 L565 225 M545 240 L585 240 M550 258 L580 258"/>' +
+      '<circle cx="545" cy="240" r="4" fill="var(--c)"/><circle cx="585" cy="240" r="4" fill="var(--c)"/>' +
+      '<circle cx="550" cy="258" r="3.5" fill="var(--c)"/><circle cx="580" cy="258" r="3.5" fill="var(--c)"/></g>';
+    // líneas de flujo (se rellenan en pintarFlujo)
+    s += '<g id="mnFlujoLineas"></g>';
+    // etiquetas (estáticas; los números los suaviza animarNumero)
+    function lab(id, x, y, nm, u){
+      return '<text class="sc-nm" x="'+x+'" y="'+y+'">'+nm+'</text>' +
+             '<text class="sc-val" x="'+x+'" y="'+(y+22)+'"><tspan id="mnV-'+id+'">—</tspan><tspan class="u" dx="3">'+u+'</tspan></text>';
+    }
+    s += lab('solar', 165, 205, 'Solar', 'kW') + lab('casa', 470, 300, 'Casa', 'W') +
+         lab('bateria', 175, 372, 'Batería', 'kW') + lab('red', 565, 372, 'Red', 'kW');
+    s += '<text class="sc-nm" id="mnSoc" x="175" y="403" style="font-size:11px"></text>';
+    return s;
+  }
+  function pintarFlujo(flujo, e, h){
     var svg = $('#mnFlujoSvg');
-    // agrupar links del sankey por arista (nodo origen → nodo destino)
-    var aristas = {};
-    var total = 0;
+    if (!svg.dataset.init){ svg.innerHTML = escenaBase(); svg.dataset.init = '1'; }
+    e = e || {}; h = h || {};
+    // aristas desde el sankey (agrupadas por origen→destino)
+    var aristas = {}, total = 0;
     (flujo && flujo.links || []).forEach(function(l){
-      var s = NODO_DE[l.source], t = NODO_DE[l.target];
-      if (!s || !t || s === t) return;
-      var k = s+'->'+t;
-      aristas[k] = (aristas[k] || 0) + (Number(l.value) || 0);
-      total += (Number(l.value) || 0);
+      var s = NODO_DE[l.source], t = NODO_DE[l.target], v = Number(l.value) || 0;
+      if (!s || !t || s === t || v <= 0) return;
+      aristas[s+'>'+t] = (aristas[s+'>'+t] || 0) + v; total += v;
     });
-    var R = 46;
-    var lineas = '';
+    if (!total){ // respaldo: derivar de las potencias en vivo
+      var pv = Number(e.pvPower)||0, ld = (Number(e.loadPower)||0)/1000;
+      if (pv > 0 && ld > 0){ aristas['solar>casa'] = Math.min(pv, ld); total = aristas['solar>casa']; }
+    }
+    var out = '';
     Object.keys(aristas).forEach(function(k){
-      var a = k.split('->'), s = POS[a[0]], t = POS[a[1]];
-      var val = aristas[k];
-      var grosor = Math.max(1.5, Math.min(10, 2 + (val / (total||1)) * 16));
-      var c = COLOR[a[0]];
-      // acortar la línea para que arranque/en el borde de los círculos
-      var dx = t[0]-s[0], dy = t[1]-s[1], L = Math.sqrt(dx*dx+dy*dy);
-      var ux = dx/L, uy = dy/L, r = R + 8;
-      var x1 = s[0]+ux*r, y1 = s[1]+uy*r, x2 = t[0]-ux*r, y2 = t[1]-uy*r;
-      lineas += '<line class="line" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-width="'+grosor.toFixed(1)+'" stroke-linecap="round"/>';
-      // flecha/valor en el punto medio
-      var mx = (x1+x2)/2, my = (y1+y2)/2;
-      lineas += '<text x="'+mx+'" y="'+my+'" text-anchor="middle" font-size="11" fill="var(--muted)" style="paint-order:stroke;stroke:var(--card);stroke-width:3">'+fmt(val,1)+'</text>';
+      var a = k.split('>'), s = ANCLA[a[0]], t = ANCLA[a[1]];
+      var mx = (s[0]+t[0])/2, my = (s[1]+t[1])/2, dx = t[0]-s[0], dy = t[1]-s[1];
+      var len = Math.sqrt(dx*dx+dy*dy) || 1, off = 22 * (a[0] < a[1] ? 1 : -1);
+      var qx = mx - dy/len*off, qy = my + dx/len*off;
+      var d = 'M'+s[0]+' '+s[1]+' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+t[0]+' '+t[1];
+      var w = Math.max(2, Math.min(8, 2 + aristas[k]/(total||1)*7));
+      var col = COLOR[a[0]];
+      out += '<path class="sc-flowbg" d="'+d+'" stroke="'+col+'" stroke-width="'+w.toFixed(1)+'"/>' +
+             '<path class="sc-flow" d="'+d+'" stroke="'+col+'" stroke-width="'+(w*0.6).toFixed(1)+'"/>';
     });
-    var nodos = '';
-    Object.keys(POS).forEach(function(n){
-      var p = POS[n];
-      nodos += '<g class="nodo"><circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+R+'" fill="'+COLOR[n]+'" opacity="0.14"/>' +
-        '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+R+'" fill="none" stroke="'+COLOR[n]+'" stroke-width="2"/>' +
-        '<text x="'+p[0]+'" y="'+(p[1]-6)+'" text-anchor="middle">'+ETIQ[n]+'</text>' +
-        '<text x="'+p[0]+'" y="'+(p[1]+12)+'" text-anchor="middle" class="sub" id="mnNodo-'+n+'">—</text></g>';
-    });
-    svg.innerHTML = lineas + nodos;
-    // rellenar la potencia en vivo en cada nodo
-    var pv = suavizado.pvPower, carga = suavizado.loadPower;
-    if (pv != null) $('#mnNodo-solar').textContent = fmt(pv,2)+' kW';
-    if (carga != null) $('#mnNodo-casa').textContent = fmt(carga,0)+' W';
+    $('#mnFlujoLineas').innerHTML = out;
+    $('#mnSol').style.opacity = (Number(e.pvPower) > 0) ? 1 : 0.3;
+    function nodo(id, clave, v, dec){
+      var el = $('#mnV-'+id);
+      if (v == null || isNaN(v)){ el.textContent = '—'; return; }
+      animarNumero(el, clave, Number(v), dec);
+    }
+    nodo('solar', 'nSolar', e.pvPower, 2);
+    nodo('casa', 'nCasa', e.loadPower, 0);
+    nodo('red', 'nRed', h.potencia_red, 2);
+    nodo('bateria', 'nBat', h.potencia_bateria, 2);
+    var soc = (h.soc != null && !isNaN(h.soc)) ? Number(h.soc) : null;
+    $('#mnSoc').textContent = soc != null ? ('Carga '+soc+'%') : '';
+    for (var c=0;c<5;c++){
+      var el = $('#mnCelda'+c);
+      if (el) el.setAttribute('fill-opacity', (soc != null && soc > c*20) ? '.9' : '.15');
+    }
   }
 
   function pintarAlarmas(a){

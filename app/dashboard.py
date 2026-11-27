@@ -2170,7 +2170,7 @@ def api_monitoreo_energia(plant_id: int, request: Request, periodo: str = "today
 
 @app.get("/api/monitoreo/planta/{plant_id}/chart")
 def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today") -> JSONResponse:
-    """Serie temporal de energía (producción/consumo/red/batería) para la gráfica."""
+    """Serie temporal de potencia (producción/consumo/red/batería) del historial guardado."""
     requiere_modulo(request, "monitoreo")
     try:
         from . import noor
@@ -2182,10 +2182,8 @@ def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today")
                 break
         if not serial:
             return JSONResponse({"serie": [], "campos": []})
-        campos = noor.chart_campos(serial, 2)
-        ids = [c["id"] for c in campos if c["campo"] in (
-            "loadConsumption", "pvEnergyGenerated", "gridImportedEnergy",
-            "gridExportedEnergy", "batteryInputEnergy", "batteryOutputEnergy")]
+        
+        # calcular rango de fechas según periodo
         hoy = datetime.now()
         if periodo == "week":
             ini = hoy - timedelta(days=6)
@@ -2195,11 +2193,41 @@ def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today")
             ini = hoy.replace(month=1, day=1)
         else:
             ini = hoy
-        serie = noor.chart_datos(serial, 2, ids,
-                                 f"{ini:%Y-%m-%d} 00:00:00",
-                                 f"{hoy:%Y-%m-%d} 23:59:59")
+        
+        # leer historial guardado de la BD local
+        with db.sesion() as conn:
+            filas = db.historial_planta(
+                conn, serial,
+                f"{ini:%Y-%m-%d} 00:00:00",
+                f"{hoy:%Y-%m-%d} 23:59:59"
+            )
+        
+        # formatear como serie (compatible con el frontend actual)
+        serie = [
+            {
+                "time": f["timestamp"],
+                "pvEnergyGenerated": f["pv_w"],
+                "loadConsumption": f["carga_w"],
+                "gridImportedEnergy": max(f["red_w"] or 0, 0),  # positivo=importa
+                "gridExportedEnergy": abs(min(f["red_w"] or 0, 0)),  # negativo=exporta
+                "batteryInputEnergy": max(f["bateria_w"] or 0, 0),  # positivo=carga
+                "batteryOutputEnergy": abs(min(f["bateria_w"] or 0, 0)),  # negativo=descarga
+                "soc": f["soc"],
+            }
+            for f in filas
+        ]
+        
+        campos = [
+            {"campo": "pvEnergyGenerated", "nombre": "Solar"},
+            {"campo": "loadConsumption", "nombre": "Consumo"},
+            {"campo": "gridImportedEnergy", "nombre": "Red Importada"},
+            {"campo": "gridExportedEnergy", "nombre": "Red Exportada"},
+            {"campo": "batteryInputEnergy", "nombre": "Batería Carga"},
+            {"campo": "batteryOutputEnergy", "nombre": "Batería Descarga"},
+        ]
+        
         return JSONResponse({"serie": serie, "campos": campos})
-    except Exception as exc:  # noqa: BLE001 - API Noor caída
+    except Exception as exc:  # noqa: BLE001
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
