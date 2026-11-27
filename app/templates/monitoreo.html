@@ -229,7 +229,7 @@
       : '<span class="mn-badge no">Sin vincular</span>';
     $('#mnVincularBtn').hidden = v;
     $('#mnVincular').hidden = v;
-    if (!v && !inicial) cargarContratos();
+    if (!v) cargarContratos();
     // geolocalización
     var lat = d.planta.latitud, lon = d.planta.longitud;
     if (lat != null && lon != null){
@@ -386,8 +386,9 @@
 
   // ---- vinculación ----
   function cargarContratos(){
+    var sel = $('#mnContratoSel');
+    if (sel.options.length > 1) return;   // ya cargados
     fetch('/api/monitoreo/contratos').then(function(r){ return r.json(); }).then(function(d){
-      var sel = $('#mnContratoSel');
       sel.innerHTML = '<option value="">Seleccione un contrato…</option>' + (d.contratos||[]).map(function(c){
         return '<option value="'+esc(c.nic)+'">'+esc(c.nombre)+' — NIC '+esc(c.nic)+'</option>';
       }).join('');
