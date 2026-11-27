@@ -161,6 +161,34 @@ def energia_inversor(serial_list, query_type: int, date: str) -> dict:
     return d.get("data", d) or {}
 
 
+def chart_campos(device_sn: str, tipo: int = 2) -> list[dict]:
+    """Campos disponibles para la gráfica temporal (data/chart/queryField).
+
+    Devuelve [{id, grupo, campo, etiqueta, unidad}] con las etiquetas ya en español.
+    tipo 2/3/4 = energía (kWh); tipo 0/1 = potencia (puede venir vacío según equipo).
+    """
+    d = _get(f"/data/chart/queryField?deviceSn={device_sn}&type={tipo}")
+    campos = []
+    for g in (d.get("data") or []):
+        for t in g.get("templates", []):
+            campos.append({"id": t["id"], "grupo": g.get("groupName"),
+                           "campo": t.get("fieldName"), "etiqueta": t.get("fieldLabel"),
+                           "unidad": t.get("unit")})
+    return campos
+
+
+def chart_datos(device_sn: str, tipo: int, ids: list, inicio: str, fin: str) -> list[dict]:
+    """Serie temporal de la gráfica (data/chart/getChartData), puntos cada 5 min.
+
+    Cada punto: {<campo>: valor, ..., "time": "YYYY-MM-DD HH:MM"}.
+    """
+    d = _post("/data/chart/getChartData", {
+        "type": tipo, "start": inicio, "end": fin,
+        "queryItems": [{"ids": ids, "deviceSn": device_sn}],
+    })
+    return d.get("data") or []
+
+
 # ---------------------------------------------------------------- alarmas ES
 _TRADUCCION: dict | None = None
 

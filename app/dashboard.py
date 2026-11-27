@@ -2146,6 +2146,40 @@ def api_monitoreo_energia(plant_id: int, periodo: str = "today") -> JSONResponse
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
+@app.get("/api/monitoreo/planta/{plant_id}/chart")
+def api_monitoreo_chart(plant_id: int, periodo: str = "today") -> JSONResponse:
+    """Serie temporal de energía (producción/consumo/red/batería) para la gráfica."""
+    try:
+        from . import noor
+        disp = noor.dispositivos_planta(plant_id)
+        serial = ""
+        for d in disp:
+            serial = d.get("deviceSn") or d.get("dataLoggerSn") or ""
+            if serial:
+                break
+        if not serial:
+            return JSONResponse({"serie": [], "campos": []})
+        campos = noor.chart_campos(serial, 2)
+        ids = [c["id"] for c in campos if c["campo"] in (
+            "loadConsumption", "pvEnergyGenerated", "gridImportedEnergy",
+            "gridExportedEnergy", "batteryInputEnergy", "batteryOutputEnergy")]
+        hoy = datetime.now()
+        if periodo == "week":
+            ini = hoy - timedelta(days=6)
+        elif periodo == "month":
+            ini = hoy.replace(day=1)
+        elif periodo == "year":
+            ini = hoy.replace(month=1, day=1)
+        else:
+            ini = hoy
+        serie = noor.chart_datos(serial, 2, ids,
+                                 f"{ini:%Y-%m-%d} 00:00:00",
+                                 f"{hoy:%Y-%m-%d} 23:59:59")
+        return JSONResponse({"serie": serie, "campos": campos})
+    except Exception as exc:  # noqa: BLE001 - API Noor caída
+        return JSONResponse({"error": str(exc)}, status_code=502)
+
+
 @app.get("/api/monitoreo/contratos")
 def api_monitoreo_contratos() -> JSONResponse:
     """Contratos activos de la BD, para el selector de vinculación."""
