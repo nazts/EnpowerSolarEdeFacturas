@@ -36,6 +36,10 @@ EDESUR_TOKEN = os.environ.get("EDESUR_TOKEN", "")   # solo para pruebas puntuale
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
+# Noor / Weco (monitoreo solar de las plantas de los clientes)
+NOOR_USUARIO = os.environ.get("NOOR_USUARIO", "")
+NOOR_CLAVE = os.environ.get("NOOR_CLAVE", "")
+
 # Base de datos: si DATABASE_URL apunta a Postgres (Supabase) se usa esa;
 # si no, el SQLite local de siempre.
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()

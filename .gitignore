@@ -12,6 +12,7 @@ node_modules/
 facturas/
 Descargas/
 data/
+!app/data/noor_*.json
 exports/
 *.pdf
 *.xlsx
