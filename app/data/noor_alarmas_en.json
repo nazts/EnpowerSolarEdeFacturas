@@ -1,0 +1,11317 @@
+{
+ "lv": {
+  "3100": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Discharge Over Current"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Over Load"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Battery Disconnected"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery Under Capacity/Battery Under Volt"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Over Volt"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Grid Low Volt"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Grid Over Volt"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Grid Low Freq"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Grid Over Freq"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Gfci Over"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Parallel CAN Fail"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Grid CT Reverse"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "BUS Under Volt"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "BUS Over Volt"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Inv Over Current"
+   }
+  ],
+  "3101": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Charge Over Current"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Meter Comm Fail"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Inv Under Volt"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Inv Over Volt"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Inv Freq Abnor"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "IGBT Temp High"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "BMS System Error"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Battery Over Temp"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Battery Under Temp"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Relay Open Circuit"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Battery Reverse"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "BMS Comm Fail"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Battery Fault"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Grid Over Load"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Grid Phase Error/LN Reverse"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "ARC Fault"
+   }
+  ],
+  "3102": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Bus Soft Fail"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Inv Soft Fail"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Bus Short"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Inv Short"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Fan Fault"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "PV Isolate Low"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Bus Relay Fault"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Grid Relay Fault"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "EPS Relay Fault"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Gfic Fault"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "CT Fault"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "PV Short"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Byp Relay Fault"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "System Fault"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Current Dcover"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Voltage Dcover"
+   }
+  ],
+  "3109": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Or Module High Voltage"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Cell Or Module Low Voltage"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cell High Temperature"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Cell Low Temperature"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Discharge High Current"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Charge High Current"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Internal Communication Fail"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Contactor Failure"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "310A": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Or Module Over Voltage"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Cell Or Module Under Voltage"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cell Over Temperature"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Cell Under Temperature"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Discharge Over Current"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Charge Over Current"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "System Error"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ]
+ },
+ "lvhesy": {
+  "3109": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Low Voltage"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell High Voltage"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Discharge Low Voltage"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Charge High Voltage"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Charge Low Temp"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge High Temp"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Discharge Low Temp"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Discharge High Temp"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Charge Over Current"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Discharge Over Current"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Module Low Voltage"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Module High Voltage"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "310A": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Low Voltage Protect"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell High Voltage Protect"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Discharge Low Voltage Protect"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Charge High Voltage Protect"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Charge Low Temp Protect"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge High Temp Protect"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Discharge Low Temp Protect"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Discharge High Temp Protect"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Charge Over Current Protect"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Discharge Over Current Protect"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Module Low Voltage Protect"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Module High Voltage Protect"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ]
+ },
+ "5k0smart": {
+  "2B1E": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E001 Inverter Fault"
+   }
+  ],
+  "2B22": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E002 AC Relay Fault"
+   }
+  ],
+  "2B23": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E003 Detected AC Short Circuit"
+   }
+  ],
+  "2B24": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E004 Phase Overload"
+   }
+  ],
+  "2B25": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E005 EPS back Up Overload"
+   }
+  ],
+  "2B26": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E006 DC PV Temperatures Abnormal"
+   }
+  ],
+  "2B27": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E007 Internal Fan Fault"
+   }
+  ],
+  "2B29": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E009 Inverter DC Fault"
+   }
+  ],
+  "2B2A": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E010 Grid Fault"
+   }
+  ],
+  "2B2C": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E011 Leakage Current High"
+   }
+  ],
+  "2B2D": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E012 Detected Arc Power"
+   }
+  ],
+  "2B2E": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E013 BCU Fault"
+   }
+  ],
+  "2B31": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E017.01 Wifi Fault"
+   }
+  ],
+  "2B32": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E018 Meter Fault"
+   }
+  ],
+  "2B33": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E019 CT Fault"
+   }
+  ],
+  "2B34": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E020 PV Insulation Low"
+   }
+  ],
+  "2B35": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E021 PV1 Fault"
+   }
+  ],
+  "2B36": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E022 PV1 Connection Reversed"
+   }
+  ],
+  "2B37": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E023 PV2 Fault"
+   }
+  ],
+  "2B38": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E024 PV2 Connection Reversed"
+   }
+  ],
+  "2B39": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 1 Fault"
+   }
+  ],
+  "2B3D": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 2 Fault"
+   }
+  ],
+  "2B41": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 3 Fault"
+   }
+  ],
+  "2B45": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 4 Fault"
+   }
+  ],
+  "2B49": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 5 Fault"
+   }
+  ],
+  "2B4D": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 6 Fault"
+   }
+  ],
+  "2B51": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 7 Fault"
+   }
+  ],
+  "2B55": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 8 Fault"
+   }
+  ],
+  "2B59": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 9 Fault"
+   }
+  ],
+  "2B5D": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 10 Fault"
+   }
+  ],
+  "2B61": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 11 Fault"
+   }
+  ],
+  "2B65": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "E101 Battery Pack 12 Fault"
+   }
+  ]
+ },
+ "tsth": {
+  "2B00": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Inv Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Relay Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "AC Short Circuit"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Inverter Overload Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Inverter Overload Fault"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Abnormal Temperature"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Internal Fan Fail"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Inv Drive Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Inv DC Fault"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Grid Power Abnormal"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Gfci Over"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Arc Fault Detection"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Battery Control Unit Fault"
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ],
+  "2B01": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Datalogger Comm. Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Meter Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "CT Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "PV Insulation Fault"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "PV1 Fault"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "PV1 Reverse"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "PV2 Fault"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "PV2 Reverse"
+   },
+   {
+    "value": 8,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ]
+ },
+ "thMax": {
+  "4719": {
+   "type": 0,
+   "label": "E001 Inverter Fault"
+  },
+  "4721": {
+   "type": 0,
+   "label": "E004 AC Relay Fault"
+  },
+  "4722": {
+   "type": 0,
+   "label": "E005 Detected AC Short Circuit"
+  },
+  "4723": {
+   "type": 0,
+   "label": "E006 Phase Overload"
+  },
+  "4724": {
+   "type": 0,
+   "label": "E007 EPS back Up Overload"
+  },
+  "4725": {
+   "type": 0,
+   "label": "E008 DC PV Temperatures Abnormal"
+  },
+  "4726": {
+   "type": 0,
+   "label": "E009 Internal Fan Fault"
+  },
+  "4727": {
+   "type": 0,
+   "label": "E010 Inv Drive Abnormal"
+  },
+  "4728": {
+   "type": 0,
+   "label": "E011 Inverter DC Fault"
+  },
+  "4730": {
+   "type": 0,
+   "label": "E019 CT Fault"
+  },
+  "4731": {
+   "type": 0,
+   "label": "E020 PV Insulation Low"
+  },
+  "4732": {
+   "type": 0,
+   "label": "E021 PV1 Fault"
+  },
+  "4733": {
+   "type": 0,
+   "label": "E022 PV1 Connection Reversed"
+  },
+  "4734": {
+   "type": 0,
+   "label": "E023 PV2 Fault"
+  },
+  "4735": {
+   "type": 0,
+   "label": "E024 PV2 Connection Reversed"
+  },
+  "4736": {
+   "type": 0,
+   "label": "E025 PV3 Fault"
+  },
+  "4737": {
+   "type": 0,
+   "label": "E026 PV3 Connection Reversed"
+  },
+  "4738": {
+   "type": 0,
+   "label": "E027 PV4 Fault"
+  },
+  "4739": {
+   "type": 0,
+   "label": "E028 PV4 Connection Reversed"
+  },
+  "471A": {
+   "type": 0,
+   "label": "E002 Inverter AC Fault"
+  },
+  "471E": {
+   "type": 0,
+   "label": "E003 Inverter DC Fault"
+  },
+  "472A": {
+   "type": 0,
+   "label": "E012 Grid Fault"
+  },
+  "472C": {
+   "type": 0,
+   "label": "E013 Leakage Current High"
+  },
+  "472D": {
+   "type": 0,
+   "label": "E014 Detected Arc Power"
+  },
+  "472E": {
+   "type": 0,
+   "label": "E015 Wifi Fault"
+  },
+  "472F": {
+   "type": 0,
+   "label": "E016 Meter Fault"
+  },
+  "473A": {
+   "type": 0,
+   "label": "E029 GEN Fault"
+  },
+  "473B": {
+   "type": 0,
+   "label": "E030 Battery Pack 1 Fault"
+  },
+  "473C": {
+   "type": 0,
+   "label": "E030 Battery Pack 2 Fault"
+  },
+  "473D": {
+   "type": 0,
+   "label": "E030 Battery Pack 3 Fault"
+  }
+ },
+ "tq": {
+  "10110": [
+   {
+    "value": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Emergency Stop"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DC Abn"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Mains Abn"
+   },
+   {
+    "value": 4,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Abn"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Cmd Stop"
+   },
+   {
+    "value": 7,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ],
+  "10112": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Mains Lost"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Grid Voltage Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Grid Frequency Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "DCI Fault"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "ISO Over Limitation"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "GFCI Fault"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "PV Over Voltage"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Bus Voltage Fault"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Inverter Over Temperature"
+   },
+   {
+    "value": 9,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ],
+  "10114": [
+   {
+    "value": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "SPI Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "E2 Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "GFCI Device Fault"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "AC Transducer Fault"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Relay Check Fault"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Internal Fan Fault"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "External Fan Fault"
+   },
+   {
+    "value": 8,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ],
+  "10120": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Bus Hardware Fault"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "PV Power Low"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Batt.Voltage Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "BAK Voltage Fault"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Bus Voltage Lower"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Sys Hardware Fault"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "BAK Over Power"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Inverter Over Voltage"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Inverter Over Freq"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Inverter Over Current"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Phase Order Err"
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ],
+  "18e3": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "SCI Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "FLASH Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Meter Comm Fault"
+   },
+   {
+    "value": 3,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ],
+  "18004": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "BMS Comm Fail"
+   },
+   {
+    "value": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "label": ""
+   }
+  ]
+ },
+ "esx": {
+  "1020": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "RSD (Rapid Shutdown) Abnormal"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "EMS EEPROM Fail"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "PV Open Warning"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "PID Device Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "AFCI Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Data Logger Comm Fail"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "CT/Meter Comm Fail"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "N-PE Voltage Anomaly"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "SPD Anomaly"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Sync ID Warning"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Sync Signal Warning"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Sync Bat Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Sync GRID Abnormal"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Generator Voltage Abnormal"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Phase Sequence Abnormal"
+   }
+  ],
+  "1034": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Fuse 1 Interrupted"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Fuse 2 Interrupted"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Fuse 3 Interrupted"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Fuse 4 Interrupted"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Fuse 5 Interrupted"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Fuse 6 Interrupted"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Fuse 7 Interrupted"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Fuse 8 Interrupted"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Fuse 9 Interrupted"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Fuse 10 Interrupted"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Fuse 11 Interrupted"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Fuse 12 Interrupted"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Fuse 13 Interrupted"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Fuse 14 Interrupted"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Fuse 15 Interrupted"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Fuse 16 Interrupted"
+   }
+  ],
+  "1035": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Fuse 17 Interrupted"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Fuse 18 Interrupted"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "2013": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Battery Disconnected"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Battery Overvoltage"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Battery Undervoltage"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Battery Discharge Over Current"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Battery Over Temperature"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Battery Under Temperature"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Neutral Live Wire Reversed"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Backup Voltage Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Comm Error (Inverter-BMS)"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Internal Comm Loss(M-E)"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Internal Comm Loss(M-D)"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "DCDC Abnormal"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Backup OverVoltage DC Comp."
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Backup Short Circuit"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Backup OverLoad"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "2213": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Battery 2 Absent"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Battery 2 Over Voltage"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Low Battery 2"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Battery 2 Discharge Over Current"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Battery 2 Over Temperature"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Battery 2 Under Temperature"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Comm error (Inverter-BMS 2)"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Battery 2 reversed"
+   }
+  ],
+  "101E": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Output Current DC Component Too High"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Relay Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Remote Shutdown"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Internal Over Temperature"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Earth Leakage Detector Abnormal"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "String Reverse Connection"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Machine Type Error"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Fan Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Bus Voltage Imbalance"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Bus Overvoltage"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Master-Slave CPU Communication Abnormal"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Software Version Incompatibility"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Inverter EEPROM Error"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Master-Slave Sampling Inconsistency"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "INVERTER Anomaly"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "BOOST Anomaly"
+   }
+  ],
+  "101F": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Grid Overvoltage"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Grid Undervoltage"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Grid Loss"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Grid Over Frequency"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Grid Under Frequency"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "PV Overvoltage"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "PV Insulation Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Leakage Current Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Inverter Power Limitation"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Internal Power Supply Abnormal"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "PV String Abnormal"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "PV Undervoltage"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Low PV Input Power"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Grid Abnormal"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Arc Fault Detection"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Grid High Average Voltage"
+   }
+  ]
+ },
+ "stk": {
+  "1020": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "RSD (Rapid Shutdown) Abnormal"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "EMS EEPROM Fail"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "PV Open Warning"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "PID Device Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "AFCI Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Data Logger Comm Fail"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Meter Comm Fail"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Inverter Lost"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "N-PE Voltage Anomaly"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "SPD Anomaly"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Sync ID Warning"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Sync Signal Warning"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Sync Bat Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Sync GRID Abnormal"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Generator Voltage Abnormal"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Phase Sequence Abnormal"
+   }
+  ],
+  "1034": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "PV1 Open"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "PV2 Open"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "PV3 Open"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "PV4 Open"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "PV5 Open"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "PV6 Open"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "PV7 Open"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "PV8 Open"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "PV9 Open"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "PV10 Open"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "PV11 Open"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "PV12 Open"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "PV13 Open"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "PV14 Open"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "PV15 Open"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "PV16 Open"
+   }
+  ],
+  "1035": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "PV17 Open"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "PV18 Open"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "101E": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Output Current DC Component Too High"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Relay Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Remote Shutdown"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Internal Over Temperature"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Earth Leakage Detector Abnormal"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "String Reverse Connection"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Machine Type Error"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Fan Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Bus Voltage Imbalance"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Bus Overvoltage"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Master-Slave CPU Communication Abnormal"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Software Version Incompatibility"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Inverter EEPROM Error"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Master-Slave Sampling Inconsistency"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "INVERTER Anomaly"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "BOOST Anomaly"
+   }
+  ],
+  "101F": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Grid Overvoltage"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Grid Undervoltage"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Grid Loss"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Grid Over Frequency"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Grid Under Frequency"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "PV Overvoltage"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "PV Insulation Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Leakage Current Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Inverter Power Limitation"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Internal Power Supply Abnormal"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "PV String Abnormal"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "PV Undervoltage"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Internal Fault"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Grid Abnormal"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Arc Fault Detection"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Grid High Average Voltage"
+   }
+  ]
+ },
+ "ths": {
+  "40122": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Inverter Overvoltage Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Inverter Undervoltage Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Short Circuit Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Inverter Overcurrent Protection"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Overload Protection"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "INV Bus Overvoltage Protection"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "INV Bus Undervoltage Protection"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Bus Imbalance Fault"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Leakage Current Self-test Fault"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Leakage Current Overlimit Fault"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Relay Self-test Fault"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "INV Fault Lock"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Bus Buffer Fault"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Inverter Over Temperature Protection"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "40123": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Parallel Startup Quantity Abnormal"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Parallel Communication Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Parallel Version Mismatch"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Parallel Type Mismatch"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Parallel Model Mismatch"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Parallel Parameter Sync Fault"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Parallel Master Conflict"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Parallel Slave Address Conflict"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Single Unit Parallel Line Fault"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Master No Slave Fault"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "40124": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "INV FLASH Storage Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "INV DC Communication Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Inverter Phase Lock Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Internal Parameter Matching Fault"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Self-test Failed"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "INV Master Fault"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "INV Parallel Communication Fault"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "INV Single Unit Parallel Line Fault"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "INV Current DC Component Overlimit Protection"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "INV Parallel Overload Fault"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "INV Parallel Load Current Sharing Fault"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "INV Parallel System Fault"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "40125": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "DC Bus Overvoltage Protection"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "DC Bus Undervoltage Protection"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Insulation Detection Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Auxiliary Power Fault"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "DC Battery1 Discharge Overcurrent Protection"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "DC Battery1 Charge Overcurrent Protection"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "DC Battery1 Overvoltage Protection"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "DC Battery1 Undervoltage Protection"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Battery1 Reverse Connection Fault"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "DC Over Temperature Fault"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "DC Bus Imbalance Fault"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "EPO Fault"
+   }
+  ],
+  "40126": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Meter Communication Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "ARM-INV Communication Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "ARM-DCDC Communication Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Network Device Communication Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "BMS1-CAN Communication Abnormal"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Power Module Parameter Matching Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Emergency Stop Triggered"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Ambient Temperature Too High"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "BMS1-485 Communication Abnormal"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "ARM FLASH Storage Abnormal"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Battery Temperature Sensor Disconnected"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Power Parameter Setting Failed"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "BMS2-CAN Communication Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "BMS2-485 Communication Abnormal"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "40127": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "DC INV Communication Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "DC FLASH Storage Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "DC Fault Lock"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "DC Battery2 Discharge Overcurrent Protection"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "DC Battery2 Charge Overcurrent Protection"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "DC Battery2 Overvoltage Protection"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "DC Battery2 Undervoltage Protection"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Battery2 Reverse Connection Protection"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "40128": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "PV1 Overvoltage Protection"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "PV2 Overvoltage Protection"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "PV3 Overvoltage Protection"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "PV4 Overvoltage Protection"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "PV1 Overcurrent Protection"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "PV2 Overcurrent Protection"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "PV3 Overcurrent Protection"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "PV4 Overcurrent Protection"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "PV1 Reverse Connection Protection"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "PV2 Reverse Connection Protection"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "PV3 Reverse Connection Protection"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "PV4 Reverse Connection Protection"
+   }
+  ],
+  "40129": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Overload Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Over Temperature Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Grid Overfrequency Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Grid Underfrequency Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Grid Overvoltage Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Grid Undervoltage Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Grid Phase Loss Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Grid Long Time Overvoltage Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Grid Phase Sequence Abnormal Warning"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Grid Amplitude Quick Check Warning"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Grid DC Component Quick Check Warning"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Grid Phase Quick Check Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "DC Battery 1 Overvoltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "DC Battery 1 Undervoltage Warning"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Battery 1 Not Connected Warning"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "DC Over Temperature Warning"
+   }
+  ],
+  "40130": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Battery1 Low SOC Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Battery1 Charge/Discharge Prohibited Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Battery2 Low SOC Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery2 Charge/Discharge Prohibited Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "PV1 Undervoltage Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "PV2 Undervoltage Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "PV3 Undervoltage Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "PV4 Undervoltage Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "DC Battery 2 Overvoltage Warning"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "DC Battery 2 Undervoltage Warning"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Battery 2 Not Connected Warning"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Generator Voltage Abnormal Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Generator Frequency Abnormal Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Generator Phase Sequence Abnormal Warning"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Parallel System Slave Communication Warning"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40131": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Flash Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ]
+ },
+ "bat0": {
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "BMU Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Insulation Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Control HVBOX Sleep Status"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Module Loss Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Temperature Sensor Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Voltage Sensor Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Current Sensor Alarm"
+   }
+  ],
+  "41": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "SOC Low Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Module Under Voltage Abnormal"
+   }
+  ],
+  "42": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Module Under Voltage Warning"
+   }
+  ],
+  "43": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Charge Over Temp Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Charge Low Temp Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "DisCharge Over Temp Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "DisCharge Low Temp Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Discharge Over Curr Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Charge Over Curr Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "SOC Low Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Module Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Module Under Voltage Alarm"
+   }
+  ],
+  "64": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "97": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "PCS Communication Abnormal Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Relay Failure Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Power Cable Connection Error"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "External Breaker Breakerinterlock Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "13011": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "System forced Charge Fail ALM"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Discharge undervoltage ALM"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "14132": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat1": {
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "BMU Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Insulation Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Control HVBOX Sleep Status"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Module Loss Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Temperature Sensor Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Voltage Sensor Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Current Sensor Alarm"
+   }
+  ],
+  "41": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "SOC Low Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Module Under Voltage Abnormal"
+   }
+  ],
+  "42": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Module Under Voltage Warning"
+   }
+  ],
+  "43": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Charge Over Temp Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Charge Low Temp Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "DisCharge Over Temp Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "DisCharge Low Temp Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Discharge Over Curr Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Charge Over Curr Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "SOC Low Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Module Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Module Under Voltage Alarm"
+   }
+  ],
+  "64": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "97": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "PCS Communication Abnormal Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Relay Failure Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Power Cable Connection Error"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "External Breaker Breakerinterlock Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "12509": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "High Temperature Alarm"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Low Temperature Alarm"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "High Humidity Alarm"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Coil Anti-freeze"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Coil Temperature Sensing Failure"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Condensing Temperature Sensing Fails"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Internal Temperature Sensing Failure"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Wet Sensing Failure"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "High Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "Flooding Alarm"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Smoke Alarm"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Access Control Alarm"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "High Voltage Locking"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Ac Over Voltage"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Ac Under Voltage"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "AC Com. Fail"
+   }
+  ],
+  "13011": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "System forced Charge Fail ALM"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Discharge undervoltage ALM"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "14132": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat2": {
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "BMU Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Insulation Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Control HVBOX Sleep Status"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Module Loss Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Temperature Sensor Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Voltage Sensor Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Current Sensor Alarm"
+   }
+  ],
+  "41": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Module Under Voltage Abnormal"
+   }
+  ],
+  "42": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Battery Over Voltage Warning"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Module Under Voltage Warning"
+   }
+  ],
+  "43": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Charge Over Temp Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Charge Low Temp Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "DisCharge Over Temp Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "DisCharge Low Temp Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Discharge Over Curr Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Charge Over Curr Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "SOC Low Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Module Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Module Under Voltage Alarm"
+   }
+  ],
+  "64": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "78": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "The recognition results of the multi-cluster system are abnormal"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Multi-cluster communication failure"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "97": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "PCS Communication Abnormal Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Relay Failure Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Power Cable Connection Error"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "External Breaker Breakerinterlock Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Insulation Voltage Sampling Fault"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BSU EEPROM Lock State"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "BSU Heating Film Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "BSU Heating Film  Failure Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "13011": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "System forced Charge Fail ALM"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Discharge undervoltage ALM"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "14135": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID48"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID49"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID50"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID51"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID52"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID53"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID54"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID55"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID56"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID57"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID58"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID59"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID60"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID61"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID62"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Corresponding EEPROM Lock ID63"
+   }
+  ],
+  "20024": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "SumVol Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "20040": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "GBMU Level 2 alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Abnormal startup"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "There is an inconsistency between the number of clusters and the standard strings"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "20097": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "PCS communication anomaly alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "20194": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Cluster1 fuse fault status"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Cluster2 fuse fault status"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Cluster3 fuse fault status"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Cluster4 fuse fault status"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Cluster5 fuse fault status"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Cluster6 fuse fault status"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Cluster7 fuse fault status"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Cluster8 fuse fault status"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Cluster9 fuse fault status"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Cluster10 fuse fault status"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Cluster11 fuse fault status"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Cluster12 fuse fault status"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Cluster13 fuse fault status"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cluster14 fuse fault status"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Cluster15 fuse fault status"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cluster16 fuse fault status"
+   }
+  ]
+ },
+ "bat3": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge Over Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "BMS Internal Warning"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "473": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "542": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master Fuse Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 Fuse Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 Fuse Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 Fuse Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 Fuse Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 Fuse Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 Fuse Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 Fuse Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 Fuse Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 Fuse Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 Fuse Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 Fuse Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 Fuse Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 Fuse Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 Fuse Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "543": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master EPROM LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 EPROM LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 EPROM LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 EPROM LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 EPROM LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 EPROM LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 EPROM LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 EPROM LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 EPROM LOCK"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 EPROM LOCK"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 EPROM LOCK"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 EPROM LOCK"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 EPROM LOCK"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 EPROM LOCK"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 EPROM LOCK"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "544": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "SYSTEM LOCK"
+   }
+  ]
+ },
+ "bat4": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Over Voltage Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "BMS Internal Warning"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Safety Lower Limit Undervoltage Alarm"
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Relay Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage  Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "473": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Forced Charge Fail ALM"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "542": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master Fuse Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 Fuse Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 Fuse Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 Fuse Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 Fuse Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 Fuse Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 Fuse Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 Fuse Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 Fuse Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 Fuse Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 Fuse Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 Fuse Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 Fuse Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 Fuse Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 Fuse Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "543": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master EPROM LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 EPROM LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 EPROM LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 EPROM LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 EPROM LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 EPROM LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 EPROM LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 EPROM LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 EPROM LOCK"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 EPROM LOCK"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 EPROM LOCK"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 EPROM LOCK"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 EPROM LOCK"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 EPROM LOCK"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 EPROM LOCK"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "544": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "SYSTEM LOCK"
+   }
+  ]
+ },
+ "bat5": {
+  "39": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "BMS Internal Warning"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Safety Lower Limit Undervoltage Alarm"
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Relay Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage  Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "473": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "542": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master Fuse Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 Fuse Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 Fuse Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 Fuse Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 Fuse Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 Fuse Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 Fuse Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 Fuse Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 Fuse Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 Fuse Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 Fuse Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 Fuse Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 Fuse Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 Fuse Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 Fuse Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "543": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master EPROM LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 EPROM LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 EPROM LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 EPROM LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 EPROM LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 EPROM LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 EPROM LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 EPROM LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 EPROM LOCK"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 EPROM LOCK"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 EPROM LOCK"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 EPROM LOCK"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 EPROM LOCK"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 EPROM LOCK"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 EPROM LOCK"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "544": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "SYSTEM LOCK"
+   }
+  ]
+ },
+ "bat6": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Over Voltage Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "BMS Internal Warning"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Safety Lower Limit Undervoltage Alarm"
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Relay Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage  Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "230": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "231": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "235": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master Fuse Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 Fuse Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 Fuse Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 Fuse Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 Fuse Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 Fuse Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 Fuse Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 Fuse Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 Fuse Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 Fuse Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 Fuse Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 Fuse Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 Fuse Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 Fuse Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 Fuse Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "236": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Master EPROM LOCK"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave1 EPROM LOCK"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave2 EPROM LOCK"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave3 EPROM LOCK"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave4 EPROM LOCK"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave5 EPROM LOCK"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave6 EPROM LOCK"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat7": {
+  "39": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "SOC Low Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "291": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "ADC Reference Voltage Abnormal"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Magnetic Holding Relay Abnormal"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Battery Over Voltage Warning"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Address Assignment Failure Abnormal"
+   }
+  ],
+  "473": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Forced Charge Fail ALM"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ]
+ },
+ "bat8": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Heating Film Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Heating Film Failure Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Low SOC Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "144": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "306": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Over Voltage On Battery Side"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "DCDC Over Current"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "Over Voltage On Bus Side"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Under Voltage On Bus Side"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Fast Under Voltage On Bus Side"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Hardware Over Voltage On Bus Side"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Hardware Over Voltage On Battery Side"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Under Voltage On Battery Side"
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": "12V Auxiliary Source Under Voltage"
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": "Conversion Efficiency Abnormal"
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "Radiator Overtemperature"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "MOS Over Temperature Alarm"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Soft Start Failure"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "307": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "MOSL1 NTC Failure"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "MOSL2 NTC Failure"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Radiator NTC Failure"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Over Voltage Locks On Bus Side"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Over Voltage Locks On Battery Side"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Short Circuit On High Voltage Side"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "MOSH1 NTC Failure"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "MOSH2 NTC Failure"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Short Circuit On Low Voltage Side"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "EEPROM Fault"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat9": {
+  "26": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Fuse Failure"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Fuse Failure"
+   }
+  ],
+  "1870": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "EEPROM Warning"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat10": {
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Channel 2 Scram Feedback"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "GBMU Warning"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Invalid cluster count"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "System Over Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "System Under Voltage Warning"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Channel 1 Scram feedback"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat11": {
+  "42": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Slave1 Fault"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave2 Fault"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave3 Fault"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave4 Fault"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave5 Fault"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave6 Fault"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave7 Fault"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave8 Fault"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave9 Fault"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave10 Fault"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave11 Fault"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave12 Fault"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "73": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "EEprom Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "External Flash Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Cluster1 Allocation Line Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Cluster2 Allocation Line Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Cluster3 Allocation Line Alarm"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Monit Board Temp Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "MCP2515 1 Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "MCP2515 2 Alarm"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "Bus Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "24V Voltage Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Inverter Communication Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "75": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Slave1 Connect Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave2 Connect Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave3 Connect Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave4 Connect Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave5 Connect Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave6 Connect Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave7 Connect Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave8 Connect Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave9 Connect Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave10 Connect Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave11 Connect Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave12 Connect Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "76": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Slave1 Sampling Resistor Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave2 Sampling Resistor Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave3 Sampling Resistor Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave4 Sampling Resistor Alarm"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave5 Sampling Resistor Alarm"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave6 Sampling Resistor Alarm"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave7 Sampling Resistor Alarm"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave8 Sampling Resistor Alarm"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave9 Sampling Resistor Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave10 Sampling Resistor Alarm"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave11 Sampling Resistor Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave12 Sampling Resistor Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat12": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Over Voltage Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Abnormal"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Battery Over Voltage Abnormal"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Low SOC Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "144": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Cell Over Voltage Error"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Battery Over Voltage Warning"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat13": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Heating Film Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Heating Film Failure Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Contactor Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Low SOC Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "144": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Address Assignment Failure"
+   }
+  ],
+  "181": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm1"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "182": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "231": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master Open Circuit Alarm2"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 Open Circuit Alarm2"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 Open Circuit Alarm2"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 Open Circuit Alarm2"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 Open Circuit Alarm2"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 Open Circuit Alarm2"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 Open Circuit Alarm2"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 Open Circuit Alarm2"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 Open Circuit Alarm2"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 Open Circuit Alarm2"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 Open Circuit Alarm2"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 Open Circuit Alarm2"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 Open Circuit Alarm2"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 Open Circuit Alarm2"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 Open Circuit Alarm2"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "232": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master EPROM LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 EPROM LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 EPROM LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 EPROM LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 EPROM LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 EPROM LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 EPROM LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 EPROM LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 EPROM LOCK"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 EPROM LOCK"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 EPROM LOCK"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 EPROM LOCK"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 EPROM LOCK"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 EPROM LOCK"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 EPROM LOCK"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "233": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "SYSTEM LOCK"
+   }
+  ]
+ },
+ "bat14": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Over Voltage Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Heating Warning"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Heating Film Failure Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Abnormal"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Battery Over Voltage Abnormal"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Low SOC Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "144": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Cell Over Voltage Error"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Battery Over Voltage Warning"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat15": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": "Cell Over Voltage Warning"
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Heating Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Heating Failure Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": "Current Limit Plate Warning"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Abnormal"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Abnormal"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Battery Over Voltage Abnormal"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Abnormal"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Abnormal"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Low SOC Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "144": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Charge Current Limit Warning"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Cell Over Voltage Error"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Reverse Connection Of Power Line"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 1,
+    "label": "Battery Over Voltage Warning"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat16": {
+  "33": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "PCS Communication Abnormal Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Battery Communication Abnormal Alarm"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Insulation Detection Abnormality Alarm"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ]
+ },
+ "bat17": {
+  "39": [
+   {
+    "value": 0,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Warning"
+   },
+   {
+    "value": 2,
+    "type": 1,
+    "label": "DisCharge High Temp Warning"
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "DisCharge Low Temp Warning"
+   },
+   {
+    "value": 4,
+    "type": 1,
+    "label": "Discharge Over Curr Warning"
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Charge Over Curr Warning"
+   },
+   {
+    "value": 6,
+    "type": 1,
+    "label": "Charge High Temp Warning"
+   },
+   {
+    "value": 7,
+    "type": 1,
+    "label": "Charge Low Temp Warning"
+   },
+   {
+    "value": 8,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 1,
+    "label": "MOS High Temp Warning"
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Heating Film Abnormal"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Heating Film Failure Alarm"
+   },
+   {
+    "value": 14,
+    "type": 1,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": ""
+   }
+  ],
+  "40": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Cell Under Voltage Abnormal"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 1,
+    "label": "Battery Under Voltage Abnormal"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "MOS Failure Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "BQ Reading Failure Alarm"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Voltage Failure Alarm"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Temperature Failure Alarm"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Cell Over Voltage Alarm"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Low SOC Warning"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "Cell Under Voltage Alarm"
+   }
+  ],
+  "144": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Battery Under Voltage Alarm"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 1,
+    "label": "Battery Under Voltage Warning"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Battery Over Voltage Alarm"
+   },
+   {
+    "value": 15,
+    "type": 1,
+    "label": "Address Assignment Failure"
+   }
+  ],
+  "181": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Open Circuit Alarm1"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "182": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 1,
+    "label": "Inverter Comm Loss ALM"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 1,
+    "label": "Cluster Forced Charge Fail ALM"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "183": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "RTC ALM"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "231": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master Open Circuit Alarm2"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 Open Circuit Alarm2"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 Open Circuit Alarm2"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 Open Circuit Alarm2"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 Open Circuit Alarm2"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 Open Circuit Alarm2"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 Open Circuit Alarm2"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 Open Circuit Alarm2"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 Open Circuit Alarm2"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 Open Circuit Alarm2"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 Open Circuit Alarm2"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 Open Circuit Alarm2"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 Open Circuit Alarm2"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 Open Circuit Alarm2"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 Open Circuit Alarm2"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "232": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "Master EPROM LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "Slave1 EPROM LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "Slave2 EPROM LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "Slave3 EPROM LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "Slave4 EPROM LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "Slave5 EPROM LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "Slave6 EPROM LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "Slave7 EPROM LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": "Slave8 EPROM LOCK"
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": "Slave9 EPROM LOCK"
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": "Slave10 EPROM LOCK"
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": "Slave11 EPROM LOCK"
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": "Slave12 EPROM LOCK"
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": "Slave13 EPROM LOCK"
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": "Slave14 EPROM LOCK"
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": ""
+   }
+  ],
+  "233": [
+   {
+    "value": 0,
+    "type": 0,
+    "label": "HIGH VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 1,
+    "type": 0,
+    "label": "LOW VOLTAGE FAULT LOCK"
+   },
+   {
+    "value": 2,
+    "type": 0,
+    "label": "OVER TEMPERATURE LOCK"
+   },
+   {
+    "value": 3,
+    "type": 0,
+    "label": "FUSE FAIL LOCK"
+   },
+   {
+    "value": 4,
+    "type": 0,
+    "label": "LOW TEMPERATURE LOCK"
+   },
+   {
+    "value": 5,
+    "type": 0,
+    "label": "MOS FAIL LOCK"
+   },
+   {
+    "value": 6,
+    "type": 0,
+    "label": "OVER CURRENT LOCK"
+   },
+   {
+    "value": 7,
+    "type": 0,
+    "label": "SAMPLING CHIP FAILURE LOCK"
+   },
+   {
+    "value": 8,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 9,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 10,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 11,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 12,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 13,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 14,
+    "type": 0,
+    "label": ""
+   },
+   {
+    "value": 15,
+    "type": 0,
+    "label": "SYSTEM LOCK"
+   }
+  ]
+ }
+}
