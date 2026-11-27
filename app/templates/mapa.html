@@ -456,7 +456,7 @@
       '<dt>Capacidad</dt><dd>' + (num(c.capacidad_bateria) === null ? '—' : '<b>' + esc(c.capacidad_bateria) + '</b> kWh') + '</dd>' +
       '<dt>Arranque de proyecto</dt><dd>' + dato(c.fecha_instalacion) + '</dd></dl></div>' +
       '<div class="fa"><a class="mp-btn" href="/clientes/' + encodeURIComponent(c.nic) + '">Ver ficha completa</a>' +
-      '<a class="mp-btn sec" href="/clientes/nuevo" style="display:none"></a></div>';
+      '</div>';
     document.getElementById('ficha').innerHTML = h;
     try{ history.replaceState(null, '', '?nic=' + encodeURIComponent(nic)); }catch(_){}
   }

@@ -290,7 +290,7 @@
   var una = document.getElementById('formUna');
   if (una) una.addEventListener('submit', function(){
     // el boton viene del desplegable: se apaga el suyo y se avisa
-    var b = una.querySelector('button[form="formUna"]');
+    var b = document.querySelector('button[form="formUna"]');
     if (b){ b.disabled = true; b.innerHTML = 'Enviando…'; }
   });
   pintar();
