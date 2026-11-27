@@ -229,12 +229,40 @@ def capturar_snapshot(serial_number: str) -> dict[str, float | None]:
         if not j.get("success"):
             raise RuntimeError(f"API error: {j.get('errMessage', 'unknown')}")
         d = j.get("data") or {}
+        
+        # extraer datos de sub-objetos (valores en kW → convertir a W)
+        pv_info = d.get("pvInfo") or {}
+        load_info = d.get("loadInfo") or {}
+        bat_info = d.get("batteryInfo") or {}
+        grid_info = d.get("gridInfo") or {}
+        
+        # PV: suma de pv1Power + pv2Power + pv3Power + pv4Power
+        pv_kw = sum(filter(None, [
+            pv_info.get("pv1Power"), pv_info.get("pv2Power"),
+            pv_info.get("pv3Power"), pv_info.get("pv4Power")
+        ]))
+        
+        # Carga: totalExternalLoadPower (kW)
+        carga_kw = load_info.get("totalExternalLoadPower")
+        
+        # Red: suma de gridAPower + gridBPower + gridCPower
+        red_kw = sum(filter(None, [
+            grid_info.get("gridAPower"), grid_info.get("gridBPower"),
+            grid_info.get("gridCPower")
+        ]))
+        
+        # Batería: power (kW, positivo=carga, negativo=descarga)
+        bat_kw = bat_info.get("power")
+        
+        # SOC: batSoc (%)
+        soc = bat_info.get("batSoc")
+        
         return {
-            "pv_w": d.get("pvPower"),  # potencia solar (W)
-            "carga_w": d.get("loadPower"),  # consumo casa (W)
-            "red_w": d.get("gridPower"),  # red (positivo=importa, negativo=exporta)
-            "bateria_w": d.get("batteryPower"),  # batería (positivo=carga, negativo=descarga)
-            "soc": d.get("soc"),  # estado de carga (0-100)
+            "pv_w": pv_kw * 1000 if pv_kw is not None else None,
+            "carga_w": carga_kw * 1000 if carga_kw is not None else None,
+            "red_w": red_kw * 1000 if red_kw is not None else None,
+            "bateria_w": bat_kw * 1000 if bat_kw is not None else None,
+            "soc": soc,
         }
     except Exception as exc:
         raise RuntimeError(f"Error al capturar snapshot de {serial_number}: {exc}") from exc
