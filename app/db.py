@@ -172,15 +172,21 @@ CREATE TABLE IF NOT EXISTS plantas_noor (
 CREATE INDEX IF NOT EXISTS idx_plantas_noor_nic ON plantas_noor(nic);
 
 CREATE TABLE IF NOT EXISTS historial_potencia (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    serial_number TEXT NOT NULL,
-    timestamp     TEXT NOT NULL,
-    pv_w          REAL,
-    carga_w       REAL,
-    red_w         REAL,
-    bateria_w     REAL,
-    soc           REAL,
-    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    serial_number    TEXT NOT NULL,
+    timestamp        TEXT NOT NULL,
+    pv_w             REAL,
+    carga_w          REAL,
+    eps_w            REAL,
+    external_w       REAL,
+    red_w            REAL,
+    bateria_w        REAL,
+    soc              REAL,
+    bat_voltage      REAL,
+    bat_current      REAL,
+    charge_current   REAL,
+    discharge_current REAL,
+    created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(serial_number, timestamp)
 );
 
@@ -276,6 +282,10 @@ def migrar(conn: sqlite3.Connection) -> None:
                 conn.execute(f"ALTER TABLE facturas ADD COLUMN IF NOT EXISTS {columna} TEXT")
             except Exception:  # noqa: BLE001
                 pass
+        _asegurar_columnas(conn, "historial_potencia", {
+            "eps_w": "REAL", "external_w": "REAL", "bat_voltage": "REAL",
+            "bat_current": "REAL", "charge_current": "REAL", "discharge_current": "REAL",
+        })
         conn.commit()
         return
     columnas_eventos = {r[1] for r in conn.execute("PRAGMA table_info(eventos)")}
@@ -1224,7 +1234,8 @@ def historial_planta(
 ) -> list[sqlite3.Row]:
     """Devuelve el historial de potencia de una planta entre dos timestamps ISO."""
     return conn.execute(
-        """SELECT timestamp, pv_w, carga_w, red_w, bateria_w, soc
+        """SELECT timestamp, pv_w, carga_w, eps_w, external_w, red_w, bateria_w,
+                  soc, bat_voltage, bat_current, charge_current, discharge_current
            FROM historial_potencia
            WHERE serial_number = ? AND timestamp BETWEEN ? AND ?
            ORDER BY timestamp""",

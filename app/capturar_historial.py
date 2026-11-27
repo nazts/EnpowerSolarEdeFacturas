@@ -34,12 +34,16 @@ def capturar_todas() -> None:
             with db.sesion() as conn:
                 conn.execute(
                     """INSERT INTO historial_potencia
-                       (serial_number, timestamp, pv_w, carga_w, red_w, bateria_w, soc)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)
+                       (serial_number, timestamp, pv_w, carga_w, eps_w, external_w,
+                        red_w, bateria_w, soc, bat_voltage, bat_current,
+                        charge_current, discharge_current)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                        ON CONFLICT(serial_number, timestamp) DO NOTHING""",
                     (serial, timestamp,
-                     snap.get("pv_w"), snap.get("carga_w"), snap.get("red_w"),
-                     snap.get("bateria_w"), snap.get("soc")),
+                     snap.get("pv_w"), snap.get("carga_w"), snap.get("eps_w"),
+                     snap.get("external_w"), snap.get("red_w"), snap.get("bateria_w"),
+                     snap.get("soc"), snap.get("bat_voltage"), snap.get("bat_current"),
+                     snap.get("charge_current"), snap.get("discharge_current")),
                 )
                 conn.commit()
             capturados += 1

@@ -2202,30 +2202,45 @@ def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today")
                 f"{hoy:%Y-%m-%d} 23:59:59"
             )
         
-        # formatear como serie (compatible con el frontend actual)
+        # formatear como serie: potencias en kW, resto en unidades propias
+        def kw(v):
+            return round(v / 1000, 3) if v is not None else None
+
         serie = [
             {
                 "time": f["timestamp"],
+                "loadPower": kw(f["carga_w"]),
+                "epsLoadPower": kw(f["eps_w"]),
+                "externalLoadPower": kw(f["external_w"]),
+                "pvPower": kw(f["pv_w"]),
+                "gridPower": kw(f["red_w"]),
+                "batteryPower": kw(f["bateria_w"]),
+                "batteryVoltage": f["bat_voltage"],
+                "batteryCurrent": f["bat_current"],
+                "soc": f["soc"],
+                "requestChargeCurrent": f["charge_current"],
+                "requestDisChargeCurrent": f["discharge_current"],
+                # compatibilidad con el frontend anterior
                 "pvEnergyGenerated": f["pv_w"],
                 "loadConsumption": f["carga_w"],
-                "gridImportedEnergy": max(f["red_w"] or 0, 0),  # positivo=importa
-                "gridExportedEnergy": abs(min(f["red_w"] or 0, 0)),  # negativo=exporta
-                "batteryInputEnergy": max(f["bateria_w"] or 0, 0),  # positivo=carga
-                "batteryOutputEnergy": abs(min(f["bateria_w"] or 0, 0)),  # negativo=descarga
-                "soc": f["soc"],
             }
             for f in filas
         ]
-        
+
         campos = [
-            {"campo": "pvEnergyGenerated", "nombre": "Solar"},
-            {"campo": "loadConsumption", "nombre": "Consumo"},
-            {"campo": "gridImportedEnergy", "nombre": "Red Importada"},
-            {"campo": "gridExportedEnergy", "nombre": "Red Exportada"},
-            {"campo": "batteryInputEnergy", "nombre": "Batería Carga"},
-            {"campo": "batteryOutputEnergy", "nombre": "Batería Descarga"},
+            {"campo": "loadPower", "nombre": "Load Power", "unidad": "kW", "color": "#2F9E44"},
+            {"campo": "epsLoadPower", "nombre": "EPS Load Power", "unidad": "kW", "color": "#3E7CB1"},
+            {"campo": "externalLoadPower", "nombre": "External Load Power", "unidad": "kW", "color": "#F59E0B"},
+            {"campo": "pvPower", "nombre": "PV Power", "unidad": "kW", "color": "#6D5CC7"},
+            {"campo": "gridPower", "nombre": "Grid Power", "unidad": "kW", "color": "#D4788C"},
+            {"campo": "batteryPower", "nombre": "Battery Power", "unidad": "kW", "color": "#E0569E"},
+            {"campo": "batteryVoltage", "nombre": "Battery Voltage", "unidad": "V", "color": "#8B5E3C"},
+            {"campo": "batteryCurrent", "nombre": "Battery Current", "unidad": "A", "color": "#6B7D3F"},
+            {"campo": "soc", "nombre": "SOC", "unidad": "%", "color": "#7CCB5E"},
+            {"campo": "requestChargeCurrent", "nombre": "Request Charge Current", "unidad": "A", "color": "#1E4E8C"},
+            {"campo": "requestDisChargeCurrent", "nombre": "Request DisCharge Current", "unidad": "A", "color": "#E8C33D"},
         ]
-        
+
         return JSONResponse({"serie": serie, "campos": campos})
     except Exception as exc:  # noqa: BLE001
         return JSONResponse({"error": str(exc)}, status_code=502)
