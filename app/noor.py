@@ -108,6 +108,31 @@ def dispositivos_planta(plant_id: int) -> list[dict]:
     return data or []
 
 
+def home_planta(device_sn: str, dtc=None) -> dict:
+    """Pantalla de inicio del equipo: modo, sistema, potencias y totales en vivo.
+
+    El endpoint depende del tipo de equipo (dtc); getMgrnInverterV2 es el más común
+    (cubre los dtc no listados). Incluye `workModelStr` (modo, ej. «Prioridad de
+    batería»), `systemStateStr` (sistema, ej. «On Grid»), `pvPower`/`loadPower`/
+    `gridPower`/`batPower` (kW) y totales de por vida en Wh (÷1000 → kWh).
+    """
+    dtc_s = str(dtc or "")
+    if dtc_s in ("4098", "4099", "4102", "4103"):
+        ruta = f"/api/home/getThInverterHomeV2/{device_sn}"
+    elif dtc_s == "4100":
+        ruta = f"/api/home/getMicInvHome/{device_sn}"
+    elif dtc_s in ("61181", "105", "106", "107"):
+        ruta = f"/api/home/getTQInverterHomeV2/{device_sn}"
+    elif dtc_s in ("109", "110", "111", "65532"):
+        ruta = f"/api/home/getSenergyHome/{device_sn}"
+    elif dtc_s in ("112", "113", "114"):
+        ruta = f"/api/home/getStkHome/{device_sn}"
+    else:
+        ruta = f"/api/home/getMgrnInverterV2/{device_sn}"
+    d = _get(ruta)
+    return d.get("data", d) or {}
+
+
 def alarmas_planta(plant_id: int, device_sn: str = "", page_index: int = 0,
                    page_size: int = 100, device_type: str = "") -> list[dict]:
     """Alarmas/avisos de una planta (getPlantErrorList)."""

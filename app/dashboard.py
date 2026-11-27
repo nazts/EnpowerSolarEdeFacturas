@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -1912,16 +1912,56 @@ def _noor_energia(plant_id: int) -> dict:
     return val
 
 
-def _noor_diario(serial: str) -> dict:
-    """Resumen del día (getInverterHomeEnergyV2) con caché de 60s."""
+def _noor_periodo(serial: str, query_type: int, fecha: str) -> dict:
+    """Resumen de energía de un periodo (getInverterHomeEnergyV2) con caché 60s."""
+    clave = ("p", serial, query_type, fecha)
     ahora = time.time()
-    item = _cache_energia.get(("d", serial))
+    item = _cache_energia.get(clave)
     if item and ahora - item[0] < 60:
         return item[1]
     from . import noor
+    val = noor.energia_inversor([serial], query_type, fecha)
+    _cache_energia[clave] = (ahora, val)
+    return val
+
+
+def _noor_diario(serial: str) -> dict:
     hoy = datetime.now().strftime("%Y-%m-%d")
-    val = noor.energia_inversor([serial], 1, f"{hoy}/{hoy}")
-    _cache_energia[("d", serial)] = (ahora, val)
+    return _noor_periodo(serial, 1, f"{hoy}/{hoy}")
+
+
+def _fecha_periodo(periodo: str) -> tuple[int, str]:
+    """(queryType, fecha) para today/week/month/year."""
+    import calendar
+    hoy = datetime.now()
+    if periodo == "week":
+        inicio = hoy - timedelta(days=6)
+        return 2, f"{inicio:%Y-%m-%d}/{hoy:%Y-%m-%d}"
+    if periodo == "month":
+        ultimo = calendar.monthrange(hoy.year, hoy.month)[1]
+        return 3, f"{hoy:%Y-%m}-01/{hoy:%Y-%m}-{ultimo:02d}"
+    if periodo == "year":
+        return 4, f"{hoy:%Y}-01-01/{hoy:%Y}-12-31"
+    return 1, f"{hoy:%Y-%m-%d}/{hoy:%Y-%m-%d}"
+
+
+def _noor_home(plant_id: int) -> dict:
+    """Pantalla de inicio del equipo (modo, sistema, potencias, totales) caché 20s."""
+    clave = ("h", plant_id)
+    ahora = time.time()
+    item = _cache_energia.get(clave)
+    if item and ahora - item[0] < 20:
+        return item[1]
+    from . import noor
+    disp = noor.dispositivos_planta(plant_id)
+    serial = dtc = ""
+    for d in disp:
+        serial = d.get("deviceSn") or d.get("dataLoggerSn") or ""
+        dtc = d.get("dtc") or ""
+        if serial:
+            break
+    val = noor.home_planta(serial, dtc) if serial else {}
+    _cache_energia[clave] = (ahora, val)
     return val
 
 
@@ -2008,6 +2048,7 @@ def api_monitoreo_planta(plant_id: int) -> JSONResponse:
             if serial:
                 break
         diario = _noor_diario(serial) if serial else {}
+        home = _noor_home(plant_id)
         alarmas = [{
             "descripcion": noor.traducir_alarma(str(a.get("description") or "")) or "Alarma",
             "estado": "activa" if a.get("state") == 1 else "recuperada",
@@ -2032,6 +2073,15 @@ def api_monitoreo_planta(plant_id: int) -> JSONResponse:
             "energia": {"pvPower": e.get("pvPower"), "loadPower": e.get("loadPower"),
                         "pvDayEnergy": e.get("pvDayEnergy"),
                         "pvTotalEnergy": e.get("pvTotalEnergy")},
+            "home": {"modo": home.get("workModelStr"),
+                     "sistema": home.get("systemStateStr"),
+                     "estado": "en línea" if home.get("online") else "fuera de línea",
+                     "soc": home.get("batSoc"),
+                     "potencia_bateria": home.get("batPower"),
+                     "voltaje_bateria": home.get("batteryVoltage"),
+                     "potencia_red": home.get("gridPower"),
+                     "actualizado": home.get("lastUpdateTime"),
+                     "modelo": home.get("deviceDesc") or home.get("inverterType")},
             "resumen": {"pvElectrical": diario.get("pvElectrical"),
                         "loadElectrical": diario.get("loadElectrical"),
                         "gridTotalEnergy": diario.get("gridTotalEnergy"),
@@ -2047,6 +2097,51 @@ def api_monitoreo_planta(plant_id: int) -> JSONResponse:
             "alarmas": alarmas,
             "firmware": firmware,
         })
+    except Exception as exc:  # noqa: BLE001 - API Noor caída
+        return JSONResponse({"error": str(exc)}, status_code=502)
+
+
+@app.get("/api/monitoreo/planta/{plant_id}/energia")
+def api_monitoreo_energia(plant_id: int, periodo: str = "today") -> JSONResponse:
+    """Resumen de energía por periodo (today/week/month/year/total)."""
+    try:
+        from . import noor
+        disp = noor.dispositivos_planta(plant_id)
+        serial = ""
+        for d in disp:
+            serial = d.get("deviceSn") or d.get("dataLoggerSn") or ""
+            if serial:
+                break
+        if not serial:
+            return JSONResponse({"periodo": periodo, "resumen": {}})
+        if periodo == "total":
+            home = _noor_home(plant_id)
+
+            def _kwh(v):
+                return round(v / 1000, 1) if isinstance(v, (int, float)) else None
+            resumen = {
+                "pvElectrical": _kwh(home.get("pvTotalEnergy")),
+                "loadElectrical": _kwh(home.get("loadTotalEnergy")),
+                "purchasingTotalEnergy": _kwh(home.get("gridChargeTotalEnergy")),
+                "pvTrade": _kwh(home.get("gridDisChargeTotalEnergy")),
+                "batCharge": _kwh(home.get("batteryChargeTotalEnergy")),
+                "batDischarge": _kwh(home.get("batteryDisChargeTotalEnergy")),
+            }
+        else:
+            qt, fecha = _fecha_periodo(periodo)
+            data = _noor_periodo(serial, qt, fecha)
+            resumen = {
+                "pvElectrical": data.get("pvElectrical"),
+                "loadElectrical": data.get("loadElectrical"),
+                "purchasingTotalEnergy": data.get("purchasingTotalEnergy"),
+                "pvTrade": data.get("pvTrade"),
+                "batCharge": data.get("batCharge"),
+                "batDischarge": data.get("batDischarge"),
+                "gridIndependenceRate": data.get("gridIndependenceRate"),
+                "co2Awolided": data.get("co2Awolided"),
+                "totalRevenue": data.get("totalRevenue"),
+            }
+        return JSONResponse({"periodo": periodo, "resumen": resumen})
     except Exception as exc:  # noqa: BLE001 - API Noor caída
         return JSONResponse({"error": str(exc)}, status_code=502)
 

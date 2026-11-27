@@ -32,6 +32,22 @@
   .mn-btn:hover{background:var(--hover)}
   .mn-btn.pri{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .mn-btn.pri:hover{filter:brightness(1.08)}
+  .mn-chip{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .mn-chip.modo{background:var(--info-bg);color:var(--info)}
+  .mn-chip.sistema{background:var(--ok-bg);color:var(--ok)}
+  .mn-chip.off{background:var(--bad-bg);color:var(--bad)}
+  .mn-periodos{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .mn-periodos button{flex:1;min-width:52px;padding:7px 4px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;font-weight:600}
+  .mn-periodos button.activo{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .mn-metricas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mn-metricas .m{background:var(--card2);border-radius:14px;padding:11px 13px}
+  .mn-metricas .m b{display:block;font-family:'Genos',monospace;font-size:21px;font-weight:600;color:var(--txt);line-height:1.05}
+  .mn-metricas .m small{color:var(--muted);font-size:11px;display:block;margin-top:1px}
+  .mn-metricas .m small:first-child{margin-bottom:3px}
+  .mn-extra{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+  .mn-extra .e{background:var(--card2);border-radius:12px;padding:10px 12px;text-align:center}
+  .mn-extra .e b{display:block;font-family:'Genos',monospace;font-size:17px;font-weight:600;color:var(--txt)}
+  .mn-extra .e small{color:var(--muted);font-size:10.5px}
   .mn-cols{display:grid;grid-template-columns:minmax(340px,1.15fr) minmax(280px,.85fr);gap:14px}
   .mn-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
   .mn-panel > h4{margin:0;padding:12px 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
@@ -87,6 +103,9 @@
     <div class="mn-dhead">
       <h2 id="mnNombre"></h2>
       <div id="mnVinculo"></div>
+      <span id="mnModo" class="mn-chip modo" hidden></span>
+      <span id="mnSistema" class="mn-chip sistema" hidden></span>
+      <span id="mnEstado" class="mn-chip" hidden></span>
       <div class="mn-acciones">
         <button class="mn-btn" id="mnGeo"><i class="bi bi-geo-alt"></i> <span id="mnGeoTxt">Ubicación</span></button>
         <button class="mn-btn" id="mnVincularBtn" hidden><i class="bi bi-link-45deg"></i> Vincular contrato</button>
@@ -103,8 +122,18 @@
 
       <div style="display:grid;gap:14px;align-content:start">
         <div class="mn-panel">
-          <h4>Resumen de hoy</h4>
-          <div class="mn-body"><div id="mnResumen"></div></div>
+          <h4>Energía</h4>
+          <div class="mn-body">
+            <div class="mn-periodos" id="mnPeriodos">
+              <button data-p="today" class="activo">Hoy</button>
+              <button data-p="week">Semana</button>
+              <button data-p="month">Mes</button>
+              <button data-p="year">Año</button>
+              <button data-p="total">Total</button>
+            </div>
+            <div class="mn-metricas" id="mnMetricas"></div>
+            <div class="mn-extra" id="mnExtra"></div>
+          </div>
         </div>
         <div class="mn-panel">
           <h4>Alarmas</h4>
@@ -232,6 +261,12 @@
     $('#mnVincularBtn').hidden = v;
     $('#mnVincular').hidden = v;
     if (!v) cargarContratos();
+    // modo / sistema / estado
+    var h = d.home || {};
+    var mModo = $('#mnModo'), mSis = $('#mnSistema'), mEst = $('#mnEstado');
+    if (h.modo){ mModo.textContent = h.modo; mModo.hidden = false; } else mModo.hidden = true;
+    if (h.sistema){ mSis.textContent = h.sistema; mSis.hidden = false; } else mSis.hidden = true;
+    if (h.estado){ mEst.textContent = h.estado; mEst.className = 'mn-chip' + (h.estado === 'en línea' ? '' : ' off'); mEst.hidden = false; } else mEst.hidden = true;
     // geolocalización
     var lat = d.planta.latitud, lon = d.planta.longitud;
     if (lat != null && lon != null){
@@ -243,10 +278,12 @@
     }
     // potencia en vivo (suavizada)
     pintarLive(d.energia, inicial);
-    // resumen
-    pintarResumen(d.resumen);
+    // energía por periodo (pestañas)
+    cargarPeriodo('today');
     // flujo
     pintarFlujo(d.flujo);
+    if (h.potencia_red != null) $('#mnNodo-red').textContent = fmt(h.potencia_red,2)+' kW';
+    if (h.potencia_bateria != null) $('#mnNodo-bateria').textContent = fmt(h.potencia_bateria,2)+' kW' + (h.soc != null ? ' · '+h.soc+'%' : '');
     // alarmas
     pintarAlarmas(d.alarmas);
     // equipo + firmware
@@ -297,19 +334,33 @@
     _raf[clave] = requestAnimationFrame(function(){ animarNumero(el, clave, objetivo, dec); });
   }
 
-  function pintarResumen(r){
-    var filas = [
-      ['Generación solar', r.pvElectrical, 'kWh'],
-      ['Consumo de la casa', r.loadElectrical, 'kWh'],
-      ['Comprado a la red', r.purchasingTotalEnergy, 'kWh'],
-      ['Batería cargada', r.batCharge, 'kWh'],
-      ['Batería descargada', r.batDischarge, 'kWh'],
-      ['Independencia de la red', r.gridIndependenceRate, '%'],
-      ['CO₂ evitado', r.co2Awolided, 'kg']
-    ];
-    $('#mnResumen').innerHTML = filas.map(function(f){
-      return '<div class="mn-fila"><span>'+f[0]+'</span><b>'+(f[1]==null?'—':fmt(f[1], f[2]==='kWh'?2:0)+' '+f[2])+'</b></div>';
-    }).join('');
+  var periodoActual = 'today';
+  function cargarPeriodo(p){
+    periodoActual = p;
+    Array.prototype.forEach.call(document.querySelectorAll('#mnPeriodos button'), function(b){
+      b.className = (b.dataset.p === p) ? 'activo' : '';
+    });
+    fetch('/api/monitoreo/planta/'+plantaActual+'/energia?periodo='+p).then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) throw new Error(d.error);
+      pintarMetricas(d.resumen);
+    }).catch(function(){ $('#mnMetricas').innerHTML = '<div class="mn-vacio">Sin datos</div>'; });
+  }
+  function pintarMetricas(r){
+    function fe(v){
+      if (v == null) return '<b>—</b><small></small>';
+      var m = Math.abs(v) >= 1000;
+      return '<b>'+fmt(m ? v/1000 : v, 1)+'</b><small>'+(m?'MWh':'kWh')+'</small>';
+    }
+    $('#mnMetricas').innerHTML =
+      '<div class="m"><small>Generación solar (PV)</small>'+fe(r.pvElectrical)+'</div>' +
+      '<div class="m"><small>Consumo (carga)</small>'+fe(r.loadElectrical)+'</div>' +
+      '<div class="m"><small>Exportado a la red</small>'+fe(r.pvTrade)+'<small>Importado de la red</small>'+fe(r.purchasingTotalEnergy)+'</div>' +
+      '<div class="m"><small>Batería cargada</small>'+fe(r.batCharge)+'<small>Batería descargada</small>'+fe(r.batDischarge)+'</div>';
+    var ex = [];
+    if (r.totalRevenue != null) ex.push('<div class="e"><b>$'+fmt(r.totalRevenue,0)+'</b><small>Ahorro</small></div>');
+    if (r.co2Awolided != null) ex.push('<div class="e"><b>'+fmt(r.co2Awolided,0)+' kg</b><small>CO₂ evitado</small></div>');
+    if (r.gridIndependenceRate != null) ex.push('<div class="e"><b>'+fmt(r.gridIndependenceRate,0)+'%</b><small>Independencia de red</small></div>');
+    $('#mnExtra').innerHTML = ex.join('');
   }
 
   // ---- flujo (SVG, power-flow 2D) ----
@@ -399,6 +450,9 @@
 
   // ---- init ----
   $('#mnVolver').addEventListener('click', volver);
+  Array.prototype.forEach.call(document.querySelectorAll('#mnPeriodos button'), function(b){
+    b.addEventListener('click', function(){ cargarPeriodo(b.dataset.p); });
+  });
   $('#mnVincularBtn').addEventListener('click', function(){ $('#mnVincular').hidden = false; cargarContratos(); });
   $('#mnVincularOk').addEventListener('click', function(){
     var nic = $('#mnContratoSel').value;
