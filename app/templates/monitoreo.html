@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% block titulo %}Monitoreo · Enpower Solar{% endblock %}
+{% block estilos %}<style>
+  .mn-wrap{max-width:1500px;margin:0 auto;padding:18px 22px 22px;display:grid;gap:14px}
+  .mn-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  .mn-head h1{margin:0;font-size:20px}
+  .mn-head h1 span{color:var(--accent)}
+  .mn-head .mn-meta{margin-left:auto;display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
+  .mn-dot{width:9px;height:9px;border-radius:50%;background:var(--ok);display:inline-block;animation:mn-pulso 1.6s ease-in-out infinite}
+  .mn-dot.off{background:var(--bad);animation:none}
+  @keyframes mn-pulso{0%,100%{opacity:1}50%{opacity:.35}}
+  .mn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+  .mn-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;cursor:pointer;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease;position:relative}
+  .mn-card:hover{transform:translateY(-2px);border-color:var(--focus);box-shadow:0 6px 18px -8px var(--backdrop)}
+  .mn-card h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .mn-badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.5px}
+  .mn-badge.ok{background:var(--ok-bg);color:var(--ok)}
+  .mn-badge.no{background:var(--warn-bg);color:var(--warn)}
+  .mn-kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mn-kpi .k{padding:9px 11px;border-radius:12px;background:var(--card2)}
+  .mn-kpi .k b{display:block;font-family:'Genos',monospace;font-size:21px;font-weight:600;color:var(--txt);line-height:1.05}
+  .mn-kpi .k small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .mn-fila{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  /* detalle */
+  .mn-detalle{display:grid;gap:14px}
+  .mn-volver{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer;font:inherit;font-size:13px;font-weight:600}
+  .mn-volver:hover{background:var(--hover)}
+  .mn-dhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  .mn-dhead h2{margin:0;font-size:19px}
+  .mn-dhead .mn-acciones{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .mn-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer;font:inherit;font-size:13px;font-weight:600}
+  .mn-btn:hover{background:var(--hover)}
+  .mn-btn.pri{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .mn-btn.pri:hover{filter:brightness(1.08)}
+  .mn-cols{display:grid;grid-template-columns:minmax(340px,1.15fr) minmax(280px,.85fr);gap:14px}
+  .mn-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .mn-panel > h4{margin:0;padding:12px 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .mn-panel .mn-body{padding:14px 16px}
+  /* flujo */
+  .mn-flujo{width:100%;height:auto;display:block}
+  .mn-flujo .nodo text{font-size:13px;font-weight:600;fill:var(--txt)}
+  .mn-flujo .nodo .sub{font-size:11px;fill:var(--muted);font-weight:400}
+  .mn-flujo .nodo circle{stroke:var(--line);stroke-width:1.5}
+  .mn-flujo .line{stroke-dasharray:7 6;animation:mn-flujo 1.1s linear infinite;opacity:.9}
+  @keyframes mn-flujo{to{stroke-dashoffset:-13}}
+  /* kpis grandes en vivo */
+  .mn-live{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .mn-live .k{background:var(--card2);border-radius:14px;padding:12px 14px}
+  .mn-live .k b{display:block;font-family:'Genos',monospace;font-size:27px;font-weight:600;color:var(--txt);line-height:1}
+  .mn-live .k small{color:var(--muted);font-size:11.5px}
+  .mn-live .k i{font-style:normal;font-size:13px;margin-left:3px;color:var(--muted)}
+  .mn-tabla{width:100%;border-collapse:collapse;font-size:13px}
+  .mn-tabla th,.mn-tabla td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .mn-tabla th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+  .mn-tabla tr:last-child td{border-bottom:0}
+  .mn-est{font-weight:700;font-size:11.5px;padding:2px 9px;border-radius:999px}
+  .mn-est.activa{background:var(--bad-bg);color:var(--bad)}
+  .mn-est.recuperada{background:var(--ok-bg);color:var(--ok)}
+  .mn-vacio{color:var(--muted);font-size:13px;padding:8px 2px}
+  .mn-select{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--txt);font:inherit;min-height:40px}
+  .mn-vinc{margin-top:12px;padding:12px 16px;background:var(--warn-bg);border-radius:12px;display:grid;gap:10px}
+  .mn-vinc p{margin:0;font-size:12.5px;color:var(--warn);font-weight:600}
+  .mn-vinc .mn-row{display:flex;gap:8px}
+  .mn-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--on-accent);padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
+  .mn-toast.show{opacity:1}
+  @media (max-width:900px){.mn-cols{grid-template-columns:1fr}}
+</style>{% endblock %}
+
+{% block contenido %}
+<div class="mn-wrap">
+  <div class="mn-head">
+    <h1>Monitoreo <span>solar</span></h1>
+    <div class="mn-meta">
+      <span id="mnEstado" class="mn-dot off"></span>
+      <span id="mnInfo">Conectando…</span>
+    </div>
+  </div>
+
+  <!-- vista lista -->
+  <div id="mnLista">
+    <div class="mn-grid" id="mnGrid"></div>
+  </div>
+
+  <!-- vista detalle -->
+  <div id="mnDetalle" class="mn-detalle" hidden>
+    <button class="mn-volver" id="mnVolver"><i class="bi bi-arrow-left"></i> Volver a las plantas</button>
+    <div class="mn-dhead">
+      <h2 id="mnNombre"></h2>
+      <div id="mnVinculo"></div>
+      <div class="mn-acciones">
+        <button class="mn-btn" id="mnGeo"><i class="bi bi-geo-alt"></i> <span id="mnGeoTxt">Ubicación</span></button>
+        <button class="mn-btn" id="mnVincularBtn" hidden><i class="bi bi-link-45deg"></i> Vincular contrato</button>
+      </div>
+    </div>
+
+    <div class="mn-cols">
+      <div class="mn-panel">
+        <h4>Flujo de energía (hoy)</h4>
+        <div class="mn-body"><svg id="mnFlujoSvg" class="mn-flujo" viewBox="0 0 500 330" role="img" aria-label="Diagrama de flujo de energía"></svg></div>
+        <h4>Potencia en vivo</h4>
+        <div class="mn-body"><div class="mn-live" id="mnLive"></div></div>
+      </div>
+
+      <div style="display:grid;gap:14px;align-content:start">
+        <div class="mn-panel">
+          <h4>Resumen de hoy</h4>
+          <div class="mn-body"><div id="mnResumen"></div></div>
+        </div>
+        <div class="mn-panel">
+          <h4>Alarmas</h4>
+          <div class="mn-body"><div id="mnAlarmas"></div></div>
+        </div>
+        <div class="mn-panel">
+          <h4>Equipo y firmware</h4>
+          <div class="mn-body"><div id="mnEquipo"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="mnVincular" class="mn-vinc" hidden>
+      <p>Esta planta no está vinculada a un contrato de la base de datos.</p>
+      <div class="mn-row">
+        <select class="mn-select" id="mnContratoSel"></select>
+        <button class="mn-btn pri" id="mnVincularOk"><i class="bi bi-check2"></i> Vincular</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mn-toast" id="mnToast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  'use strict';
+  var plantaActual = null;
+  var timerLista = null, timerDetalle = null;
+  var suavizado = {};  // valor mostrado actual (para lerp)
+  var animando = false;
+
+  // colores semánticos de los nodos
+  var COLOR = { solar:'#E8A33D', red:'#3E7CB1', casa:'#2F9E44', bateria:'#7A5CC7' };
+  var NODO_DE = {
+    'Solar':'solar', 'Grid Input':'red', 'Grid Output':'red',
+    'Battery Charge':'bateria', 'Battery Discharge':'bateria',
+    'Load':'casa', 'EV Charger':'casa'
+  };
+
+  function $(s){ return document.querySelector(s); }
+  function toast(m){
+    var t = $('#mnToast'); t.textContent = m; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+  function fmt(n, d){
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return Number(n).toFixed(d == null ? 1 : d);
+  }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  // ---- lista ----
+  function pintarLista(plantas){
+    var g = $('#mnGrid');
+    if (!plantas || !plantas.length){ g.innerHTML = '<div class="mn-vacio">Sin plantas aún.</div>'; return; }
+    g.innerHTML = plantas.map(function(p){
+      return '<div class="mn-card" data-id="'+p.id+'">' +
+        '<h3>'+esc(p.nombre)+' <span class="mn-badge '+(p.vinculado?'ok':'no')+'">'+(p.vinculado?'Vinculado':'Sin vincular')+'</span></h3>' +
+        '<div class="mn-kpi">' +
+          '<div class="k"><b>'+fmt(p.pvPower,2)+' <small>kW</small></b><small>Solar</small></div>' +
+          '<div class="k"><b>'+fmt(p.loadPower,0)+' <small>W</small></b><small>Carga</small></div>' +
+          '<div class="k"><b>'+fmt(p.pvDayEnergy/1000,2)+' <small>kWh</small></b><small>Hoy</small></div>' +
+          '<div class="k"><b>'+fmt(p.pvTotalEnergy,0)+' <small>kWh</small></b><small>Total</small></div>' +
+        '</div>' +
+        '<div class="mn-fila"><span>'+(p.contrato_nombre ? 'Contrato: '+esc(p.contrato_nombre) : 'Sin contrato')+'</span><span>'+(p.nic?('NIC '+esc(p.nic)):'')+'</span></div>' +
+      '</div>';
+    }).join('');
+    Array.prototype.forEach.call(g.querySelectorAll('.mn-card'), function(c){
+      c.addEventListener('click', function(){ abrirDetalle(Number(c.dataset.id)); });
+    });
+  }
+
+  function fetchLista(){
+    fetch('/api/monitoreo/plantas').then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) throw new Error(d.error);
+      pintarLista(d.plantas);
+      setEstado(true, d.plantas.length + ' plantas');
+    }).catch(function(e){
+      setEstado(false, 'Sin conexión al monitoreo');
+    });
+  }
+  function setEstado(ok, txt){
+    var d = $('#mnEstado'); d.className = 'mn-dot ' + (ok ? '' : 'off');
+    $('#mnInfo').textContent = txt;
+  }
+
+  // ---- detalle ----
+  function abrirDetalle(id){
+    plantaActual = id;
+    $('#mnLista').hidden = true;
+    $('#mnDetalle').hidden = false;
+    suavizado = {};
+    window.scrollTo(0,0);
+    fetchDetalle(true);
+    if (timerDetalle) clearInterval(timerDetalle);
+    timerDetalle = setInterval(function(){ fetchDetalle(false); }, 10000);
+  }
+  function volver(){
+    plantaActual = null;
+    if (timerDetalle){ clearInterval(timerDetalle); timerDetalle = null; }
+    $('#mnDetalle').hidden = true;
+    $('#mnLista').hidden = false;
+    fetchLista();
+  }
+
+  function fetchDetalle(inicial){
+    if (plantaActual == null) return;
+    fetch('/api/monitoreo/planta/'+plantaActual).then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) throw new Error(d.error);
+      pintarDetalle(d, inicial);
+    }).catch(function(e){ setEstado(false, 'Error al cargar la planta'); });
+  }
+
+  function pintarDetalle(d, inicial){
+    setEstado(true, d.planta.nombre);
+    $('#mnNombre').textContent = d.planta.nombre;
+    // vinculo
+    var v = d.planta.vinculado;
+    $('#mnVinculo').innerHTML = v
+      ? '<span class="mn-badge ok">Vinculado · ' + esc(d.planta.contrato_nombre || '') + (d.planta.nic ? ' (NIC '+esc(d.planta.nic)+')' : '') + '</span>'
+      : '<span class="mn-badge no">Sin vincular</span>';
+    $('#mnVincularBtn').hidden = v;
+    $('#mnVincular').hidden = v;
+    if (!v && !inicial) cargarContratos();
+    // geolocalización
+    var lat = d.planta.latitud, lon = d.planta.longitud;
+    if (lat != null && lon != null){
+      $('#mnGeo').onclick = function(){ window.open('https://www.google.com/maps?q='+lat+','+lon, '_blank'); };
+      $('#mnGeoTxt').textContent = 'Ver en el mapa';
+    } else {
+      $('#mnGeo').onclick = function(){ toast('Esta planta no tiene ubicación'); };
+      $('#mnGeoTxt').textContent = 'Sin ubicación';
+    }
+    // potencia en vivo (suavizada)
+    pintarLive(d.energia, inicial);
+    // resumen
+    pintarResumen(d.resumen);
+    // flujo
+    pintarFlujo(d.flujo);
+    // alarmas
+    pintarAlarmas(d.alarmas);
+    // equipo + firmware
+    pintarEquipo(d.dispositivos, d.firmware);
+  }
+
+  // suavizado de números en vivo (lerp hacia el objetivo en ~1s)
+  function objetivo(clave, valor){
+    if (valor == null || isNaN(valor)) return;
+    if (suavizado[clave] == null) suavizado[clave] = valor;
+    else suavizado[clave] = valor; // el objetivo real se guarda en otra clave
+  }
+  function pintarLive(e, inicial){
+    var live = $('#mnLive');
+    var items = [
+      ['pvPower', 'Solar', 'kW', e.pvPower, 2, COLOR.solar],
+      ['loadPower', 'Carga', 'W', e.loadPower, 0, COLOR.casa],
+      ['pvDayEnergy', 'Hoy', 'kWh', e.pvDayEnergy != null ? e.pvDayEnergy/1000 : null, 2, COLOR.solar],
+      ['pvTotalEnergy', 'Total', 'kWh', e.pvTotalEnergy, 0, COLOR.casa]
+    ];
+    if (!live.dataset.init){
+      live.innerHTML = items.map(function(it){
+        return '<div class="k" id="mnK-'+it[0]+'"><b style="color:'+it[5]+'">—</b><small>'+it[1]+' <i>'+it[3]+'</i></small></div>';
+      }).join('');
+      live.dataset.init = '1';
+    }
+    items.forEach(function(it){
+      var el = $('#mnK-'+it[0]);
+      if (!el) return;
+      var objetivo = it[3];
+      if (objetivo == null || isNaN(objetivo)){ el.querySelector('b').textContent = '—'; return; }
+      animarNumero(el.querySelector('b'), it[0], objetivo, it[4]);
+    });
+  }
+  var _raf = {};
+  function animarNumero(el, clave, objetivo, dec){
+    var actual = suavizado[clave];
+    if (actual == null) actual = objetivo;
+    var delta = objetivo - actual;
+    if (Math.abs(delta) < 0.001){ suavizado[clave] = objetivo; el.textContent = fmt(objetivo, dec); return; }
+    // avance suave: ~8% por frame + mínimo, llega en ~1s
+    var paso = delta * 0.12;
+    if (Math.abs(paso) < Math.abs(delta) * 0.02) paso = delta * 0.05;
+    actual += paso;
+    suavizado[clave] = actual;
+    el.textContent = fmt(actual, dec);
+    if (_raf[clave]) cancelAnimationFrame(_raf[clave]);
+    _raf[clave] = requestAnimationFrame(function(){ animarNumero(el, clave, objetivo, dec); });
+  }
+
+  function pintarResumen(r){
+    var filas = [
+      ['Generación solar', r.pvElectrical, 'kWh'],
+      ['Consumo de la casa', r.loadElectrical, 'kWh'],
+      ['Comprado a la red', r.purchasingTotalEnergy, 'kWh'],
+      ['Batería cargada', r.batCharge, 'kWh'],
+      ['Batería descargada', r.batDischarge, 'kWh'],
+      ['Independencia de la red', r.gridIndependenceRate, '%'],
+      ['CO₂ evitado', r.co2Awolided, 'kg']
+    ];
+    $('#mnResumen').innerHTML = filas.map(function(f){
+      return '<div class="mn-fila"><span>'+f[0]+'</span><b>'+(f[1]==null?'—':fmt(f[1], f[2]==='kWh'?2:0)+' '+f[2])+'</b></div>';
+    }).join('');
+  }
+
+  // ---- flujo (SVG, power-flow 2D) ----
+  var POS = { solar:[120,90], red:[120,250], casa:[400,90], bateria:[400,250] };
+  var ETIQ = { solar:'Solar', red:'Red', casa:'Casa', bateria:'Batería' };
+  function pintarFlujo(flujo){
+    var svg = $('#mnFlujoSvg');
+    // agrupar links del sankey por arista (nodo origen → nodo destino)
+    var aristas = {};
+    var total = 0;
+    (flujo && flujo.links || []).forEach(function(l){
+      var s = NODO_DE[l.source], t = NODO_DE[l.target];
+      if (!s || !t || s === t) return;
+      var k = s+'->'+t;
+      aristas[k] = (aristas[k] || 0) + (Number(l.value) || 0);
+      total += (Number(l.value) || 0);
+    });
+    var R = 46;
+    var lineas = '';
+    Object.keys(aristas).forEach(function(k){
+      var a = k.split('->'), s = POS[a[0]], t = POS[a[1]];
+      var val = aristas[k];
+      var grosor = Math.max(1.5, Math.min(10, 2 + (val / (total||1)) * 16));
+      var c = COLOR[a[0]];
+      // acortar la línea para que arranque/en el borde de los círculos
+      var dx = t[0]-s[0], dy = t[1]-s[1], L = Math.sqrt(dx*dx+dy*dy);
+      var ux = dx/L, uy = dy/L, r = R + 8;
+      var x1 = s[0]+ux*r, y1 = s[1]+uy*r, x2 = t[0]-ux*r, y2 = t[1]-uy*r;
+      lineas += '<line class="line" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-width="'+grosor.toFixed(1)+'" stroke-linecap="round"/>';
+      // flecha/valor en el punto medio
+      var mx = (x1+x2)/2, my = (y1+y2)/2;
+      lineas += '<text x="'+mx+'" y="'+my+'" text-anchor="middle" font-size="11" fill="var(--muted)" style="paint-order:stroke;stroke:var(--card);stroke-width:3">'+fmt(val,1)+'</text>';
+    });
+    var nodos = '';
+    Object.keys(POS).forEach(function(n){
+      var p = POS[n];
+      nodos += '<g class="nodo"><circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+R+'" fill="'+COLOR[n]+'" opacity="0.14"/>' +
+        '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+R+'" fill="none" stroke="'+COLOR[n]+'" stroke-width="2"/>' +
+        '<text x="'+p[0]+'" y="'+(p[1]-6)+'" text-anchor="middle">'+ETIQ[n]+'</text>' +
+        '<text x="'+p[0]+'" y="'+(p[1]+12)+'" text-anchor="middle" class="sub" id="mnNodo-'+n+'">—</text></g>';
+    });
+    svg.innerHTML = lineas + nodos;
+    // rellenar la potencia en vivo en cada nodo
+    var pv = suavizado.pvPower, carga = suavizado.loadPower;
+    if (pv != null) $('#mnNodo-solar').textContent = fmt(pv,2)+' kW';
+    if (carga != null) $('#mnNodo-casa').textContent = fmt(carga,0)+' W';
+  }
+
+  function pintarAlarmas(a){
+    var el = $('#mnAlarmas');
+    if (!a || !a.length){ el.innerHTML = '<div class="mn-vacio">Sin alarmas registradas.</div>'; return; }
+    el.innerHTML = '<table class="mn-tabla"><thead><tr><th>Alarma</th><th>Estado</th><th>Abierta</th></tr></thead><tbody>' +
+      a.slice(0,30).map(function(x){
+        return '<tr><td>'+esc(x.descripcion)+'</td>' +
+          '<td><span class="mn-est '+x.estado+'">'+(x.estado==='activa'?'Activa':'Recuperada')+'</span></td>' +
+          '<td>'+esc(x.abierta || '—')+'</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function pintarEquipo(dis, fw){
+    var el = $('#mnEquipo');
+    var html = '';
+    (dis || []).forEach(function(d){
+      html += '<div class="mn-fila"><span>'+esc(d.alias || 'Equipo')+'</span><span style="font-family:monospace;font-size:11px">'+esc(d.deviceSn || d.dataLoggerSn || '—')+'</span></div>';
+    });
+    if (fw && fw.length){
+      html += '<div style="margin-top:10px;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.6px">Firmware reciente</div>';
+      fw.slice(0,5).forEach(function(f){
+        html += '<div class="mn-fila"><span>'+esc(f.version || '—')+'</span><span>'+(f.resultado==='Succeeded'?'✔':'✖')+' '+esc(f.fecha || '')+'</span></div>';
+      });
+    } else {
+      html += '<div class="mn-vacio">Sin registros de firmware.</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  // ---- vinculación ----
+  function cargarContratos(){
+    fetch('/api/monitoreo/contratos').then(function(r){ return r.json(); }).then(function(d){
+      var sel = $('#mnContratoSel');
+      sel.innerHTML = '<option value="">Seleccione un contrato…</option>' + (d.contratos||[]).map(function(c){
+        return '<option value="'+esc(c.nic)+'">'+esc(c.nombre)+' — NIC '+esc(c.nic)+'</option>';
+      }).join('');
+    }).catch(function(){ toast('No se pudieron cargar los contratos'); });
+  }
+
+  // ---- init ----
+  $('#mnVolver').addEventListener('click', volver);
+  $('#mnVincularBtn').addEventListener('click', function(){ $('#mnVincular').hidden = false; cargarContratos(); });
+  $('#mnVincularOk').addEventListener('click', function(){
+    var nic = $('#mnContratoSel').value;
+    if (!nic){ toast('Seleccione un contrato'); return; }
+    fetch('/api/monitoreo/vincular', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ noor_plant_id: plantaActual, contrato_nic: nic })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok){ toast('Planta vinculada al contrato'); $('#mnVincular').hidden = true; fetchDetalle(true); }
+      else toast(d.error || 'No se pudo vincular');
+    }).catch(function(){ toast('Error al vincular'); });
+  });
+
+  fetchLista();
+  timerLista = setInterval(fetchLista, 10000);
+})();
+</script>
+{% endblock %}

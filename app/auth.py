@@ -80,6 +80,7 @@ MODULOS = (
     ("clientes", "Clientes agregados"),
     ("nuevo_cliente", "Nuevo cliente"),
     ("mapa", "Mapa"),
+    ("monitoreo", "Monitoreo"),
     ("reenviar", "Reenviar facturas"),
     ("cotizaciones", "Cotizaciones"),
     ("telegram", "Conexión Telegram"),
@@ -89,9 +90,9 @@ MODULOS = (
 )
 MODULOS_POR_ROL = {
     "admin": {m for m, _ in MODULOS},
-    "soporte": {"panel", "facturas", "clientes", "nuevo_cliente", "mapa", "reenviar",
+    "soporte": {"panel", "facturas", "clientes", "nuevo_cliente", "mapa", "monitoreo", "reenviar",
                 "cotizaciones", "telegram"},
-    "asesor": {"panel", "clientes", "mapa"},
+    "asesor": {"panel", "clientes", "mapa", "monitoreo"},
 }
 
 

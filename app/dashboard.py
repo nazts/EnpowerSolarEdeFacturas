@@ -1880,3 +1880,206 @@ def ver_pdf(factura_id: int):
     raise HTTPException(
         404, f"El PDF de la factura {fila['ref_pago']} (NIC {fila['nic']}) no está "
              "disponible: no quedó copia en el servidor ni en Telegram.")
+
+
+# ============================================================ Monitoreo Noor/Weco
+# Plantas solares de los clientes, en vivo desde noor.olpess-api.com (app/noor.py).
+
+_cache_plantas: dict = {"ts": 0.0, "data": []}
+_cache_energia: dict = {}
+
+
+def _noor_plantas() -> list[dict]:
+    """Plantas Noor con caché de 30s (no re-consultar la API en cada poll)."""
+    ahora = time.time()
+    if _cache_plantas["data"] and ahora - _cache_plantas["ts"] < 30:
+        return _cache_plantas["data"]
+    from . import noor
+    _cache_plantas["data"] = noor.lista_plantas()
+    _cache_plantas["ts"] = ahora
+    return _cache_plantas["data"]
+
+
+def _noor_energia(plant_id: int) -> dict:
+    """Energía en vivo de una planta (caché 15s)."""
+    ahora = time.time()
+    item = _cache_energia.get(("e", plant_id))
+    if item and ahora - item[0] < 15:
+        return item[1]
+    from . import noor
+    val = noor.energia_planta(plant_id)
+    _cache_energia[("e", plant_id)] = (ahora, val)
+    return val
+
+
+def _noor_diario(serial: str) -> dict:
+    """Resumen del día (getInverterHomeEnergyV2) con caché de 60s."""
+    ahora = time.time()
+    item = _cache_energia.get(("d", serial))
+    if item and ahora - item[0] < 60:
+        return item[1]
+    from . import noor
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    val = noor.energia_inversor([serial], 1, f"{hoy}/{hoy}")
+    _cache_energia[("d", serial)] = (ahora, val)
+    return val
+
+
+def _vinculos(conn) -> dict:
+    """{noor_plant_id: (nic, nombre)} para saber qué plantas ya están vinculadas."""
+    filas = conn.execute(
+        "SELECT nic, razon_social, nombre_normalizado, noor_plant_id "
+        "FROM contratos WHERE noor_plant_id IS NOT NULL").fetchall()
+    salida = {}
+    for f in filas:
+        nombre = f["nombre_normalizado"] or f["razon_social"] or f["nic"]
+        salida[f["noor_plant_id"]] = (f["nic"], nombre)
+    return salida
+
+
+@app.get("/monitoreo")
+def monitoreo_page(request: Request):
+    return templates.TemplateResponse(request, "monitoreo.html", {"activo": "monitoreo"})
+
+
+@app.get("/api/monitoreo/plantas")
+def api_monitoreo_plantas() -> JSONResponse:
+    """Todas las plantas Noor (aunque no estén vinculadas a un contrato)."""
+    try:
+        with db.sesion() as conn:
+            vinculos = _vinculos(conn)
+        plantas = _noor_plantas()
+        def _energia_segura(pid):
+            try:
+                return _noor_energia(pid)
+            except Exception:  # noqa: BLE001 - una planta caída no tira la lista
+                return {}
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=12) as ex:
+            energias = list(ex.map(_energia_segura, [p.get("id") for p in plantas]))
+        salida = []
+        for p, e in zip(plantas, energias):
+            pid = p.get("id")
+            nic, cnombre = vinculos.get(pid, (None, None))
+            salida.append({
+                "id": pid,
+                "nombre": p.get("plantName") or f"Planta {pid}",
+                "pvPower": e.get("pvPower"),
+                "loadPower": e.get("loadPower"),
+                "pvDayEnergy": e.get("pvDayEnergy"),
+                "pvTotalEnergy": e.get("pvTotalEnergy"),
+                "latitud": _num(p.get("latitude")), "longitud": _num(p.get("longitude")),
+                "direccion": p.get("address") or "",
+                "instalacion": p.get("installationData") or "",
+                "vinculado": nic is not None,
+                "nic": nic,
+                "contrato_nombre": cnombre,
+            })
+        return JSONResponse({"plantas": salida})
+    except Exception as exc:  # noqa: BLE001 - API Noor caída
+        return JSONResponse({"error": str(exc)}, status_code=502)
+
+
+@app.get("/api/monitoreo/planta/{plant_id}")
+def api_monitoreo_planta(plant_id: int) -> JSONResponse:
+    """Detalle de una planta: energía en vivo, flujo del día, alarmas, equipo y firmware."""
+    try:
+        from . import noor
+        with db.sesion() as conn:
+            vinculos = _vinculos(conn)
+            fila = conn.execute(
+                "SELECT nic, razon_social, nombre_normalizado, direccion, latitud, longitud "
+                "FROM contratos WHERE noor_plant_id = ?", (plant_id,)).fetchone()
+        nic, cnombre = vinculos.get(plant_id, (None, None))
+        direccion = latitud = longitud = None
+        if fila:
+            nic = fila["nic"]
+            cnombre = fila["nombre_normalizado"] or fila["razon_social"] or fila["nic"]
+            direccion = fila["direccion"] or None
+            latitud = fila["latitud"]
+            longitud = fila["longitud"]
+        pinfo = next((p for p in _noor_plantas() if p.get("id") == plant_id), {})
+        nombre = pinfo.get("plantName") or f"Planta {plant_id}"
+        e = _noor_energia(plant_id)
+        disp = noor.dispositivos_planta(plant_id)
+        serial = ""
+        for d in disp:
+            serial = d.get("deviceSn") or d.get("dataLoggerSn") or ""
+            if serial:
+                break
+        diario = _noor_diario(serial) if serial else {}
+        alarmas = [{
+            "descripcion": noor.traducir_alarma(str(a.get("description") or "")) or "Alarma",
+            "estado": "activa" if a.get("state") == 1 else "recuperada",
+            "abierta": a.get("openTime"),
+            "cerrada": a.get("closeTime"),
+        } for a in noor.alarmas_planta(plant_id)]
+        firmware = []
+        for d in disp[:4]:
+            sn = d.get("deviceSn") or d.get("dataLoggerSn")
+            if not sn:
+                continue
+            try:
+                firmware += noor.logs_firmware(plant_id, sn)[:3]
+            except Exception:  # noqa: BLE001
+                pass
+        return JSONResponse({
+            "planta": {"id": plant_id, "nombre": nombre,
+                       "direccion": direccion or pinfo.get("address") or "",
+                       "latitud": latitud if latitud is not None else _num(pinfo.get("latitude")),
+                       "longitud": longitud if longitud is not None else _num(pinfo.get("longitude")),
+                       "vinculado": nic is not None, "nic": nic, "contrato_nombre": cnombre},
+            "energia": {"pvPower": e.get("pvPower"), "loadPower": e.get("loadPower"),
+                        "pvDayEnergy": e.get("pvDayEnergy"),
+                        "pvTotalEnergy": e.get("pvTotalEnergy")},
+            "resumen": {"pvElectrical": diario.get("pvElectrical"),
+                        "loadElectrical": diario.get("loadElectrical"),
+                        "gridTotalEnergy": diario.get("gridTotalEnergy"),
+                        "purchasingTotalEnergy": diario.get("purchasingTotalEnergy"),
+                        "batCharge": diario.get("batCharge"),
+                        "batDischarge": diario.get("batDischarge"),
+                        "gridIndependenceRate": diario.get("gridIndependenceRate"),
+                        "co2Awolided": diario.get("co2Awolided")},
+            "flujo": diario.get("sankey"),
+            "dispositivos": [{"alias": d.get("alias"), "deviceSn": d.get("deviceSn"),
+                              "dataLoggerSn": d.get("dataLoggerSn"),
+                              "dtc": d.get("dtc")} for d in disp],
+            "alarmas": alarmas,
+            "firmware": firmware,
+        })
+    except Exception as exc:  # noqa: BLE001 - API Noor caída
+        return JSONResponse({"error": str(exc)}, status_code=502)
+
+
+@app.get("/api/monitoreo/contratos")
+def api_monitoreo_contratos() -> JSONResponse:
+    """Contratos activos de la BD, para el selector de vinculación."""
+    with db.sesion() as conn:
+        filas = conn.execute(
+            "SELECT nic, razon_social, nombre_normalizado FROM contratos "
+            "WHERE estado = 'agregado' ORDER BY nombre_normalizado").fetchall()
+    return JSONResponse({"contratos": [
+        {"nic": f["nic"],
+         "nombre": f["nombre_normalizado"] or f["razon_social"] or f["nic"]}
+        for f in filas]})
+
+
+@app.post("/api/monitoreo/vincular")
+async def api_monitoreo_vincular(request: Request) -> JSONResponse:
+    """Vincula una planta Noor a un contrato (una planta = un único contrato)."""
+    try:
+        cuerpo = await request.json()
+    except Exception:  # noqa: BLE001
+        return JSONResponse({"ok": False, "error": "JSON inválido"}, status_code=400)
+    plant_id = cuerpo.get("noor_plant_id")
+    contrato_nic = cuerpo.get("contrato_nic")
+    if not isinstance(plant_id, int) or not isinstance(contrato_nic, str) or not contrato_nic:
+        return JSONResponse({"ok": False, "error": "Faltan noor_plant_id o contrato_nic"},
+                            status_code=400)
+    with db.sesion() as conn:
+        conn.execute("UPDATE contratos SET noor_plant_id = NULL WHERE noor_plant_id = ?",
+                     (plant_id,))
+        conn.execute("UPDATE contratos SET noor_plant_id = ? WHERE nic = ?",
+                     (plant_id, contrato_nic))
+        conn.commit()
+    return JSONResponse({"ok": True})

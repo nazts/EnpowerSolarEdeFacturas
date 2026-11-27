@@ -216,6 +216,8 @@ COLUMNAS_NUEVAS = {
     "borrado_at": "TEXT",
     # quien paga el proyecto fotovoltaico (no es el titular de la factura)
     "titular_pago": "TEXT NOT NULL DEFAULT ''",
+    # vinculo con la planta de monitoreo Noor/Weco (null = sin vincular)
+    "noor_plant_id": "INTEGER",
 }
 
 
