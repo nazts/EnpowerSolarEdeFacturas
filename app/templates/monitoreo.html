@@ -98,6 +98,7 @@
   .cv-grid{stroke:var(--line);stroke-width:1}
   .cv-ax{fill:var(--muted);font-size:10.5px}
   .cv-line{fill:none;stroke:var(--accent2,#E8A33D);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+  .cv-sec{fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:.8}
   .cv-avg{fill:none;stroke:var(--accent,#7A5CC7);stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round}
   .cv-pk{fill:var(--accent2,#E8A33D);stroke:var(--card);stroke-width:2}
   .cv-pkt{fill:var(--txt);font-family:'Genos',monospace;font-size:13px;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:var(--card2);stroke-width:3px}
@@ -554,8 +555,15 @@
     datos.forEach(function(d,i){
       if (i % paso === 0) ejes += '<text class="cv-ax" x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+esc(d.lab)+'</text>';
     });
-    var curvas = '';
+    // separar curva principal (PV) del resto
+    var pvPts = [], pvIdx = [];
+    datos.forEach(function(d,i){
+      if (d.valores['pvPower'] != null){ pvPts.push([X(i), Y(d.valores['pvPower'])]); pvIdx.push({i:i, v:d.valores['pvPower']}); }
+    });
+    // curvas secundarias (todas menos PV)
+    var secundarias = '';
     CAMPOS_POTENCIA.forEach(function(c){
+      if (c === 'pvPower') return;
       var pts = [];
       datos.forEach(function(d,i){
         if (d.valores[c] != null) pts.push([X(i), Y(d.valores[c])]);
@@ -564,13 +572,45 @@
       var meta = null;
       (campos || []).forEach(function(x){ if (x.campo === c) meta = x; });
       var col = (meta && meta.color) ? meta.color : '#888';
-      curvas += '<path class="cv-line" d="'+suave(pts)+'" stroke="'+col+'"/>';
+      secundarias += '<path class="cv-sec" d="'+suave(pts)+'" stroke="'+col+'"/>';
     });
+    // curva principal PV (estilo galaxia: área + media móvil + pico + punto animado)
+    var lineaPv = pvPts.length >= 2 ? suave(pvPts) : '';
+    var areaPv = '';
+    if (lineaPv){
+      areaPv = lineaPv + ' L'+pvPts[pvPts.length-1][0].toFixed(1)+' '+(pt+ih).toFixed(1)+' L'+pvPts[0][0].toFixed(1)+' '+(pt+ih).toFixed(1)+' Z';
+    }
+    var picoPv = 0, ipPv = -1;
+    pvIdx.forEach(function(x){ if (x.v > picoPv){ picoPv = x.v; ipPv = x.i; } });
+    var avgPts = [];
+    datos.forEach(function(d,i){
+      if (d.valores['pvPower'] == null) return;
+      var s = 0, c2 = 0;
+      for (var j=i-1;j<=i+1;j++){
+        if (j>=0 && j<n && datos[j].valores['pvPower'] != null){ s += datos[j].valores['pvPower']; c2++; }
+      }
+      if (c2) avgPts.push([X(i), Y(s/c2)]);
+    });
+    var extra = '';
+    if (ipPv >= 0){
+      var px = X(ipPv), py = Y(picoPv);
+      var tx = Math.max(70, Math.min(W-70, px));
+      extra += '<circle class="cv-pk" cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="5"/>' +
+               '<text class="cv-pkt" x="'+tx.toFixed(1)+'" y="'+Math.max(12, py-11).toFixed(1)+'">Pico '+fmt(picoPv, picoPv>=10?0:2)+' kW · '+esc(datos[ipPv].lab)+'</text>';
+    }
+    if (lineaPv){
+      extra += '<circle class="cv-dot" r="5"><animateMotion dur="7s" repeatCount="indefinite"><mpath href="#mnCvPath"/></animateMotion></circle>';
+    }
     var cy0 = Y(0);
     var svg = '<svg id="mnCvSvg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Curva de potencia">' +
+      '<defs><linearGradient id="mnCvG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent2,#E8A33D)" stop-opacity=".45"/><stop offset="1" stop-color="var(--accent2,#E8A33D)" stop-opacity="0"/></linearGradient></defs>' +
       grid +
       '<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+cy0.toFixed(1)+'" y2="'+cy0.toFixed(1)+'" class="cv-grid" opacity="1"/>' +
-      ejes + curvas +
+      ejes + secundarias +
+      (lineaPv ? '<path d="'+areaPv+'" fill="url(#mnCvG)"/>' : '') +
+      (avgPts.length >= 2 ? '<path class="cv-avg" d="'+suave(avgPts)+'"/>' : '') +
+      (lineaPv ? '<path class="cv-line" id="mnCvPath" d="'+lineaPv+'"/>' : '') +
+      extra +
       '<g id="mnCvHover"></g>' +
       '</svg>';
     $('#mnCurva').innerHTML = svg;

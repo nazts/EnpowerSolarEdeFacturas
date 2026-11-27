@@ -2231,7 +2231,7 @@ def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today")
             {"campo": "loadPower", "nombre": "Load Power", "unidad": "kW", "color": "#2F9E44"},
             {"campo": "epsLoadPower", "nombre": "EPS Load Power", "unidad": "kW", "color": "#3E7CB1"},
             {"campo": "externalLoadPower", "nombre": "External Load Power", "unidad": "kW", "color": "#F59E0B"},
-            {"campo": "pvPower", "nombre": "PV Power", "unidad": "kW", "color": "#6D5CC7"},
+            {"campo": "pvPower", "nombre": "PV Power", "unidad": "kW", "color": "#E8A33D"},
             {"campo": "gridPower", "nombre": "Grid Power", "unidad": "kW", "color": "#D4788C"},
             {"campo": "batteryPower", "nombre": "Battery Power", "unidad": "kW", "color": "#E0569E"},
             {"campo": "batteryVoltage", "nombre": "Battery Voltage", "unidad": "V", "color": "#8B5E3C"},
