@@ -184,7 +184,9 @@
       pintarLista(d.plantas);
       setEstado(true, d.plantas.length + ' plantas');
     }).catch(function(e){
-      setEstado(false, 'Sin conexión al monitoreo');
+      var msg = (e && e.message && e.message !== 'Failed to fetch') ? e.message : 'Sin conexión al monitoreo';
+      setEstado(false, msg);
+      $('#mnGrid').innerHTML = '<div class="mn-vacio">' + esc(msg) + '</div>';
     });
   }
   function setEstado(ok, txt){
