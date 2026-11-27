@@ -839,8 +839,9 @@ def api_telegram_detectar(request: Request) -> JSONResponse:
 def api_telegram_chat(request: Request, chat_id: str = Form(...)) -> JSONResponse:
     requiere_operador(request)
     chat_id = chat_id.strip()
-    if not chat_id:
-        return JSONResponse({"ok": False, "error": "chat_id vacío"}, status_code=400)
+    # solo IDs numéricos (con signo) o @usuarios: evita inyectar líneas en el .env
+    if not chat_id or not re.fullmatch(r"-?\d+|@\w+", chat_id):
+        return JSONResponse({"ok": False, "error": "chat_id inválido"}, status_code=400)
     config.guardar_chat_id(chat_id)
     return JSONResponse({"ok": True, "chat_id": chat_id})
 
@@ -849,7 +850,11 @@ def api_telegram_chat(request: Request, chat_id: str = Form(...)) -> JSONRespons
 def api_corrida(request: Request, fecha: str | None = Form(default=None)) -> JSONResponse:
     requiere_operador(request)
     from .runner import corrida
-    f = datetime.strptime(fecha, "%Y-%m-%d").date() if fecha else None
+    try:
+        f = datetime.strptime(fecha, "%Y-%m-%d").date() if fecha else None
+    except ValueError:
+        return JSONResponse({"ok": False, "error": "Fecha inválida (use AAAA-MM-DD)"},
+                            status_code=400)
     try:
         r = corrida(fecha=f, enviar=True)
         return JSONResponse({"ok": r.portal_error is None, **r.como_dict()})
@@ -1597,7 +1602,10 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
         raise HTTPException(400, "Datos de la firma inválidos")
 
     firma_id = cuerpo.get("firma_id")
-    firma_id = int(firma_id) if firma_id else None
+    try:
+        firma_id = int(firma_id) if firma_id else None
+    except (TypeError, ValueError):
+        raise HTTPException(400, "firma_id inválido")
     ancho_hoja, alto_hoja = _medidas_hoja()
     x = y = ancho_img = None
     if firma_id:
@@ -1621,18 +1629,24 @@ async def cotizaciones_firmar(request: Request, cotizacion_id: int):
 
         ruta = CARPETA_FIRMAS / str(firma.get("archivo") or "")
         alto_img = _alto_imagen(ruta, ancho_img) if ruta.exists() else 0.0
-        x = min(max(x, 4.0), max(ancho_hoja - 20, 4.0))
-        y = min(max(y, 4.0), max(alto_hoja - alto_img - 4, 4.0))
+        if x is not None:
+            x = min(max(x, 4.0), max(ancho_hoja - 20, 4.0))
+        if y is not None:
+            y = min(max(y, 4.0), max(alto_hoja - alto_img - 4, 4.0))
 
     with db.sesion() as conn:
         if not db.obtener_cotizacion(conn, cotizacion_id):
             raise HTTPException(404, "Esa cotización no existe")
         db.firmar_cotizacion(conn, cotizacion_id, firma_id, x, y, ancho_img)
-        db.log_evento(
-            conn, "info",
-            "Cotización firmada" if firma_id else "Cotización sin firma",
-            (f"No. {cotizacion_id} · x={x:.1f} y={y:.1f} ancho={ancho_img:.1f} pt"
-             if firma_id else f"No. {cotizacion_id} (se quitó la firma)"))
+        if firma_id and x is not None and y is not None:
+            detalle = f"No. {cotizacion_id} · x={x:.1f} y={y:.1f} ancho={ancho_img:.1f} pt"
+        elif firma_id:
+            detalle = f"No. {cotizacion_id} · firma sin posición"
+        else:
+            detalle = f"No. {cotizacion_id} (se quitó la firma)"
+        db.log_evento(conn, "info",
+                      "Cotización firmada" if firma_id else "Cotización sin firma",
+                      detalle)
     return JSONResponse({"ok": True, "firma_id": firma_id,
                          "x": round(x, 1) if x is not None else None,
                          "y": round(y, 1) if y is not None else None,
@@ -1769,6 +1783,10 @@ def purgar_cliente(nic: str, request: Request):
     requiere_admin(request)
     nic = str(nic).strip()
     with db.sesion() as conn:
+        fila = conn.execute("SELECT estado FROM contratos WHERE nic = ?", (nic,)).fetchone()
+        if not fila or fila["estado"] != "borrado":
+            # un cliente activo no se purga: su historial no debe borrarse
+            return RedirectResponse("/papelera?mensaje=no_borrado", status_code=303)
         for tabla in ("facturas", "pendientes", "proyectos"):
             conn.execute(f"DELETE FROM {tabla} WHERE nic = ?", (nic,))
         conn.execute("DELETE FROM contratos WHERE nic = ? AND estado = 'borrado'", (nic,))
@@ -1979,12 +1997,14 @@ def _vinculos(conn) -> dict:
 
 @app.get("/monitoreo")
 def monitoreo_page(request: Request):
+    requiere_modulo(request, "monitoreo")
     return templates.TemplateResponse(request, "monitoreo.html", {"activo": "monitoreo"})
 
 
 @app.get("/api/monitoreo/plantas")
-def api_monitoreo_plantas() -> JSONResponse:
+def api_monitoreo_plantas(request: Request) -> JSONResponse:
     """Todas las plantas Noor (aunque no estén vinculadas a un contrato)."""
+    requiere_modulo(request, "monitoreo")
     try:
         with db.sesion() as conn:
             vinculos = _vinculos(conn)
@@ -2021,8 +2041,9 @@ def api_monitoreo_plantas() -> JSONResponse:
 
 
 @app.get("/api/monitoreo/planta/{plant_id}")
-def api_monitoreo_planta(plant_id: int) -> JSONResponse:
+def api_monitoreo_planta(plant_id: int, request: Request) -> JSONResponse:
     """Detalle de una planta: energía en vivo, flujo del día, alarmas, equipo y firmware."""
+    requiere_modulo(request, "monitoreo")
     try:
         from . import noor
         with db.sesion() as conn:
@@ -2102,8 +2123,9 @@ def api_monitoreo_planta(plant_id: int) -> JSONResponse:
 
 
 @app.get("/api/monitoreo/planta/{plant_id}/energia")
-def api_monitoreo_energia(plant_id: int, periodo: str = "today") -> JSONResponse:
+def api_monitoreo_energia(plant_id: int, request: Request, periodo: str = "today") -> JSONResponse:
     """Resumen de energía por periodo (today/week/month/year/total)."""
+    requiere_modulo(request, "monitoreo")
     try:
         from . import noor
         disp = noor.dispositivos_planta(plant_id)
@@ -2147,8 +2169,9 @@ def api_monitoreo_energia(plant_id: int, periodo: str = "today") -> JSONResponse
 
 
 @app.get("/api/monitoreo/planta/{plant_id}/chart")
-def api_monitoreo_chart(plant_id: int, periodo: str = "today") -> JSONResponse:
+def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today") -> JSONResponse:
     """Serie temporal de energía (producción/consumo/red/batería) para la gráfica."""
+    requiere_modulo(request, "monitoreo")
     try:
         from . import noor
         disp = noor.dispositivos_planta(plant_id)
@@ -2181,8 +2204,9 @@ def api_monitoreo_chart(plant_id: int, periodo: str = "today") -> JSONResponse:
 
 
 @app.get("/api/monitoreo/contratos")
-def api_monitoreo_contratos() -> JSONResponse:
+def api_monitoreo_contratos(request: Request) -> JSONResponse:
     """Contratos activos de la BD, para el selector de vinculación."""
+    requiere_modulo(request, "monitoreo")
     with db.sesion() as conn:
         filas = conn.execute(
             "SELECT nic, razon_social, nombre_normalizado FROM contratos "
@@ -2196,19 +2220,29 @@ def api_monitoreo_contratos() -> JSONResponse:
 @app.post("/api/monitoreo/vincular")
 async def api_monitoreo_vincular(request: Request) -> JSONResponse:
     """Vincula una planta Noor a un contrato (una planta = un único contrato)."""
+    requiere_modulo(request, "monitoreo")
+    requiere_operador(request)
     try:
         cuerpo = await request.json()
     except Exception:  # noqa: BLE001
         return JSONResponse({"ok": False, "error": "JSON inválido"}, status_code=400)
     plant_id = cuerpo.get("noor_plant_id")
     contrato_nic = cuerpo.get("contrato_nic")
-    if not isinstance(plant_id, int) or not isinstance(contrato_nic, str) or not contrato_nic:
+    if (not isinstance(plant_id, int) or isinstance(plant_id, bool)
+            or not isinstance(contrato_nic, str) or not contrato_nic):
         return JSONResponse({"ok": False, "error": "Faltan noor_plant_id o contrato_nic"},
                             status_code=400)
     with db.sesion() as conn:
+        existe = conn.execute(
+            "SELECT 1 FROM contratos WHERE nic = ? AND estado = 'agregado'",
+            (contrato_nic,)).fetchone()
+        if not existe:
+            return JSONResponse({"ok": False, "error": "Contrato no encontrado"},
+                                status_code=404)
         conn.execute("UPDATE contratos SET noor_plant_id = NULL WHERE noor_plant_id = ?",
                      (plant_id,))
         conn.execute("UPDATE contratos SET noor_plant_id = ? WHERE nic = ?",
                      (plant_id, contrato_nic))
+        db.log_evento(conn, "info", f"Planta Noor {plant_id} vinculada al contrato {contrato_nic}")
         conn.commit()
     return JSONResponse({"ok": True})

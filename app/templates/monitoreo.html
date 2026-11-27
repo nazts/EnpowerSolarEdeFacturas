@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block titulo %}Monitoreo · Enpower Solar{% endblock %}
 {% block estilos %}<style>
+  [hidden]{display:none!important}
   .mn-wrap{max-width:1500px;margin:0 auto;padding:18px 22px 22px;display:grid;gap:14px}
   .mn-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
   .mn-head h1{margin:0;font-size:20px}
@@ -105,7 +106,7 @@
       <div id="mnVinculo"></div>
       <span id="mnModo" class="mn-chip modo" hidden></span>
       <span id="mnSistema" class="mn-chip sistema" hidden></span>
-      <span id="mnEstado" class="mn-chip" hidden></span>
+      <span id="mnEstadoChip" class="mn-chip" hidden></span>
       <div class="mn-acciones">
         <button class="mn-btn" id="mnGeo"><i class="bi bi-geo-alt"></i> <span id="mnGeoTxt">Ubicación</span></button>
         <button class="mn-btn" id="mnVincularBtn" hidden><i class="bi bi-link-45deg"></i> Vincular contrato</button>
@@ -229,6 +230,7 @@
     $('#mnLista').hidden = true;
     $('#mnDetalle').hidden = false;
     suavizado = {};
+    periodoActual = 'today';
     window.scrollTo(0,0);
     fetchDetalle(true);
     if (timerDetalle) clearInterval(timerDetalle);
@@ -263,7 +265,7 @@
     if (!v) cargarContratos();
     // modo / sistema / estado
     var h = d.home || {};
-    var mModo = $('#mnModo'), mSis = $('#mnSistema'), mEst = $('#mnEstado');
+    var mModo = $('#mnModo'), mSis = $('#mnSistema'), mEst = $('#mnEstadoChip');
     if (h.modo){ mModo.textContent = h.modo; mModo.hidden = false; } else mModo.hidden = true;
     if (h.sistema){ mSis.textContent = h.sistema; mSis.hidden = false; } else mSis.hidden = true;
     if (h.estado){ mEst.textContent = h.estado; mEst.className = 'mn-chip' + (h.estado === 'en línea' ? '' : ' off'); mEst.hidden = false; } else mEst.hidden = true;
@@ -278,8 +280,8 @@
     }
     // potencia en vivo (suavizada)
     pintarLive(d.energia, inicial);
-    // energía por periodo (pestañas)
-    cargarPeriodo('today');
+    // energía por periodo (pestañas) — respeta la pestaña elegida
+    cargarPeriodo(periodoActual);
     // flujo
     pintarFlujo(d.flujo);
     if (h.potencia_red != null) $('#mnNodo-red').textContent = fmt(h.potencia_red,2)+' kW';
@@ -306,7 +308,7 @@
     ];
     if (!live.dataset.init){
       live.innerHTML = items.map(function(it){
-        return '<div class="k" id="mnK-'+it[0]+'"><b style="color:'+it[5]+'">—</b><small>'+it[1]+' <i>'+it[3]+'</i></small></div>';
+        return '<div class="k" id="mnK-'+it[0]+'"><b style="color:'+it[5]+'">—</b><small>'+it[1]+' <i>'+it[2]+'</i></small></div>';
       }).join('');
       live.dataset.init = '1';
     }
