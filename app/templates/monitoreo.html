@@ -46,7 +46,7 @@
   .mn-panel .mn-body{padding:14px 16px}
   /* escena isométrica 2.5D */
   .mn-scene{width:100%;height:auto;display:block;color:var(--txt)}
-  .sc-solar{--c:var(--accent2,#E8A33D)} .sc-red{--c:var(--info,#3E7CB1)} .sc-casa{--c:var(--ok,#2F9E44)} .sc-bat{--c:var(--accent,#7A5CC7)}
+  .sc-solar{--c:var(--accent2,#E8A33D)} .sc-red{--c:var(--info,#3E7CB1)} .sc-casa{--c:var(--ok,#2F9E44)} .sc-bat{--c:var(--accent,#7A5CC7)} .sc-inversor{--c:#E8743B}
   .sc-l{fill:var(--card2);fill:color-mix(in srgb,var(--c) 22%,var(--card2));stroke:var(--line);stroke-width:1;stroke-linejoin:round}
   .sc-r{fill:var(--card);fill:color-mix(in srgb,var(--c) 34%,var(--card));stroke:var(--line);stroke-width:1;stroke-linejoin:round}
   .sc-t{fill:var(--card);fill:color-mix(in srgb,var(--c) 52%,var(--card));stroke:var(--line);stroke-width:1;stroke-linejoin:round}
@@ -160,7 +160,7 @@
     <div class="mn-cols">
       <div class="mn-panel">
         <h4>Flujo de energía (en vivo)</h4>
-        <div class="mn-body"><svg id="mnFlujoSvg" class="mn-scene" viewBox="0 0 640 410" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Escena isométrica de flujo de energía"></svg></div>
+        <div class="mn-body"><svg id="mnFlujoSvg" class="mn-scene" viewBox="0 0 640 430" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Flujo de energía 2D"></svg></div>
         <h4>Potencia en vivo</h4>
         <div class="mn-body"><div class="mn-live" id="mnLive"></div></div>
       </div>
@@ -221,7 +221,7 @@
   var animando = false;
 
   // colores semánticos de los nodos
-  var COLOR = { solar:'var(--accent2,#E8A33D)', red:'var(--info,#3E7CB1)', casa:'var(--ok,#2F9E44)', bateria:'var(--accent,#7A5CC7)' };
+  var COLOR = { solar:'var(--accent2,#E8A33D)', inversor:'#E8743B', red:'var(--info,#3E7CB1)', casa:'var(--ok,#2F9E44)', bateria:'var(--accent,#7A5CC7)' };
   var NODO_DE = {
     'Solar':'solar', 'Grid Input':'red', 'Grid Output':'red',
     'Battery Charge':'bateria', 'Battery Discharge':'bateria',
@@ -493,6 +493,8 @@
     return d + ' L'+l[0].toFixed(1)+' '+l[1].toFixed(1);
   }
   function pintarCurva(serie, p){
+    var npts = serie.filter(function(x){ return x && x.pvEnergyGenerated != null; }).length;
+    if (serie.length < 10){ curvaMsg('Acumulando datos… '+serie.length+' de 10 puntos guardados. La curva aparecerá conforme el historial crezca.'); return; }
     var datos = agrupar(serie, p);
     var pico = 0, ip = -1;
     datos.forEach(function(x,i){ if (x.v > pico){ pico = x.v; ip = i; } });
@@ -546,85 +548,108 @@
            '<polygon class="sc-r" points="'+pt(F,0)+' '+pt(R,0)+' '+pt(R,h)+' '+pt(F,h)+'"/>' +
            '<polygon class="sc-t" points="'+pt(Lf,h)+' '+pt(F,h)+' '+pt(R,h)+' '+pt(B,h)+'"/>';
   }
-  var ANCLA = { solar:[165,150], casa:[470,185], bateria:[175,305], red:[565,265] };
+  var ANCLA = { solar:[120,145], inversor:[320,260], casa:[520,180], bateria:[175,305], red:[520,332] };
+  // iconos Lucide (ISC) incrustados — 24×24, stroke
+  var IC = '#3a3a3f';
+  var LP = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    solar: '<path d="M11 2h2"/><path d="m14.28 14-4.56 8"/><path d="m21 22-1.558-4H4.558"/><path d="M3 10v2"/><path d="M6.245 15.04A2 2 0 0 1 8 14h12a1 1 0 0 1 .864 1.505l-3.11 5.457A2 2 0 0 1 16 22H4a1 1 0 0 1-.863-1.506z"/><path d="M7 2a4 4 0 0 1-4 4"/><path d="m8.66 7.66 1.41 1.41"/>',
+    home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    red: '<path d="M12 2v20"/><path d="M2 5h20"/><path d="M3 3v2"/><path d="M7 3v2"/><path d="M17 3v2"/><path d="M21 3v2"/><path d="m19 5-7 7-7-7"/>'
+  };
+  function lucide(inner, x, y, size){
+    var sc = size/24;
+    return '<g transform="translate('+(x-size/2).toFixed(1)+' '+(y-size/2).toFixed(1)+') scale('+sc.toFixed(3)+')" stroke="'+IC+'" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">'+inner+'</g>';
+  }
   function escenaBase(){
-    var s = '', i, k, c;
-    s += '<polygon class="sc-ground" points="320,400 40,300 320,215 600,300"/>';
-    // sol
-    s += '<g id="mnSol"><g class="sc-rays">';
-    for (i=0;i<12;i++){ var an=i*Math.PI/6; s += '<line x1="'+(70+Math.cos(an)*26).toFixed(1)+'" y1="'+(55+Math.sin(an)*26).toFixed(1)+'" x2="'+(70+Math.cos(an)*36).toFixed(1)+'" y2="'+(55+Math.sin(an)*36).toFixed(1)+'"/>'; }
-    s += '</g><circle class="sc-sun" cx="70" cy="55" r="17"/></g>';
-    // paneles solares (3 losas)
-    s += '<g class="sc-solar">';
-    for (k=2;k>=0;k--) s += isoBox(110 + k*K*30, 168 - k*15, 28, 44, 6);
+    var s = '', i, c;
+    // líneas de flujo primero (quedan debajo de los iconos)
+    s += '<g id="mnFlujoLineas"></g>';
+    // panel solar
+    s += '<g class="sc-solar">' + lucide(LP.solar, 120, 152, 56) + '</g>';
+    // inversor (genérico, sin marca)
+    s += '<g class="sc-inversor">';
+    s += '<rect x="296" y="220" width="48" height="64" rx="6" fill="#4a4a52" stroke="#3a3a3f" stroke-width="1"/>';
+    s += '<text x="320" y="249" fill="#ffffff" font-size="8.5" font-weight="700" text-anchor="middle" font-family="inherit">INVERSOR</text>';
+    s += '<rect x="308" y="257" width="24" height="9" rx="1.5" fill="#ffffff" stroke="#ffffff" stroke-width="0.5"/>';
+    s += '<circle cx="320" cy="261.5" r="2" fill="var(--accent2,#E8A33D)"/>';
+    for (c=0;c<4;c++) s += '<rect x="'+(303+c*8)+'" y="276" width="4" height="7" rx="1" fill="#4a4a52"/>';
     s += '</g>';
-    // batería (5 celdas en la cara derecha)
-    s += '<g class="sc-bat">' + isoBox(175, 335, 34, 34, 54);
+    // batería (negra, celdas dinámicas, terminal a la derecha)
+    s += '<g class="sc-bat">';
+    s += '<rect x="134" y="292" width="62" height="26" rx="5" fill="#2f2f34" stroke="#3a3a3f" stroke-width="1"/>';
     for (c=0;c<5;c++){
-      var y0 = 335 - 6 - c*9.5, xa = 175 + 4, xb = 175 + 34*K - 4, dy = (xb-xa)*0.577;
-      s += '<polygon class="sc-cell" id="mnCelda'+c+'" fill-opacity=".15" points="'+xa+','+(y0-2)+' '+xb.toFixed(1)+','+(y0-2-dy).toFixed(1)+' '+xb.toFixed(1)+','+(y0-8-dy).toFixed(1)+' '+xa+','+(y0-8)+'"/>';
+      s += '<rect class="sc-cell" id="mnCelda'+c+'" x="'+(139+c*11).toFixed(1)+'" y="296" width="8" height="18" rx="1" fill="#2F9E44" fill-opacity=".12"/>';
     }
+    for (c=1;c<5;c++) s += '<line x1="'+(139+c*11).toFixed(1)+'" y1="296" x2="'+(139+c*11).toFixed(1)+'" y2="314" stroke="#cccccc" stroke-width="1" stroke-opacity=".5"/>';
+    s += '<rect x="196" y="300" width="5" height="10" rx="1" fill="#2f2f34"/>';
     s += '</g>';
     // casa
-    var hx=470, hy=262, a=62, b=62, h=46;
-    var cx = hx, cy = hy - 62*.5 - h - 34;
-    var F=[hx,hy-h], R=[hx+a*K,hy-h-a*.5], Lf=[hx-b*K,hy-h-b*.5];
-    s += '<g class="sc-casa">' + isoBox(hx, hy, a, b, h) +
-      '<polygon class="sc-roof" points="'+Lf[0].toFixed(1)+','+Lf[1].toFixed(1)+' '+F[0]+','+F[1]+' '+cx+','+cy.toFixed(1)+'"/>' +
-      '<polygon class="sc-roof2" points="'+F[0]+','+F[1]+' '+R[0].toFixed(1)+','+R[1].toFixed(1)+' '+cx+','+cy.toFixed(1)+'"/>' +
-      '<polygon class="sc-cell" fill-opacity=".85" points="'+(hx+10)+','+(hy-5)+' '+(hx+26)+','+(hy-14.2)+' '+(hx+26)+','+(hy-38.2)+' '+(hx+10)+','+(hy-29)+'"/></g>';
-    // poste de red
-    s += '<g class="sc-red"><path class="sc-pole" d="M565 345 L565 225 M545 240 L585 240 M550 258 L580 258"/>' +
-      '<circle cx="545" cy="240" r="4" fill="var(--c)"/><circle cx="585" cy="240" r="4" fill="var(--c)"/>' +
-      '<circle cx="550" cy="258" r="3.5" fill="var(--c)"/><circle cx="580" cy="258" r="3.5" fill="var(--c)"/></g>';
-    // líneas de flujo (se rellenan en pintarFlujo)
-    s += '<g id="mnFlujoLineas"></g>';
-    // etiquetas (estáticas; los números los suaviza animarNumero)
+    s += '<g class="sc-casa">' + lucide(LP.home, 520, 165, 48) + '</g>';
+    // torre de red
+    s += '<g class="sc-red">' + lucide(LP.red, 520, 340, 46) + '</g>';
+    // etiquetas
     function lab(id, x, y, nm, u){
       return '<text class="sc-nm" x="'+x+'" y="'+y+'">'+nm+'</text>' +
              '<text class="sc-val" x="'+x+'" y="'+(y+22)+'"><tspan id="mnV-'+id+'">—</tspan><tspan class="u" dx="3">'+u+'</tspan></text>';
     }
-    s += lab('solar', 165, 205, 'Solar', 'kW') + lab('casa', 470, 300, 'Casa', 'W') +
-         lab('bateria', 175, 372, 'Batería', 'kW') + lab('red', 565, 372, 'Red', 'kW');
-    s += '<text class="sc-nm" id="mnSoc" x="175" y="403" style="font-size:11px"></text>';
+    s += lab('solar', 120, 196, 'Solar', 'kW') + lab('inversor', 320, 340, 'Inversor', 'kW') + lab('casa', 520, 210, 'Casa', 'kW') +
+         lab('bateria', 165, 344, 'Batería', 'kW') + lab('red', 520, 382, 'Red', 'kW');
+    s += '<text class="sc-nm" id="mnSoc" x="165" y="364" style="font-size:11px"></text>';
     return s;
   }
   function pintarFlujo(flujo, e, h){
     var svg = $('#mnFlujoSvg');
     if (!svg.dataset.init){ svg.innerHTML = escenaBase(); svg.dataset.init = '1'; }
     e = e || {}; h = h || {};
-    // aristas desde el sankey (agrupadas por origen→destino)
+    // flujos construidos desde las potencias reales (kW), todo pasando por el inversor
+    var pv = Number(e.pvPower) || 0;                 // kW solar
+    var carga = (Number(e.loadPower) || 0) / 1000;   // kW casa
+    var red = Number(h.potencia_red) || 0;           // kW (+ importa, - exporta)
+    var bat = Number(h.potencia_bateria) || 0;       // kW (+ descarga, - carga)
     var aristas = {}, total = 0;
-    (flujo && flujo.links || []).forEach(function(l){
-      var s = NODO_DE[l.source], t = NODO_DE[l.target], v = Number(l.value) || 0;
-      if (!s || !t || s === t || v <= 0) return;
+    function add(s, t, v){
+      if (!(v > 0.001)) return;
       aristas[s+'>'+t] = (aristas[s+'>'+t] || 0) + v; total += v;
-    });
-    if (!total){ // respaldo: derivar de las potencias en vivo
-      var pv = Number(e.pvPower)||0, ld = (Number(e.loadPower)||0)/1000;
-      if (pv > 0 && ld > 0){ aristas['solar>casa'] = Math.min(pv, ld); total = aristas['solar>casa']; }
     }
+    add('solar', 'inversor', pv);                 // paneles → inversor
+    if (red > 0) add('red', 'inversor', red);     // red → inversor (importa)
+    else add('inversor', 'red', -red);            // inversor → red (exporta)
+    if (bat > 0) add('bateria', 'inversor', bat); // batería → inversor (descarga)
+    else add('inversor', 'bateria', -bat);        // inversor → batería (carga)
+    add('inversor', 'casa', carga);               // inversor → casa
+    // potencia que procesa el inversor = suma de entradas
+    var invIn = (aristas['solar>inversor']||0) + (aristas['red>inversor']||0) + (aristas['bateria>inversor']||0);
+    h.potencia_inversor = invIn;
     var out = '';
     Object.keys(aristas).forEach(function(k){
       var a = k.split('>'), s = ANCLA[a[0]], t = ANCLA[a[1]];
-      var mx = (s[0]+t[0])/2, my = (s[1]+t[1])/2, dx = t[0]-s[0], dy = t[1]-s[1];
-      var len = Math.sqrt(dx*dx+dy*dy) || 1, off = 22 * (a[0] < a[1] ? 1 : -1);
-      var qx = mx - dy/len*off, qy = my + dx/len*off;
-      var d = 'M'+s[0]+' '+s[1]+' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+t[0]+' '+t[1];
+      // ruta ortogonal con codo en L (rectas, estilo diagrama técnico)
+      var d;
+      if (Math.abs(t[0]-s[0]) > Math.abs(t[1]-s[1])){
+        d = 'M'+s[0]+' '+s[1]+' L'+t[0]+' '+s[1]+' L'+t[0]+' '+t[1];
+      } else {
+        d = 'M'+s[0]+' '+s[1]+' L'+s[0]+' '+t[1]+' L'+t[0]+' '+t[1];
+      }
       var w = Math.max(2, Math.min(8, 2 + aristas[k]/(total||1)*7));
       var col = COLOR[a[0]];
-      out += '<path class="sc-flowbg" d="'+d+'" stroke="'+col+'" stroke-width="'+w.toFixed(1)+'"/>' +
-             '<path class="sc-flow" d="'+d+'" stroke="'+col+'" stroke-width="'+(w*0.6).toFixed(1)+'"/>';
+      var rc = ' fill="none" stroke-linejoin="round" stroke-linecap="round"';
+      out += '<path class="sc-flowbg" d="'+d+'" stroke="'+col+'" stroke-width="'+w.toFixed(1)+'"'+rc+'/>' +
+             '<path class="sc-flow" d="'+d+'" stroke="'+col+'" stroke-width="'+(w*0.6).toFixed(1)+'"'+rc+'/>' +
+             '<circle cx="'+s[0]+'" cy="'+s[1]+'" r="3" fill="'+col+'"/>' +
+             '<circle cx="'+t[0]+'" cy="'+t[1]+'" r="3" fill="'+col+'"/>';
     });
     $('#mnFlujoLineas').innerHTML = out;
-    $('#mnSol').style.opacity = (Number(e.pvPower) > 0) ? 1 : 0.3;
+    var gsolar = document.querySelector('#mnFlujoSvg .sc-solar');
+    if (gsolar) gsolar.style.opacity = (Number(e.pvPower) > 0) ? 1 : 0.35;
     function nodo(id, clave, v, dec){
       var el = $('#mnV-'+id);
       if (v == null || isNaN(v)){ el.textContent = '—'; return; }
       animarNumero(el, clave, Number(v), dec);
     }
     nodo('solar', 'nSolar', e.pvPower, 2);
-    nodo('casa', 'nCasa', e.loadPower, 0);
+    nodo('inversor', 'nInversor', h.potencia_inversor, 2);
+    nodo('casa', 'nCasa', (Number(e.loadPower)||0)/1000, 2);
     nodo('red', 'nRed', h.potencia_red, 2);
     nodo('bateria', 'nBat', h.potencia_bateria, 2);
     var soc = (h.soc != null && !isNaN(h.soc)) ? Number(h.soc) : null;
