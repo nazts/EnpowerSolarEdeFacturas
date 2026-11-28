@@ -1903,43 +1903,38 @@ def ver_pdf(factura_id: int):
 # ============================================================ Monitoreo Noor/Weco
 # Plantas solares de los clientes, en vivo desde noor.olpess-api.com (app/noor.py).
 
-_cache_plantas: dict = {"ts": 0.0, "data": []}
-_cache_energia: dict = {}
-
-
 def _noor_plantas() -> list[dict]:
-    """Plantas Noor con caché de 30s (no re-consultar la API en cada poll)."""
-    ahora = time.time()
-    if _cache_plantas["data"] and ahora - _cache_plantas["ts"] < 30:
-        return _cache_plantas["data"]
-    from . import noor
-    _cache_plantas["data"] = noor.lista_plantas()
-    _cache_plantas["ts"] = ahora
-    return _cache_plantas["data"]
+    """Plantas Noor con caché persistente de 5 min (no re-consultar en cada poll)."""
+    from . import cache_noor, noor
+    val = cache_noor.get("plantas", 300)
+    if val is not None:
+        return val
+    val = noor.lista_plantas()
+    cache_noor.set("plantas", val)
+    return val
 
 
 def _noor_energia(plant_id: int) -> dict:
-    """Energía en vivo de una planta (caché 15s)."""
-    ahora = time.time()
-    item = _cache_energia.get(("e", plant_id))
-    if item and ahora - item[0] < 15:
-        return item[1]
-    from . import noor
+    """Energía en vivo de una planta (caché persistente 60s)."""
+    from . import cache_noor, noor
+    clave = f"energia_{plant_id}"
+    val = cache_noor.get(clave, 60)
+    if val is not None:
+        return val
     val = noor.energia_planta(plant_id)
-    _cache_energia[("e", plant_id)] = (ahora, val)
+    cache_noor.set(clave, val)
     return val
 
 
 def _noor_periodo(serial: str, query_type: int, fecha: str) -> dict:
-    """Resumen de energía de un periodo (getInverterHomeEnergyV2) con caché 60s."""
-    clave = ("p", serial, query_type, fecha)
-    ahora = time.time()
-    item = _cache_energia.get(clave)
-    if item and ahora - item[0] < 60:
-        return item[1]
-    from . import noor
+    """Resumen de energía de un periodo (caché persistente 5 min)."""
+    from . import cache_noor, noor
+    clave = f"periodo_{serial}_{query_type}_{fecha}"
+    val = cache_noor.get(clave, 300)
+    if val is not None:
+        return val
     val = noor.energia_inversor([serial], query_type, fecha)
-    _cache_energia[clave] = (ahora, val)
+    cache_noor.set(clave, val)
     return val
 
 
@@ -1964,13 +1959,12 @@ def _fecha_periodo(periodo: str) -> tuple[int, str]:
 
 
 def _noor_home(plant_id: int) -> dict:
-    """Pantalla de inicio del equipo (modo, sistema, potencias, totales) caché 20s."""
-    clave = ("h", plant_id)
-    ahora = time.time()
-    item = _cache_energia.get(clave)
-    if item and ahora - item[0] < 20:
-        return item[1]
-    from . import noor
+    """Pantalla de inicio del equipo (modo, sistema, potencias, totales) caché persistente 60s."""
+    from . import cache_noor, noor
+    clave = f"home_{plant_id}"
+    val = cache_noor.get(clave, 60)
+    if val is not None:
+        return val
     disp = noor.dispositivos_planta(plant_id)
     serial = dtc = ""
     for d in disp:
@@ -1979,7 +1973,7 @@ def _noor_home(plant_id: int) -> dict:
         if serial:
             break
     val = noor.home_planta(serial, dtc) if serial else {}
-    _cache_energia[clave] = (ahora, val)
+    cache_noor.set(clave, val)
     return val
 
 
