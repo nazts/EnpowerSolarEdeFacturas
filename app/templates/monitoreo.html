@@ -527,7 +527,6 @@
     pintarLeyenda(campos);
     var datos = agruparMulti(serie, p);
     var conDatos = datos.filter(function(d){ return d.pt != null; }).length;
-    if (conDatos < 2){ curvaMsg('Acumulando datos… ' + conDatos + ' puntos guardados. La curva aparecerá conforme el historial crezca.'); return; }
     var pico = 0;
     datos.forEach(function(d){
       CAMPOS_POTENCIA.forEach(function(c){
@@ -535,7 +534,8 @@
         if (v != null) pico = Math.max(pico, Math.abs(v));
       });
     });
-    if (pico <= 0){ curvaMsg('Sin datos de potencia en este periodo.'); return; }
+    var sinDatos = conDatos < 2 || pico <= 0;
+    if (sinDatos) pico = 1;   // escala por defecto: la gráfica se mantiene aunque no haya datos
     var key = p + '|' + datos.map(function(d){
       return CAMPOS_POTENCIA.map(function(c){ return (d.valores[c]||0).toFixed(2); }).join(',');
     }).join(';');
@@ -607,6 +607,7 @@
       grid +
       '<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+cy0.toFixed(1)+'" y2="'+cy0.toFixed(1)+'" class="cv-grid" opacity="1"/>' +
       ejes + secundarias +
+      (sinDatos ? '<text class="cv-ax" x="'+(W/2).toFixed(1)+'" y="'+(H/2).toFixed(1)+'" text-anchor="middle" font-size="13">Acumulando datos… '+conDatos+' puntos guardados</text>' : '') +
       (lineaPv ? '<path d="'+areaPv+'" fill="url(#mnCvG)"/>' : '') +
       (avgPts.length >= 2 ? '<path class="cv-avg" d="'+suave(avgPts)+'"/>' : '') +
       (lineaPv ? '<path class="cv-line" id="mnCvPath" d="'+lineaPv+'"/>' : '') +
