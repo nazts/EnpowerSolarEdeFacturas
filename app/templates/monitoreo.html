@@ -460,6 +460,12 @@
 
   // ---- curva de luz (producción por hora/día/mes) ----
   var MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function fmtHora12(h){
+    var n = parseInt(h, 10);
+    var ampm = n >= 12 ? 'PM' : 'AM';
+    var hr = n % 12; if (hr === 0) hr = 12;
+    return hr + ' ' + ampm;
+  }
   function curvaMsg(txt){ curvaKey = null; curvaDatos = null; $('#mnCurva').innerHTML = '<div class="vacio">'+esc(txt)+'</div>'; var l = $('#mnLeg'); if (l) l.innerHTML = ''; }
   function pintarLeyenda(campos){
     var el = $('#mnLeg'); if (!el) return;
@@ -494,7 +500,7 @@
     } else orden.sort();
     return orden.map(function(k){
       var g = grupos[k];
-      var lab = (p === 'today') ? (k+'h') : (p === 'year') ? (MESES[Number(k.slice(5,7))-1] || k) : k.slice(8,10)+'/'+k.slice(5,7);
+      var lab = (p === 'today') ? fmtHora12(k) : (p === 'year') ? (MESES[Number(k.slice(5,7))-1] || k) : k.slice(8,10)+'/'+k.slice(5,7);
       var valores = {};
       CAMPOS_POTENCIA.forEach(function(c){
         var sum = 0, n = 0;

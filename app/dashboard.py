@@ -2189,10 +2189,9 @@ def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today")
             ini = hoy.replace(month=1, day=1)
             ini_str = f"{ini:%Y-%m-%d} 00:00:00"
         else:
-            # today → últimas 24 horas (rolling), para que siempre haya datos visibles
-            ini = hoy - timedelta(hours=24)
-            ini_str = f"{ini:%Y-%m-%d %H:%M:%S}"
-        fin_str = f"{hoy:%Y-%m-%d %H:%M:%S}"
+            # today → día calendario actual
+            ini_str = f"{hoy:%Y-%m-%d} 00:00:00"
+        fin_str = f"{hoy:%Y-%m-%d} 23:59:59"
 
         # leer historial guardado de la BD local
         with db.sesion() as conn:
