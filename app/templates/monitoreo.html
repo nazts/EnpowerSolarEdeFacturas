@@ -99,6 +99,7 @@
   .cv-ax{fill:var(--muted);font-size:10.5px}
   .cv-line{fill:none;stroke:var(--accent2,#E8A33D);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
   .cv-sec{fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:.8}
+  .cv-pt{stroke:var(--card);stroke-width:1.5}
   .cv-avg{fill:none;stroke:var(--accent,#7A5CC7);stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round}
   .cv-pk{fill:var(--accent2,#E8A33D);stroke:var(--card);stroke-width:2}
   .cv-pkt{fill:var(--txt);font-family:'Genos',monospace;font-size:13px;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:var(--card2);stroke-width:3px}
@@ -489,8 +490,7 @@
       grupos[k].pts.push(pt);
     });
     if (p === 'today'){
-      orden = [];
-      for (var h=0; h<24; h++){ var kk = (h<10?'0':'')+h; orden.push(kk); if (!(kk in grupos)) grupos[kk] = { pts: [] }; }
+      orden.sort();   // solo las horas con datos: el eje se adapta en vez de forzar 24 horas vacías
     } else orden.sort();
     return orden.map(function(k){
       var g = grupos[k];
@@ -534,7 +534,7 @@
         if (v != null) pico = Math.max(pico, Math.abs(v));
       });
     });
-    var sinDatos = conDatos < 2 || pico <= 0;
+    var sinDatos = conDatos < 1 || pico <= 0;
     if (sinDatos) pico = 1;   // escala por defecto: la gráfica se mantiene aunque no haya datos
     var key = p + '|' + datos.map(function(d){
       return CAMPOS_POTENCIA.map(function(c){ return (d.valores[c]||0).toFixed(2); }).join(',');
@@ -568,11 +568,12 @@
       datos.forEach(function(d,i){
         if (d.valores[c] != null) pts.push([X(i), Y(d.valores[c])]);
       });
-      if (pts.length < 2) return;
+      if (!pts.length) return;
       var meta = null;
       (campos || []).forEach(function(x){ if (x.campo === c) meta = x; });
       var col = (meta && meta.color) ? meta.color : '#888';
-      secundarias += '<path class="cv-sec" d="'+suave(pts)+'" stroke="'+col+'"/>';
+      if (pts.length >= 2) secundarias += '<path class="cv-sec" d="'+suave(pts)+'" stroke="'+col+'"/>';
+      pts.forEach(function(pt){ secundarias += '<circle class="cv-pt" cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="3" fill="'+col+'"/>'; });
     });
     // curva principal PV (estilo galaxia: área + media móvil + pico + punto animado)
     var lineaPv = pvPts.length >= 2 ? suave(pvPts) : '';
@@ -580,6 +581,8 @@
     if (lineaPv){
       areaPv = lineaPv + ' L'+pvPts[pvPts.length-1][0].toFixed(1)+' '+(pt+ih).toFixed(1)+' L'+pvPts[0][0].toFixed(1)+' '+(pt+ih).toFixed(1)+' Z';
     }
+    var puntosPv = '';
+    pvPts.forEach(function(pt){ puntosPv += '<circle class="cv-pt" cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="3.5" fill="var(--accent2,#E8A33D)"/>'; });
     var picoPv = 0, ipPv = -1;
     pvIdx.forEach(function(x){ if (x.v > picoPv){ picoPv = x.v; ipPv = x.i; } });
     var avgPts = [];
@@ -611,6 +614,7 @@
       (lineaPv ? '<path d="'+areaPv+'" fill="url(#mnCvG)"/>' : '') +
       (avgPts.length >= 2 ? '<path class="cv-avg" d="'+suave(avgPts)+'"/>' : '') +
       (lineaPv ? '<path class="cv-line" id="mnCvPath" d="'+lineaPv+'"/>' : '') +
+      puntosPv +
       extra +
       '<g id="mnCvHover"></g>' +
       '</svg>';

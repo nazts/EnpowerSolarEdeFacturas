@@ -2181,20 +2181,22 @@ def api_monitoreo_chart(plant_id: int, request: Request, periodo: str = "today")
         hoy = datetime.now()
         if periodo == "week":
             ini = hoy - timedelta(days=6)
+            ini_str = f"{ini:%Y-%m-%d} 00:00:00"
         elif periodo == "month":
             ini = hoy.replace(day=1)
+            ini_str = f"{ini:%Y-%m-%d} 00:00:00"
         elif periodo == "year":
             ini = hoy.replace(month=1, day=1)
+            ini_str = f"{ini:%Y-%m-%d} 00:00:00"
         else:
-            ini = hoy
-        
+            # today → últimas 24 horas (rolling), para que siempre haya datos visibles
+            ini = hoy - timedelta(hours=24)
+            ini_str = f"{ini:%Y-%m-%d %H:%M:%S}"
+        fin_str = f"{hoy:%Y-%m-%d %H:%M:%S}"
+
         # leer historial guardado de la BD local
         with db.sesion() as conn:
-            filas = db.historial_planta(
-                conn, serial,
-                f"{ini:%Y-%m-%d} 00:00:00",
-                f"{hoy:%Y-%m-%d} 23:59:59"
-            )
+            filas = db.historial_planta(conn, serial, ini_str, fin_str)
         
         # formatear como serie: potencias en kW, resto en unidades propias
         def kw(v):
